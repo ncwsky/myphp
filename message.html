@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>跳转提示</title>
+<style type="text/css">
+*{ padding: 0; margin: 0; }
+body{ background: #fff; font-family: "Microsoft YaHei"; color: #333; font-size: 100%; }
+.system-message{ padding: 1.5em 3em; }
+.system-message h1{ font-size: 6.25em; font-weight: normal; line-height: 120%; margin-bottom: 0.12em; }
+.system-message .jump{ padding-top:0.625em;}
+.system-message .jump a{ color: #333;}
+.system-message .success{color:#207E05;}.system-message .error{color:#da0404;}
+.system-message .normal,.system-message .success,.system-message .error{ line-height:1.8em; font-size:2.25em }
+.system-message .detail{ font-size: 1.2em; line-height: 160%; margin-top: 0.8em;}
+</style>
+</head>
+
+<body>
+<div class="system-message">
+<?php if(isset($success)) {?>
+<h1>:)</h1>
+<p class="success">__$success__ 操作成功！</p>
+<?php }elseif(isset($error)){?>
+<h1>:(</h1>
+<p class="error">__$error__ 操作失败！</p>
+<?php }else{?>
+<p class="normal">__$message__ 普通提示！</p>
+<?php }?>
+<p class="detail">该用户不存在！</p>
+<p class="jump">
+页面自动 <a id="href" href="__$jumpUrl__">跳转</a>  等待时间： <b id="time">__$time__</b>
+<br><a href="$jumpUrl">如未跳转请点击此处手工跳转</a>
+</p>
+</div>
+<script type="text/javascript">
+var pgo=0, t=setInterval(function(){
+	var time = document.getElementById("time");
+	var val = parseInt(time.innerHTML)-1;
+	time.innerHTML=val;
+	if(val<=0){
+		clearInterval(t);
+		if(pgo==0){pgo=1;__$js__;}
+	}
+},1000);
+</script>
+</body>
+</html>

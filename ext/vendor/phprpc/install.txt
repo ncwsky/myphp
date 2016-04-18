@@ -1,0 +1,71 @@
+PHPRPC for PHP 的安装
+
+    标签:
+    安装
+
+该版本直接解压后就可以使用，其中
+
+    bigint.php
+    compat.php
+    phprpc_date.php
+    xxtea.php
+
+属于公共文件。不论是客户端还是服务器端都需要这些文件。
+
+    phprpc_client.php
+
+是客户端文件，如果你只需要使用客户端，那么只要有上面那些公共文件和这个文件就可以使用了，使用时，直接在你的程序中包含 phprpc_client.php 就可以，公共文件不需要单独包含。
+
+    dhparams
+    dhparams.php
+    phprpc_server.php
+
+这三个文件是服务器端需要的文件。
+其中 dhparams 目录中包含的是加密传输时用来生成密钥的参数，如果你需要更详细的解释，请参见 PHPRPC 加密传输。
+dhparams.php 是用来读取 dhparams 目录中文件的类。
+phprpc_server.php 是服务器端，如果你要使用 PHP 来发布 PHPRPC 服务，只需要包含这个文件就可以了。公共文件和 dhparams.php 都不需要单独包含。
+
+运行环境
+
+    PHP 4.3+、PHP 5、PHP 6
+    客户端要求开启 socket 扩展。
+    服务器端需要有 IIS、Apache、lighttpd 等可以运行 PHP 程序的 Web 服务器。
+    如果服务器端需要加密传输的能力，必须要保证 session 配置正确。
+
+
+如果需要加密传输能力，最好开启大整数计算扩展，PHPRPC 支持的大整数计算扩展按照计算速度（由快到慢）排名是 gmp、big_int、bcmath。如果这些扩展你一个都没有开启，则密钥交换将使用 PHP 脚本来模拟大整数运算，这并不影响加密传输的功能，只是速度会慢一些。
+
+如果你需要更快的加密处理能力，除了开启上面所说的大整数计算扩展以外，你还可以下载并安装 xxtea 的 PECL 扩展，该扩展采用 C 编写，它能够有效的提高加密速度。
+
+PECL 版本的 xxtea 扩展安装方法
+
+安装方法有多种，下面介绍最常用的三种安装方法：
+
+    跟 PHP 一同编译安装
+    使用 phpize 工具编译安装
+    在 Windows 下使用 Microsoft Visual C（.NET 或 6.0）编译安装
+
+
+方法一：跟 PHP 一同编译安装
+
+    在 PHP 源码文件夹下创建 ext/xxtea 文件夹，将所有文件复制到新创建的文件夹下。
+    运行 ./buildconf 重新构建 PHP 的配置脚本。
+    带选项编译 PHP：--enable-xxtea 将作为 PHP 内置模块编译，--enable-xxtea=shared 将作为动态载入模块编译。
+
+
+方法二：使用 phpize 工具编译安装
+
+    解压缩该包内容。
+    运行 phpize 脚本，为编译 XXTEA 包准备环境。
+    运行 ./configure --enable-xxtea=shared 生成 makefile。
+    运行 make 编译 XXTEA 扩展库，它将被放置在 ./modules 文件夹下。
+    运行 make install 安装 XXTEA 扩展库到 PHP。
+
+
+方法三：在 Windows 下使用 Microsoft Visual C（.NET 或 6.0）编译安装
+
+    在 PHP 源码文件夹下创建 ext/xxtea 文件夹，将所有文件复制到新创建的文件夹下。
+    从你所使用的版本的 PHP 文件夹下复制 php4ts.lib（PHP 4 使用）或 php5ts.lib（PHP 5 使用）静态库到 ext/xxtea 文件夹下。
+    打开 php_xxtea.sln（MS VC.NET 的解决方案文件）或者 php_xxtea.dsw（MS VC 6.0 的工作环境文件）。尝试编译 Release_php4 (PHP 4 使用) 或 Release_php5（PHP 5 使用）配置。
+    从 ext/xxtea/Release_php4 或 ext/xxtea/Release_php5 下复制 php_xxtea.dll 到你所使用的 PHP 扩展文件夹下。扩展文件夹的路径在 php.ini 中可以找到。
+    在 php.ini 中添加这一行 extension=php_xxtea.dll

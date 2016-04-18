@@ -1,0 +1,4 @@
+Phpqrcode สนำร
+
+load_class('Phpqrcode',MY_PATH.'/ext/',FALSE);
+QRcode::png($url,FALSE,'M',6,2);

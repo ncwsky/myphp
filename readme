@@ -1,0 +1,20 @@
+myphp 
+
+这是自己初学php后慢慢做的一个简单mvc框架，也许编码水平不怎么好，但对初学php的来说还是有参考意义的。
+框架取名“myphp”，支持mysql,mssql,oracle三种数据库，此框架也已经经过生产开发的考验了。
+至于说明文档，暂时没有，毕竟主要是用来给初学php的人学习参考及我自己自用的。
+
+http://git.oschina.net/dz/myphp
+
+使用参考实例：
+<?php
+//定义项目路径
+define('APP_PATH','./app');
+
+// require 'conf.php'; // 这里可以载入全局配置参数数组 $cfg = array();
+// 加载框架入口文件
+//require("./myphp/myPhp.php");
+
+$myphp = new myphp();	//实例化一个类
+$myphp->Run();	//运行类的Run的方法
+?>
