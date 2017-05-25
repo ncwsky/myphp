@@ -4,7 +4,7 @@ class cache_file extends cache_abstract{
 	protected static $instance;
 	//配置
     protected $options = array(
-        'cache_dir' => "./",
+        'path' => "./",
         'prefix' => 'cache',
     	'mode' => '1', //mode 1 为serialize model 2为保存为可执行文件
 		'expire' => 0, //有效期
@@ -14,6 +14,7 @@ class cache_file extends cache_abstract{
         if(!empty($options)) {
            $this->options  = array_merge($this->options, $options);  
         }
+		$this->init();
 	}
 	/**
 	 * 得到本类实例
@@ -25,19 +26,25 @@ class cache_file extends cache_abstract{
 		}
 		return self::$instance;
 	}
+	// 创建项目缓存目录
+	public function init(){
+		if (substr($this->options['path'], -1) != '/') {
+            $this->options['path'] .= '/';
+        }
+        if (!is_dir($this->options['path'])) {
+            if (!mkdir($this->options['path'], 0755, true)) {
+                return false;
+            }
+        }
+        return true;
+	}
 	/**
 	 * 设置缓存路径
 	 * @param string $path
 	 */
 	public function setCacheDir($path){
-		$path = rtrim($path,'/') . '/';
-        if (!is_dir($path)) {
-            exit('file_cache: ' . $path.' 不是一个有效路径 ');
-        }
-        if (!is_writable($path)) {
-            exit('file_cache: 路径 "'.$path.'" 不可写');
-        }        
-        $this->options['cache_dir'] = $path;
+        $this->options['path'] = $path;
+		$this->init();
 	}
 	/**
 	 * 设置缓存文件前缀
@@ -117,7 +124,7 @@ class cache_file extends cache_abstract{
 	}
 	//删除所有缓存
 	public function clear(){
-		$glob = glob($this->options['cache_dir'] . $this->options['prefix'] . '--*');
+		$glob = glob($this->options['path'] . $this->options['prefix'] . '--*');
 		
 		if(empty($glob)) return false;
 		
@@ -134,7 +141,7 @@ class cache_file extends cache_abstract{
 	 */
 	protected function _file($name){
 		$fileNmae  = $this->_nameToFileName($name);
-		return $this->options['cache_dir'] . $fileNmae;
+		return $this->options['path'] . $fileNmae;
 	}
 	/**
 	 * 通过name得到缓存信息存储文件名

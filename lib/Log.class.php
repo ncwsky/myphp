@@ -1,21 +1,5 @@
 <?php
-//以下为日志
-class CLogFileHandler{
-	private $handle = null;
-	
-	public function __construct($file = ''){
-		$this->handle = fopen($file,'a');
-	}
-	
-	public function write($msg){
-		fwrite($this->handle, $msg, 4096);
-	}
-	
-	public function __destruct(){
-		fclose($this->handle);
-	}
-}
-//单实例日志
+//日志类
 class Log{
     // 日志级别
     const ERR     = 'ERR';  // 一般错误: 一般性错误
@@ -24,37 +8,66 @@ class Log{
     const INFO    = 'INFO';  // 信息: 程序输出信息
     const DEBUG   = 'DEBUG';  // 调试: 调试信息
     const SQL     = 'SQL';  // SQL：SQL语句 注意只在调试模式开启时有效
+	const LOG_SIZE= 2097152; //2M
 	
 	private $handler = null;
-	private $level = 15; //最高级别15
 	private static $instance = null;
 	private static $file = null;
-	private static $logs = array();
+	private static $logs = null;
+	private static $errs = null;
+	private static $errflag = false;
+	private static $dir = '_def'; //当前日志目录 记录辅助信息日志 如订单
+	private static $logDir = null; //日志主目录 记录程序运行日志
 
 	private function __construct(){}
 	public function __destruct(){
-		self::$instance=self::$logs=null;
+		if(self::$instance->handler){
+			foreach(self::$instance->handler as $handler)
+				fclose($handler);
+		}
+		self::$instance=null;
 	}
-	//初始实例
-	public static function Init($file=null,$level=15){
+    //注册异常处理
+    public static function register(){
+		set_error_handler('Log::UserErr'); // 自定义用户错误处理函数
+		set_exception_handler('Log::Exception'); //自定义异常处理
+		register_shutdown_function('Log::Err'); //定义PHP程序执行完成后执行的函数
+    }
+	//初始日志目录
+	public static function Init($logDir=null){
 		if(!self::$instance instanceof self){
-			self::$file = $file ? $file : MY_PATH.'/../log.log'; //未指定日志 框架同级log.log记录
+			self::$logDir = $logDir ? $logDir : ROOT.ROOT_DIR.DS;
+			self::$file = self::$logDir.'log.log';
 			self::$instance = new self();
-			self::$instance->handler = new CLogFileHandler(self::$file);
-			self::$instance->level = $level;
+			self::$instance->handler[self::$dir] = fopen(self::$file,'a');
 		}
 		return self::$instance;
 	}
+	public static function Dir($dir='_def'){
+		if(!self::$instance) self::Init();
+		if(self::$logs){ //切换日志时记录上个辅助日志
+			$logs = implode('', self::$logs);
+			self::write($logs, null);
+			self::$logs = null;
+		}
+		self::$dir = $dir;
+		if(!isset(self::$instance->handler[$dir])){
+			if (!is_dir(self::$logDir.$dir)) mkdir(self::$logDir.$dir);
+			self::$file = self::$logDir.$dir.'/log.log';
+			self::$instance->handler[$dir] = fopen(self::$file,'a');
+		}
+	}
+	
 	public static function DEBUG($msg){
-		self::$instance->_write(1, $msg);
+		self::write($msg, 'debug');
 	}
 	public static function WARN($msg){
-		self::$instance->_write(4, $msg);
+		self::write($msg, 'warn');
 	}
 	public static function INFO($msg){
-		self::$instance->_write(2, $msg);
+		self::write($msg, 'info');
 	}
-	public static function ERROR($msg=''){
+	public static function ERROR($msg){
 		$debugInfo = debug_backtrace();
 		$stack = "[\n";
 		foreach($debugInfo as $key => $val){
@@ -70,94 +83,91 @@ class Log{
 			$stack .= "\n";
 		}
 		$stack .= "]";
+
 		if($msg == 'debug_backtrace') return $stack;
-		else self::$instance->_write(8, $stack . $msg);
-	}
-	private function _write($level,$msg){
-		if(($level & $this->level) == $level){
-			$msg = '['.date('Y-m-d H:i:s').']['.$this->_getLevelStr($level).'] '.$msg."\n";
-			$this->handler->write($msg);
-		}
-	}
-	private function _getLevelStr($level){
-		switch ($level){
-		case 1:
-			return 'debug';
-		break;
-		case 2:
-			return 'info';	
-		break;
-		case 4:
-			return 'warn';
-		break;
-		case 8:
-			return 'error';
-		break;
-		default:
-			return 'unknown';	
-		}
+		else self::write($stack . $msg, 'error');
 	}
 	/*******************分隔***************************/
-	//自定义错误日志记录 用于 register_shutdown_function
+	//错误日志记录 用于 register_shutdown_function
 	public static function Err(){
-		$stack = "";
-		if(!empty(self::$logs)){
-			$trace = '';
-			foreach(self::$logs as $log) $trace .= $log;
-			self::write($trace,'trace');
-			self::$logs = array();
-		}
+		$stack = '';
 		if ($e = error_get_last()) {
-			//错误类型 http://php.net/manual/zh/errorfunc.constants.php
-			$stack .= 'type:'.$e['type'].', line:'.$e['line'].', file:'.$e['file'].', message:'.$e['message'];
-		}else return;
-		self::write($stack);
-		if(isset($GLOBALS['cfg']['debug']) && $GLOBALS['cfg']['debug']){
-		}else{
+			self::$errflag=true;
+			self::$errs[] = $stack = date('[Y-m-d H:i:s]').'[error] type:'.$e['type'].', line:'.$e['line'].', file:'.$e['file'].', message:'.$e['message']."\n";
+		}
+		if(self::$errflag){ //主日志记录错误信息
+			PHP_SAPI != 'cli' && self::$errs[] = Log::REQ();
+			$logs = implode('', self::$errs);
+			self::write($logs, '_def');
+			self::$errs = null;
+		}
+		if(self::$logs){ //辅助日志记录
+			$logs = implode('', self::$logs);
+			self::write($logs, null);
+			self::$logs = null;
+		}
+		if($e && isset($GLOBALS['cfg']['debug']) && $GLOBALS['cfg']['debug']){
 			ob_end_clean();
 			exit('<pre style="color:#c10;">'.$stack.'</pre>');
 		}
 	}
-	//自定义错误日志记录 用于 set_error_handler
+	//自定义错误记录 用于 set_error_handler
 	public static function UserErr($errno, $errstr, $errfile, $errline){
-		self::write('type:'.$errno.', line:'.$errline.', file:'.$errfile.', message:'.$errstr."\n".self::ERROR('debug_backtrace'));
+		self::$errflag=true;
+		self::$errs[] =  date('[Y-m-d H:i:s]').'[error] type:'.$errno.', line:'.$errline.', file:'.$errfile.', message:'.$errstr."\n".self::ERROR('debug_backtrace')."\n";
 	}
 	//自定义异常记录 用于 set_exception_handler
-	public static function Exception($e){
-		$error = array();
-        $error['message'] = $e->getMessage();
-		$error['file']    = $e->getFile();
-		$error['line']    = $e->getLine();
-        //$error['trace']   = $e->getTraceAsString();
-        Log::trace('line:'.$error['line'].', file:'.$error['file'].', message:'.$error['message']."\n".$e->getTraceAsString());
+	public static function Exception($e,$out=true){
+        self::$errflag=true;
+        self::$errs[] = date('[Y-m-d H:i:s]').'[error] '.$e->getMessage()."\n".', line:'.$e->getLine().', file:'.$e->getFile()."\n".$e->getTraceAsString()."\n";
         // 发送404信息
-        header('HTTP/1.1 404 Not Found');
-        header('Status:404 Not Found');
-		echo '<pre>'.json_encode($error).'</pre>';
+        //header('HTTP/1.1 404 Not Found');
+        //header('Status:404 Not Found');
+		if($out) echo '<pre>'.$e->getMessage().'</pre>';
 	}
-	
-	//追踪记录日志 建议优先使用
+	public static function miniREQ(){
+		$_srv = 'Request: '.$_SERVER['SERVER_PROTOCOL'].' '.$_SERVER['HTTP_HOST'].' '.$_SERVER['REQUEST_METHOD'].' '.$_SERVER['REQUEST_URI'].' '.date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME'])."\n"
+		.($_SERVER['QUERY_STRING']!=''?'Query_String: '. urldecode($_SERVER['QUERY_STRING']) ."\n":'')
+		.'Remote: '.$_SERVER['REMOTE_ADDR'].':'.$_SERVER['REMOTE_PORT']."\n";
+		$post = isset($_POST)?"POST: ".json($_POST)."\n":'';
+
+		return date('[Y-m-d H:i:s]').'[MiniREQ] '.$_srv."\n".$post."\n";
+	}
+	//返回请求信息
+	public static function REQ(){
+		$postStr = isset($GLOBALS["HTTP_RAW_POST_DATA"])?$GLOBALS["HTTP_RAW_POST_DATA"]:file_get_contents("php://input");
+		$_srv = 'Request: '.$_SERVER['SERVER_PROTOCOL'].' '.$_SERVER['HTTP_HOST'].' '.$_SERVER['REQUEST_METHOD'].' '.$_SERVER['REQUEST_URI'].' '.date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME'])."\n"
+		.($_SERVER['QUERY_STRING']!=''?'Query_String: '. urldecode($_SERVER['QUERY_STRING']) ."\n":'')
+		.(isset($_SERVER['HTTP_ACCEPT'])?'Http_Accept: '.$_SERVER['HTTP_ACCEPT']."\n":'')
+		.(isset($_SERVER['HTTP_REFERER'])?'Http_Referer: '.$_SERVER['HTTP_REFERER']."\n":'')
+		.'Http_User_Agent: '.$_SERVER['HTTP_USER_AGENT']."\n"
+		.(isset($_SERVER['HTTP_COOKIE'])?'Http_Cookie: '.$_SERVER['HTTP_COOKIE']."\n":'')
+		.'Remote: '.$_SERVER['REMOTE_ADDR'].':'.$_SERVER['REMOTE_PORT']."\n";
+
+		$get = isset($_GET)?"GET: ".json($_GET)."\n":'';
+		$post = isset($_POST)?"POST: ".json($_POST)."\n":'';
+		return $_srv."\n".$get.$post."HTTP_RAW_POST_DATA: ".$postStr."\n";
+	}
+	//记录日志 建议优先使用
 	public static function trace($msg,$level='trace'){
-		self::$logs[] = date('[Y-m-d H:i:s]')."[{$level}] {$msg}\n";//$msg;
+		self::$logs[] = date('[Y-m-d H:i:s]')."[{$level}] {$msg}\n";
 	}
-	// 直接写入日志
-	public static function write($message,$level='error',$file=null){
+	//写入日志
+	public static function write($str,$level='trace',$file=null){
 		$isHandler = false;
 		if(!$file){
+			$file = ROOT.ROOT_DIR.'/log.log';
 			if(self::$file){
-				$file = self::$file;
+				$file = $level=='_def'?self::$logDir.'log.log':self::$file;
 				$isHandler = true;
-			}else $file = MY_PATH.'/../log.log';
-			//$file = self::$file?self::$file:MY_PATH.'/../log.log';
+			}
 		}
-		//检测日志大小，超过配置大小则备份日志文件重新生成
+		//日志超过配置大小则备份并重新生成
 		if(is_file($file) && floor(GetC('log_size')) <= filesize($file) )
-			rename($file,dirname($file).'/'.time().'-'.basename($file));
-			
-		if($level!='trace') {
-			$message = date('[Y-m-d H:i:s]')."[{$level}] {$message}\n";	
-		}
-		$isHandler ? self::$instance->handler->write($message) : error_log($message, 3, $file);
+			rename($file,dirname($file).'/'.date('YmdHis').'-'.basename($file));
+		if($level && $level!='_def') 
+			$str = date('[Y-m-d H:i:s]')."[{$level}] {$str}\n";
+		$isHandler ? fwrite(self::$instance->handler[$level=='_def'?'_def':self::$dir], $str, strlen($str)+1) : error_log($str, 3, $file);
     }
 /*
 -- 日志表 sys_log 

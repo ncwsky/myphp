@@ -18,3 +18,14 @@ define('APP_PATH','./app');
 $myphp = new myphp();	//实例化一个类
 $myphp->Run();	//运行类的Run的方法
 ?>
+
+cli示例：
+php index.php c-a-id  默认请求模式下(url模式1示例同此示例)
+php index.php c=index a=test id=23  0 普通模式下
+
+
+数据库SQL日志 示例：
+Log::Dir('xxx'); //可指定单独的日志目录
+$db_pay = M('db_pay');
+$db_pay->log_on(); //启用日志记录 仅记录execute的操作 1|2
+$db_pay->log_on(0); //关闭日志记录

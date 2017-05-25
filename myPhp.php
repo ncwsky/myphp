@@ -3,9 +3,12 @@ header("Content-type:text/html;charset=utf-8");
 header('Cache-control: private');
 header('X-Powered-By:MyPHP');
 define('VERSION', '1.0');
-//定义MY_PATH常量
-define('MY_PATH', str_replace('\\', '/', dirname(__FILE__)));
-defined('APP_PATH') or define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']));
+//系统开始时间
+define('SYS_START_TIME', microtime(TRUE));//时间戳.微秒数
+define('SYS_TIME', time());//时间戳和微秒数
+// 记录内存初始使用
+define('MEMORY_LIMIT_ON', function_exists('memory_get_usage'));
+MEMORY_LIMIT_ON && define('SYS_MEMORY', memory_get_usage());
 //来源
 define('HTTP_REFERER', isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '');
 //主机协议
@@ -14,12 +17,12 @@ define('SITE_PROTOCOL', isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'
 define('SITE_URL', isset($_SERVER['HTTP_X_FORWARDED_HOST'])?$_SERVER['HTTP_X_FORWARDED_HOST']:(isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:''));
 //当前站点url
 define('CURR_SITE_URL',SITE_PROTOCOL.SITE_URL);
-//系统开始时间
-define('SYS_START_TIME', microtime(TRUE));//时间戳.微秒数
-define('SYS_TIME', time());//时间戳和微秒数
-// 记录内存初始使用
-define('MEMORY_LIMIT_ON', function_exists('memory_get_usage'));
-MEMORY_LIMIT_ON && define('SYS_MEMORY', memory_get_usage());
+//系统变量
+define('IS_CLI', PHP_SAPI == 'cli' ? true : false);
+define('DS', '/');
+//定义MY_PATH常量
+define('MY_PATH', str_replace('\\', '/', dirname(__FILE__)));
+defined('APP_PATH') or define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']));
 //目录 在创建日志时自动生成
 define('CACHE_DIR', 'cache');
 define('CONTROL_DIR', 'control');
@@ -27,35 +30,29 @@ define('MODEL_DIR', 'model');
 define('VIEW_DIR', 'view');
 define('LANG_DIR', 'lang');	
 define('LOG_DIR', 'logs');
+//当前项目相对根目录
+$s_n = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
+($s_n=='.' || $s_n=='/' || IS_CLI) && $s_n='';
+defined('APP_ROOT') or define('APP_ROOT', $s_n);
+//绝对根目录 ROOT_PATH手动指定项目的绝对目录
+define('__ROOT__', IS_CLI ? dirname($_SERVER['SCRIPT_FILENAME']) : str_replace($_SERVER['SCRIPT_NAME'], '', $_SERVER['SCRIPT_FILENAME']));
+define('ROOT', __ROOT__); //站点的绝对目录 
+//相对根目录
+if(!isset($cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
+	$cfg['root_dir'] = '';
+	if(APP_ROOT!=''){
+		if($_s_pos=strpos($s_n,'/',1)) $cfg['root_dir'] = substr($s_n,0,$_s_pos);
+		else $cfg['root_dir'] = APP_ROOT;
+	}
+}
+define('ROOT_DIR', $cfg['root_dir']);
+
+//相对公共目录
+define('PUB', ROOT_DIR.'/pub');
 //配置组合
 $def_config = require MY_PATH . '/def_config.php';	//引入默认配置文件
 $cfg = isset($cfg) && is_array($cfg) ? array_merge($def_config, $cfg) : $def_config; //组合参数配置
 unset($def_config);
-// 当前项目_相对根目录
-$s_n = dirname($_SERVER['SCRIPT_NAME']);
-defined('APP_ROOT') or define('APP_ROOT', (($s_n=='/' || $s_n=='\\')?'':$s_n));
-//绝对根目录
-if(!defined('__ROOT__')) {
-	$_root = '';
-	if(!isset($cfg['myphp_dir'])){
-		//为便于网站根目录的获取，请将myphp框架放置在网站根目录下，如未放置根目录下请手动配置 root_dir,myphp_dir 这两项配置
-		$_root = dirname(MY_PATH);
-		$_s_pos = strpos($s_n,'/',1);
-		if($_s_pos!==FALSE) $s_n = substr($s_n,0,$_s_pos);
-		$_r = '/'.basename($_root);
-		//获取根目录
-		$cfg['root_dir'] = $_r==$s_n ? $_r : ''; //APP_ROOT
-		if($cfg['root_dir']!='') $_root = str_replace($cfg['root_dir'], '', $_root);
-	}else{
-		$_root = str_replace($cfg['myphp_dir'], '', MY_PATH);
-	}
-	define('__ROOT__', $_root);
-}
-define('ROOT', __ROOT__);
-//相对根目录
-define('ROOT_DIR', $cfg['root_dir']);
-//相对公共目录
-define('PUB', ROOT_DIR.'/pub');
 //设置本地时差
 function_exists('date_default_timezone_set') && date_default_timezone_set($cfg['timezone']);
 //PATHINFO处理
@@ -101,6 +98,7 @@ if($cfg['debug']){
 	//引入公共及扩展函数文件
 	include MY_PATH . '/inc/global.func.php';
 	include MY_PATH . '/inc/ext.func.php';
+	include MY_PATH . '/inc/comm.func.php';
 }else{
 	error_reporting(E_ALL || ~E_NOTICE); //error_reporting(0);//把错误报告，全部屏蔽
 
@@ -109,11 +107,12 @@ if($cfg['debug']){
 		$php = compile(MY_PATH . '/lib/Control.class.php');
 		$php .= compile(MY_PATH . '/lib/View.class.php');
 		$php .= compile(MY_PATH . '/lib/Model.class.php');
-		$php .= compile(MY_PATH . '/lib/cache.class.php');
+		$php .= compile(MY_PATH . '/lib/Cache.class.php');
 		$php .= compile(MY_PATH . '/lib/Template.class.php');
 		$php .= compile(MY_PATH . '/lib/Log.class.php');
 		$php .= compile(MY_PATH . '/inc/global.func.php');
 		$php .= compile(MY_PATH . '/inc/ext.func.php');
+		$php .= compile(MY_PATH . '/inc/comm.func.php');
 		
 		file_put_contents($runfile, '<?php '.$php);
 		unset($php);
@@ -147,16 +146,19 @@ if (!function_exists('getallheaders')) {
 if(function_exists('spl_autoload_register'))
 	spl_autoload_register('__autoload');
 // 设定错误和异常处理
-register_shutdown_function('Log::Err'); //定义PHP程序执行完成后执行的函数
-set_error_handler('Log::UserErr'); // 设置一个用户定义的错误处理函数
-set_exception_handler('Log::Exception'); //自定义异常处理。 
+Log::register();
 
 //自动加载对象
 function __autoload($class_name) {
 	static $_file  = array();
+	$class_name = trim(str_replace(array('\\','/'), '', $class_name));
+	if($class_name=='') return false;
+	if (isset($_file[$class_name])) return true;
 	$class_dir = GetC('class_dir');
 	$class_array= empty($class_dir) ? array() : explode(',', ROOT.ROOT_DIR. str_replace(',', ','.ROOT.ROOT_DIR, $class_dir));//获取自行添加的class目录
 	defined('CONTROL_PATH') && $class_array[]= CONTROL_PATH;//当前项目类目录
+	defined('MODEL_PATH') && $class_array[]= MODEL_PATH;//当前项目模型目录
+	$class_array[]= MY_PATH.'/lib/';
 	$class_array[]= MY_PATH.'/ext/';//扩展类目录
 	//循环判断
 	foreach($class_array as $file) {
@@ -164,7 +166,7 @@ function __autoload($class_name) {
 		if(is_file($file)) {
 			if (!isset($_file[$class_name])){
 				$_file[$file] = $file;
-				require $file; 
+				include $file; 
 			}
 			return true;
 		} 
@@ -206,163 +208,48 @@ function run_time() {
 function run_mem() {
 	return MEMORY_LIMIT_ON ? toByte(memory_get_usage() - SYS_MEMORY) : 'unknown';
 }
-//获取指定配置信息 支持二维数组
+//获取配置值 支持二维数组
 function GetC($name, $defVal = NULL){
 	$pos = strpos($name, '.');
 	if ($pos===FALSE) 
     	return isset($GLOBALS['cfg'][$name]) ? $GLOBALS['cfg'][$name] : $defVal;
-	// 二维数组设置和获取支持
-	$name1 = substr($name,0,$pos);
-	$name2 = substr($name,$pos+1);
+	// 二维数组支持
+	$name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
 	//$name = explode('.', $name);
 	return isset($GLOBALS['cfg'][$name1][$name2]) ? $GLOBALS['cfg'][$name1][$name2] : $defVal;
 }
-//获取指定的语言信息 支持二维 需要先载入语言数组文件
+//动态设置配置值
+function SetC($name, $val){
+	$pos = strpos($name, '.');
+	if ($pos===FALSE) 
+    	$GLOBALS['cfg'][$name]=$val;
+	// 二维数组支持
+	$name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
+	//$name = explode('.', $name);
+	$GLOBALS['cfg'][$name1][$name2]=$val;
+}
+//获取语言信息 支持二维 需要先载入语言数组文件
 function GetL($name){
-	if (empty($name)) return NULL;
-	global $lang;
 	if (!strpos($name, '.')) {
-    	return isset($lang[$name]) ? $lang[$name] : NULL;
+    	return isset($GLOBALS['lang'][$name]) ? $GLOBALS['lang'][$name] : $name;
 	}
-	// 二维数组设置和获取支持
+	// 二维数组支持
 	$name = explode('.', $name);
-	return isset($lang[$name[0]][$name[1]]) ? $lang[$name[0]][$name[1]] : NULL;
+	return isset($GLOBALS['lang'][$name[0]][$name[1]]) ? $GLOBALS['lang'][$name[0]][$name[1]] : $name;
 }
-//获取执行页面Url　方法　控制　参数数组  扩展设置 常规url,url指定
-function GetU($a='',$c='',$para=array(),$ext=array('normal'=>FALSE,'url'=>'')){
-	$url_mode = GetC('url_mode');
-	$p1 = $p2 = GetC('url_para_str');
-	if($ext['url']!='') $url = $ext['url'];
-	else $url = $c=='' ? URL : APP;
-	$a = !empty($a) ? $a : GetC('default_action');
-	if($url_mode !=1 && $url_mode !=2 || $ext['normal']){//0
-		$c = $c==''?'':'?c='.$c;
-		$a = 'a='.$a;
-		$p1 = '&';$p2 = '=';
-	}
-	$url .= $c.$p1.$a;
-	if(MODULE!='') $para['m'] = MODULE;
-	foreach($para as $k=>$v){
-		if($v=='') continue;
-		$url .=$p1.$k.$p2.$v;
-	}
-	return $url;
+//url解析 地址 [! 普通模式]admin/index/show?b=c&d=e, 附加参数 数组|null, url字符串如：/pub/index.php 
+function U($uri='',$vars=null,$url=''){
+	return UrlRoute::forward_url($uri,$vars,$url);
 }
-//url解析 地址 [!]admin/index/show?b=c&d=e, 附加参数 数组|null, url字符串如：/pub/index.php 
-function U($uri,$vars=null,$url=''){
-	$uri = trim($uri); $normal = false;
-	if(substr($uri,0,1)=='!'){ //普通url模式
-		$normal = true;
-		$uri = substr($uri,1);
-	}
-	//url映射
-	if(is_array($GLOBALS['cfg']['url_maps']) && !empty($GLOBALS['cfg']['url_maps'])){
-		static $url_maps;
-		if(!isset($url_maps)){
-			foreach ($GLOBALS['cfg']['url_maps'] as $k => $v) {
-				$url_maps[$v]=$k;
-			}
-		}
-		$maps_para = '';
-		if(is_array($vars)) $maps_para = http_build_query($vars);
-	}
-	//分析mac及参数
-	$m = $c = $a = $mac = $para = '';
-	$pos = strpos($uri,'?');
-	if($pos!==false) {// 参数处理
-		$mac = substr($uri,0,$pos);
-		if(is_array($vars)){
-			parse_str(substr($uri,$pos+1),$get);
-			$vars = array_merge($vars,$get);
-		}else{
-			parse_str(substr($uri,$pos+1),$vars);
-		} 
-	}else{
-		$mac = $uri;
-	}
-
-	if($mac!=''){//分解m a c
-		if($pos = strpos($mac,'/')){
-			$path = explode('/',$mac);
-			$a = array_pop($path);
-			$c = array_pop($path);
-			if(!empty($path)) $m = array_pop($path);
-		}else{
-			$a = $mac;
-		}
-	}
-	if($c=='' && $a=='' && !is_array($vars)){
-		return $url==''?__URI__:ROOT_DIR.$url;
-	}
-	//
-	static $url_mode,$ups;
-	if(!isset($url_mode)) {
-		$url_mode = GetC('url_mode');
-		$ups = GetC('url_para_str');
-	}
-	$c = $c==''?GetC('default_control'):$c;
-	$a = $a==''?GetC('default_action'):$a;
-	//url映射处理
-	if(isset($url_maps)){
-		$_url = $url==''?substr(__URI__,strlen(ROOT_DIR)):$url;
-
-		$para = 'c='.$c.'&a='.$a;
-		if($m!='') $para .= '&m='.$m;
-		if(is_array($vars)) $para .= '&'.urldecode(http_build_query($vars));
-		$_url .='?'.$para;
-
-		//先完整比配 再mac?附加参数比配 再 mac比配 
-		if(isset($url_maps[$_url])){
-			return ROOT_DIR.$url_maps[$_url];
-		}elseif(isset($url_maps[$mac.'?'.$maps_para])){
-			return ROOT_DIR.UrlRoute::reverse_url($url_maps[$mac.'?'.$maps_para],$vars);
-		}elseif(isset($url_maps[$mac])){
-			return ROOT_DIR.UrlRoute::reverse_url($url_maps[$mac],$vars);
-		}
-	}
-
-	//直接解析
-	if($url_mode==0 || $normal){//普通模式
-		$url = $url==''?__URI__:ROOT_DIR.$url;
-		$para = 'c='.$c.'&a='.$a;
-		if($m!='') $para .= '&m='.$m;
-		if(is_array($vars)) $para .= '&'.urldecode(http_build_query($vars));
-		return $url.'?'.$para;
-	}
-	//其他模式
-	if($url!=''){
-		$url = ROOT_DIR.$url;
-		if($url_mode == 1){
-			$url .= '?do=';
-		}elseif($url_mode == 2){
-			$url .= '/';
-		}
-	}else{
-		$url = APP;
-	}
-	$url .= $c.$ups.$a;
-	if($m!='') $url .= $ups.'m'.$ups.$m;
-	if(is_array($vars)){
-		foreach($vars as $k=>$v){
-			if($v=='') continue;
-			$url .=$ups.$k.$ups.$v;
-		}
-	}
-	return $url;
-}
-/**
- * 设置和获取统计数据
- * 使用方法:
- * <code>
- * N('sql',1); // 记录sql执行次数
- * echo N('sql'); // 获取当前sql执行次数
- * </code>
- * @param string $key 标识位置
- * @param integer $step 步进值
- * @param boolean $save 是否保存结果
- * @return mixed
+/*
+设置和获取统计数据
+$key string 标识位置, $step integer 步进值, $save boolean 是否保存结果
+return mixed
+example:
+N('sql',1); // 记录sql执行次数
+echo N('sql'); // 获取当前sql执行次数
  */
-function N($key, $step=0,$save=false) {
+function N($key, $step=0, $save=false) {
     static $_num = array();
     if (!isset($_num[$key])) {
         $_num[$key] = 0;//(false !== $save)? cache('N_'.$key) :  0;
@@ -390,38 +277,52 @@ function M($name='db'){
 	}
 	return $_model[$id]; //返回实例
 }
+if (!function_exists('out_msg')) { //用于前端自动定义信息输出模板
 //跳转提示信息输出: ([0,1]:)信息标题, url, 辅助信息, 等待时间（秒）
-function out_msg($message, $url='', $info='', $time = 2) {
-	if ($url=='') {
-		$jumpUrl = 'javascript:window.history.back()';
-		$js = 'window.history.back()';
-	} elseif (substr($url,0,11)=='javascript:') {
-		$jumpUrl = $url;
-		$js = substr($url,11);
-	} else {
-		$jumpUrl = $url;
-		$js = "window.location='$jumpUrl'";
-	}
-	$status = substr($message,0,1); //提示状态 默认为普通
-	if($status=='1') $success = substr($message,2); //成功提示
-	elseif($status=='0') $error = substr($message,2); //错误提示
-	
-	if(ob_get_length() !== false) ob_clean();//清除页面
-	$out_html = '<!doctype html><html><head><meta charset="utf-8"><title>'.($url!='err'?'跳转提示':'错误提示').'</title><style type="text/css">*{padding:0;margin:0}body{background:#fff;font-family:"Microsoft YaHei";color:#333;font-size:100%}.system-message{padding:1.5em 3em}.system-message h1{font-size:6.25em;font-weight:400;line-height:120%;margin-bottom:.12em}.system-message .jump{padding-top:.625em}.system-message .jump a{color:#333}.system-message .success{color:#207E05}.system-message .error{color:#da0404}.system-message .normal,.system-message .success,.system-message .error{line-height:1.8em;font-size:2.25em}.system-message .detail{font-size:1.2em;line-height:160%;margin-top:.8em}</style></head><body><div class="system-message">';
-	
-	if(isset($success)) {
-		$out_html .= '<h1>:)</h1><p class="success">'.$success.'</p>'; //操作成功！
-	}elseif(isset($error)){
-		$out_html .= '<h1>:(</h1><p class="error">'.$error.'</p>'; //操作失败！
-	}else{
-		$out_html .= '<h1>:)</h1><p class="normal">'.$message.'</p>'; //普通提示！
-	}
-	
-    $out_html .= $info!=''?'<p class="detail">'.$info.'</p>':'';
-	if($url!='err') //错误提示不跳转
-		$out_html .= '<p class="jump">页面自动 <a id="href" href="'.$jumpUrl.'">跳转</a>  等待时间： <b id="time">'.$time.'</b><!--<br><a href="'.$jumpUrl.'">如未跳转请点击此处手工跳转</a>--></p></div><script type="text/javascript">var pgo=0,t=setInterval(function(){var time=document.getElementById("time");var val=parseInt(time.innerHTML)-1;time.innerHTML=val;if(val<=0){clearInterval(t);if(pgo==0){pgo=1;'.$js.';}}},1000);</script></body></html>';
+	function out_msg($message, $url='', $info='', $time = 1) {
+		if ($url=='') {
+			$jumpUrl = 'javascript:window.history.back()';
+			$js = 'window.history.back()';
+		} elseif (substr($url,0,11)=='javascript:') {
+			$jumpUrl = $url;
+			$js = substr($url,11);
+		} else {
+			$jumpUrl = $url;
+			$js = "window.location='$jumpUrl'";
+		}
+		$status = substr($message,0,1); //提示状态 默认为普通
+		$flag = 'normal'; //普通提示
+		if($status=='1' || $status=='0'){
+			$message=substr($message,2);
+			$flag = $status=='1'?'success':'error'; //成功提示 | 错误提示
+		}else{
+			$status = -1;
+		}
 
-	exit($out_html);
+		if(ob_get_length() !== false) ob_clean();//清除页面
+		if(is_ajax()){ //ajax输出
+			$json = array('status'=>(int)$status, 'msg'=>$message, 'url'=>$jumpUrl, 'info'=>$info, 'time'=>$time);
+			exit(json($json));
+		}
+		
+		$out_html = '<!doctype html><html><head><meta charset="utf-8"><title>'.($url!='err'?'跳转提示':'错误提示').'</title><style type="text/css">*{padding:0;margin:0}body{background:#fff;font-family:"Microsoft YaHei";color:#333;font-size:100%}.system-message{padding:1.5em 3em}.system-message h1{font-size:6.25em;font-weight:400;line-height:120%;margin-bottom:.12em}.system-message .jump{padding-top:.625em}.system-message .jump a{color:#333}.system-message .success{color:#207E05}.system-message .error{color:#da0404}.system-message .normal,.system-message .success,.system-message .error{line-height:1.8em;font-size:2.25em}.system-message .detail{font-size:1.2em;line-height:160%;margin-top:.8em}</style></head><body><div class="system-message">';
+		
+		$out_html .= '<h1>:)</h1><p class="'.$flag.'">'.$message.'</p>'; //输出
+		
+		$out_html .= $info!=''?'<p class="detail">'.$info.'</p>':'';
+		if($url!='err') //错误提示不跳转
+			$out_html .= '<p class="jump">页面自动 <a id="href" href="'.$jumpUrl.'">跳转</a>  等待时间： <b id="time">'.$time.'</b><!--<br><a href="'.$jumpUrl.'">如未跳转请点击此处手工跳转</a>--></p></div><script type="text/javascript">var pgo=0,t=setInterval(function(){var time=document.getElementById("time");var val=parseInt(time.innerHTML)-1;time.innerHTML=val;if(val<=0){clearInterval(t);if(pgo==0){pgo=1;'.$js.';}}},1000);</script></body></html>';
+
+		exit($out_html);
+	}
+}
+if (!function_exists('json')) {
+	//json_encode 缩写
+	function json($res, $option=0){
+		if($option==0 && defined('JSON_UNESCAPED_UNICODE'))
+			$option = JSON_UNESCAPED_UNICODE;
+		return json_encode($res, $option);
+	}
 }
 /**
  * 加载函数库
@@ -430,7 +331,7 @@ function out_msg($message, $url='', $info='', $time = 2) {
  */
 function load_func($func, $path = '') {
 	static $funcs = array();
-	if (empty($path)) $path = MY_PATH.'/inc/';
+	if ($path=='') $path = MY_PATH.'/inc/';
 	$path .= $func.'.func.php';
 	$key = md5($path);
 	if (isset($funcs[$key])) return true;
@@ -503,4 +404,32 @@ function load_other_class($path, $classname='') {
 	} else {
 		return false;
 	}
+}
+
+/**
+ * 当前的请求类型
+ * @return string
+ */
+function get_method()
+{
+	//static $_method;
+	//if (!isset($_method) {
+		// 如果指定 $_POST['_method'] ，表示使用POST请求来模拟其他方法的请求。
+		// 此时 $_POST['_method'] 即为所模拟的请求类型。
+		if (isset($_POST['_method'])) {
+			$_method = strtoupper($_POST['_method']);
+		} elseif (isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'])) {
+			$_method = strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']);
+		} else {
+			$_method = IS_CLI ? 'GET' : (isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET');
+		}
+	//}
+	return $_method;
+}
+// 当前是否Ajax请求
+function is_ajax()
+{
+	//跨域情况  // javascript 或 JSONP 格式    //  JSON 格式  
+	//isset($_SERVER['HTTP_ACCEPT']) && ( $_SERVER['HTTP_ACCEPT']=='text/javascript, application/javascript, */*' || $_SERVER['HTTP_ACCEPT']=='application/json, text/javascript, */*')
+	return (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') ? true : false;
 }

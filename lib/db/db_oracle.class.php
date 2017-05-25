@@ -4,7 +4,7 @@
 /*==================================================*/
 class db_oracle extends db_abstract{
 	// 连接数据库
-    public function connect($cfg_db = array()) {
+    public function connect(&$cfg_db) {
 		//建立新连接 不返回已经打开的连接标识
 		$cfg_db['pconnect'] = isset($cfg_db['pconnect']) ? $cfg_db['pconnect'] : FALSE;
 		$conn = $cfg_db['pconnect'] ? 'oci_pconnect':'oci_new_connect';
@@ -12,55 +12,28 @@ class db_oracle extends db_abstract{
 		$db = '//'.$cfg_db['server'].':'.$cfg_db['port'].'/'.$cfg_db['name'];
 		$this->conn = $conn($cfg_db['user'], $cfg_db['pwd'], $db, $cfg_db['char']);
 		if(!$this->conn) exit('数据库连接出错！<br>'. oci_error());
-		
-		unset($cfg_db);// 注销数据库连接配置信息
     }
 	//
-    public function escape_string($str) {
-        return str_replace("'", "''", $str);
+    public function quote($str) {
+        return "'". str_replace("'", "''", $str) ."'";
     }
-	//对sql部分语句进行转换
-	protected function chksql(&$sql) {
-		$sql = str_replace('`', '"', $sql);
-		$this->sql = $sql;
-		
-		if (stripos($sql, 'select top')!==FALSE) {
-			//([0-9]+(,[0-9]+)?) | ([0-9]+)
-			if (preg_match ('/^(select top )([0-9]+(,[0-9]+)?)/i', $sql, $regArr)) {
-				$sql = str_replace($regArr[0], "select ", $sql);
-				$pos = strpos($regArr[2],',');
-				$limit = 0;
-				if($pos!==FALSE) {
-					$offset = substr($regArr[2],0,$pos);
-					$limit = substr($regArr[2],$pos+1);
-				}else {
-					$offset = $regArr[2];
-				}
-				if($limit==0){
-					$max = $offset;$min = 0;
-				}else{
-					$max = $offset+$limit;$min = $offset;	
-				}
-				$sql = 'SELECT * FROM ( SELECT "tmp".*, ROWNUM AS "row_num" FROM ('.$sql.') "tmp" WHERE ROWNUM<='.$max.') WHERE "row_num">'.$min.'';//;
-			}
-			unset($regArr);
-		}
-
+	//执行查询语句
+	public function exec(&$sql) {
+		$this->rs = oci_parse($this->conn, $sql);
+		oci_execute($this->rs) or exit("SQL语句执行错误：$sql <br />" . oci_error());
+		return $this->num_rows();
 	}
 	//执行查询语句
-	public function query($sql) {
-		if (empty($sql)) return FALSE;
-		$this->chksql($sql);//对sql部分语句进行转换
-		if($this->rs && $this->rs!==TRUE) $this->free();
+	public function query(&$sql) {
 		$this->rs = oci_parse($this->conn, $sql);
-		oci_execute($this->rs) or exit("SQL语句执行错误：$sql <br />" . oci_error());//;//$this->rs = 
+		oci_execute($this->rs) or exit("SQL语句执行错误：$sql <br />" . oci_error());
 		return $this->rs;
 	}
 	/**
 	 * 从结果集中取得一行作为关联数组/数字索引数组
 	 * $type : 默认OCI_ASSOC 关联，OCI_NUM  数字，OCI_BOTH 两者
 	 */
-	public function fetch_array($query, $type = 'assoc') {
+	public function fetch_array(&$query, $type = 'assoc') {
 		/*
 		if($type=='assoc') $type = OCI_ASSOC;
 		elseif($type=='num') $type = OCI_NUM;
@@ -87,7 +60,7 @@ class db_oracle extends db_abstract{
 		}
 		return $row;
 	}
-	// 取操作所影响的记录行数
+	//结果集行数
 	public function num_rows() {
 		return oci_num_rows($this->rs);
 	}

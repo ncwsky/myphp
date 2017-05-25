@@ -53,6 +53,7 @@ class cache_db extends cache_abstract{
             //数据压缩
             $data = gzcompress($data,3);
         }
+		$data = $this->handler->quote($data); //安全转义
         $expire = $expire == 0 ? 0 : time() + $expire;//缓存有效期为0表示永久缓存
         $result = $this->handler->getOne('select top 1 `cachekey` from `'.$this->options['table'].'` where `cachekey`=\''.$name.'\'');
         if(!empty($result) ) { //更新记录

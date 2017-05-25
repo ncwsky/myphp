@@ -4,12 +4,6 @@ class IndexAct extends Base{
 	//创建一个方法
 	public function index(){
 /*
-        $model = $this->LoadModel('My');	//自定模型
-
-		$res = $model->query("select * from test");	//查询数据库
-		$row = $model->fetch_array($res);	//获得查询结果
-		print_r($row);	//输出结果
-
 		$m = $this->M();	//基类模型
         //$this->db;
 		$res = $m->query("select * from test");	//查询数据库

@@ -2,48 +2,6 @@
 /**
  *  ext.func.php 扩展函数库
  */
- 
-/*
-全球头像
-size:头像的大小,宽和高都应用改设置
-avatar_level:
- G — 普通级别, 任何年龄的访客都适合查看
- PG — 有一定争议性的头像, 只适合13岁以上查看
- R — 成人级, 只适合17岁以上成年人查看
- X — 最高等级, 不适合大多数人查看
- 
-$avatar = get_avatar($mail);
-<img src="'. $avatar['src'] .'" width="'. $avatar['size'] .'" height="'. $avatar['size'] .'" />
-*/
-function get_avatar($email, $size = 0, $avatar_level = 'G') {
-	if (!$size) $size = '36';
-	$default = 'gravatar_default';
-	$host = 'http://www.gravatar.com';
-	if ( 'mystery' == $default ) {
-		$default = $host.'/avatar/ad516503a11cd5ca435acc9bb6523536?s='.$size;
-		// ad516503a11cd5ca435acc9bb6523536 == md5('unknown@gravatar.com')
-	} elseif ( !empty($email) && 'gravatar_default' == $default ) {
-		$default = '';
-	} elseif ( 'gravatar_default' == $default ) {
-		$default = "$host/avatar/s={$size}";
-	} elseif ( empty($email) ) {
-		$default = "$host/avatar/?d=$default&amp;s={$size}";
-	}
-	if ($email) {
-		$src = $host.'/avatar/';
-		$src .= md5(strtolower($email));
-		$src .= '?s='.$size;
-		$src .= '&amp;d='.urlencode($default);
-		$src .= '&amp;r='.$avatar_level;
-	} else {
-		$src = $default;
-	}
-	$avatardb = array(
-		'size' => $size,
-		'src' => $src
-	);
-	return $avatardb;
-}
 
 //参数说明：TotalResult(记录条数),Page_Size(每页记录条数),CurrentPage(当前记录页),paraUrl(URL参数)
 //分页函数1：PageList1
@@ -90,8 +48,7 @@ function PageList2($TotalResult, $Page_Size, $CurrentPage, $paraUrl, $pageName =
 }
 //分页函数3：PageList3 ,参数同上,InitPageNum初始显示数*2
 function PageList3($TotalResult, $Page_Size, $CurrentPage, $paraUrl, $InitPageNum, $pageName = 'page') {
-	$Page_Count=$TotalResult / $Page_Size;
-	if ($Page_Count>floor($Page_Count)) $Page_Count = floor($Page_Count)+1;
+	$Page_Count=ceil($TotalResult / $Page_Size);
 
 	$outstr = '<a class="page_total">'. $Page_Count .'页/<span id="totalresult">'. $TotalResult .'</span>条</a>';
 	if ($TotalResult <= $Page_Size) return $outstr;
@@ -128,8 +85,7 @@ function PageList3($TotalResult, $Page_Size, $CurrentPage, $paraUrl, $InitPageNu
 	return $outstr;
 }
 function PageList4($TotalResult, $Page_Size, $CurrentPage, $paraUrl, $InitPageNum, $pageName = 'page') {
-	$Page_Count=$TotalResult / $Page_Size;
-	if ($Page_Count>floor($Page_Count)) $Page_Count = floor($Page_Count)+1;
+	$Page_Count=ceil($TotalResult / $Page_Size);
 
 	$outstr = '';//'<a class="page_total">'. $Page_Count .'页/<span id="totalresult">'. $TotalResult .'</span>条</a>';
 	if ($TotalResult <= $Page_Size) return $outstr;
@@ -265,7 +221,27 @@ function num_to_rmb($num){
         return $c . "整";
     }
 }
-
+//2次方和反解析
+function sum2pow($num){
+	$bin = decbin($num);
+    $pow = [];
+    while($num){
+        if($num==1){
+            $pow[]=$num; break;
+        }
+        $bin = substr($bin,1);
+        //if($bin===false) break;
+        $v = bindec($bin); //剩余数
+        if(($num-$v)>0)
+        	$pow[]=$num - $v;
+        $num = $v;
+    }
+    return $pow;
+}
+//输入2位小数的数字
+function num2fixed($number){
+	return sprintf('%.2f', $number);
+}
 /**
  * 表单重复提交限制 默认10秒内
  * @param url 跳转网址, time 限制时间 单位秒
@@ -306,8 +282,8 @@ function cn_half_replace($str){
 	//var_dump($arr);
     $len = count($arr[0])/2;
 	$offset = ceil(($len)/2);
-	$a = join('', array_slice($arr[0], 0, $offset));
-	$b = join('', array_slice($arr[0], $offset+$len));
+	$a = implode('', array_slice($arr[0], 0, $offset));
+	$b = implode('', array_slice($arr[0], $offset+$len));
     return $a.str_repeat('*',$len).$b;
 }
 // Returns true if $string is valid UTF-8 and false otherwise.
@@ -353,7 +329,7 @@ function is_mobile() {
 }
 //是否微信
 function is_weixin(){
-	if ( strpos($_SERVER['HTTP_USER_AGENT'], 'MicroMessenger') !== false ) {
+	if ( isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'MicroMessenger') !== false ) {
 		return true;
     }  
 	return false;

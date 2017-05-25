@@ -52,78 +52,76 @@ class Image
      */
     static function thumb($image,$thumbname,$type='',$maxWidth=200,$maxHeight=50,$interlace=TRUE,$fixed=FALSE)
     {
-        // 获取原图信息
-        $info  = Image::getImageInfo($image);
-         if($info !== false)
-		  {
-            $srcWidth  = $info['width'];
-            $srcHeight = $info['height'];
-            $type = empty($type)?$info['type']:$type;
-			$type = strtolower($type);
-            $interlace  =  $interlace? 1:0;
-            unset($info);
-            $scale = min($maxWidth/$srcWidth, $maxHeight/$srcHeight); // 计算缩放比例
-            if($scale>=1) 
-			{
-                // 超过原图大小不再缩略
-                $width   =  $srcWidth;
-                $height  =  $srcHeight;
-				return false;//超出原图大小不缩略直接返回
-            }
-			else
-			{
-				// 缩略图尺寸
-				$width  = (int)($srcWidth*$scale);
-				$height = (int)($srcHeight*$scale);
-            }
-			//固定图像大小值处理
-			$dst_x = 0; $dst_y = 0;//目标xy坐标
-			if($fixed){
-				$w = $maxWidth; $h = $maxHeight;
-				$dst_x = ($maxWidth-$width)/2;
-				$dst_y = ($maxHeight-$height)/2;
-			}
-			else{$w = $width; $h = $height;}
+        $info  = Image::getImageInfo($image); // 获取原图信息
+        if($info === false) return false;
 
-            // 载入原图
-            $createFun = 'ImageCreateFrom'.($type=='jpg'?'jpeg':$type);
-            $srcImg     = $createFun($image);
+		$srcWidth  = $info['width'];
+		$srcHeight = $info['height'];
+		$type = empty($type)?$info['type']:$type;
+		$type = strtolower($type);
+		$interlace  =  $interlace? 1:0;
+		unset($info);
+		$scale = min($maxWidth/$srcWidth, $maxHeight/$srcHeight); // 计算缩放比例
+		if($scale>=1) { // 超过原图大小不再缩略
+			$width   =  $srcWidth;
+			$height  =  $srcHeight;
+			return 0;//超出原图大小不缩略直接返回
+		} else { // 缩略图尺寸
+			$width  = (int)($srcWidth*$scale);
+			$height = (int)($srcHeight*$scale);
+		}
+		//固定图像大小值处理
+		$dst_x = 0; $dst_y = 0;//目标xy坐标
+		if($fixed){
+			$w = $maxWidth; $h = $maxHeight;
+			$dst_x = ($maxWidth-$width)/2;
+			$dst_y = ($maxHeight-$height)/2;
+		}
+		else{$w = $width; $h = $height;}
 
-            //创建缩略图
-            if($type!='gif' && function_exists('imagecreatetruecolor'))
-                $thumbImg = imagecreatetruecolor($w, $h);
-            else
-                $thumbImg = imagecreate($w, $h);
-			
-			if($fixed){//背景处理
-				$bgColor = imagecolorallocate($thumbImg,255,255,255);  // 背景白色
-				imagefilledrectangle($thumbImg,0,0,$w,$h,$bgColor);//填充背景
-			}
+		//载入原图
+		if($type=='png') $srcImg = imagecreatefrompng($image);
+		elseif($type=='gif') $srcImg = imagecreatefromgif($image);
+		else $srcImg = imagecreatefromjpeg($image);
+		//创建缩略图
+		$thumbImg = imagecreatetruecolor($w, $h);
+		$background_color = imagecolorallocate($thumbImg,  255,255,255);
 
-            // 复制图片
-            if(function_exists("ImageCopyResampled"))
-                imagecopyresampled($thumbImg, $srcImg, $dst_x, $dst_y, 0, 0, $width, $height, $srcWidth,$srcHeight);
-            else
-                imagecopyresized($thumbImg, $srcImg, $dst_x, $dst_y, 0, 0, $width, $height,  $srcWidth,$srcHeight);
-				
-            if('gif'==$type || 'png'==$type) 
-			{
-                $background_color  =  imagecolorallocate($thumbImg,  0,255,0);  //  指派一个绿色
-				imagecolortransparent($thumbImg,$background_color);  //  设置为透明色，若注释掉该行则输出绿色的图
-            }
+		//透明及背景处理
+		if($type=='png'){ 
+			imagealphablending($thumbImg,false);//关闭图像的混色模式, 可用于保持透明;
+			imagefill($thumbImg, 0, 0, imagecolorallocatealpha($thumbImg, 0, 0, 0, 127)); //填充透明
+			imagesavealpha($thumbImg, true); //保持完整的 alpha 通道信息
+		}elseif($type=='gif'){
+			$trnprt_indx = imagecolortransparent($srcImg); //透明色的标识符
+			if($trnprt_indx>=0){
+				$trnprt_color = imagecolorsforindex($srcImg, $trnprt_indx);
+				$trnprt_indx = imagecolorallocate($thumbImg, $trnprt_color['red'], $trnprt_color['green'], $trnprt_color['blue']);
+				imagefill($thumbImg, 0, 0, $trnprt_indx);
+				imagecolortransparent($thumbImg, $trnprt_indx);
+			}else imagefill($thumbImg, 0, 0, $background_color);
+		}else{
+			imagefill($thumbImg, 0, 0, $background_color);
+		}
+		// 复制图片
+		if(function_exists("imagecopyresampled"))
+			imagecopyresampled($thumbImg, $srcImg, $dst_x, $dst_y, 0, 0, $width, $height, $srcWidth,$srcHeight);
+		else
+			imagecopyresized($thumbImg, $srcImg, $dst_x, $dst_y, 0, 0, $width, $height, $srcWidth,$srcHeight);
+		// 生成图片
+		if($type=='jpeg' || $type=='jpg'){
+			imageinterlace($thumbImg, $interlace); //图形设置隔行扫描
+			imagejpeg($thumbImg, $thumbname, 80);
+		} elseif($type=='png'){
+			imagepng($thumbImg, $thumbname);
+		} elseif($type=='gif') {
+			imagegif($thumbImg, $thumbname);
+		} else {
+			imagejpeg($thumbImg, $thumbname);
+		}
 
-            // 对jpeg图形设置隔行扫描
-            if('jpg'==$type || 'jpeg'==$type) 	
-			     imageinterlace($thumbImg,$interlace);
-
-            // 生成图片
-            $imageFun = 'image'.($type=='jpg'?'jpeg':$type);
-            $imageFun($thumbImg,$thumbname);
-            imagedestroy($thumbImg);
-            imagedestroy($srcImg);
-            return $thumbname;
-         }
-         return false;
+		imagedestroy($thumbImg); imagedestroy($srcImg);
+		return $thumbname;
     }
 
     /**

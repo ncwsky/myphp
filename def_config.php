@@ -7,13 +7,15 @@ return array(
 	'lang' => 'zh-cn', // 默认语言
 	'charset' => 'utf-8',//编码
 	'url_mode' => 2,	//url模式，1表示普通模式，2表示PATH_INFO模式
+	'cli_url_mode'=>null, //cli模式请求处理模式 默认2 PATH_INFO模式
 	// 'default_module'=>'app', //默认模块名 m
 	'default_control' => 'index',  //默认控制器名 c
 	'default_action' => 'index',	//默认方法名 a
 	'url_para_str' => '-',	//参数分隔符，一般不需要修改
+	'url_maps_regx'=> null, //url映射正则规则
 	'url_maps' => null, //url映射 array()
 	'module_maps' => null, //模块映射 array(), 模块名=>模块（项目）路径
-	// array('admin'=>'/system')  -> /开头相对网站目录 无/开关相对项目目录 /index.php?m=admin&c=index&a=index 路径ROOT.ROOT_DIR./system
+	// array('admin'=>'/system')  -> /开头相对网站目录 无/开头相对项目目录 /index.php?m=admin&c=index&a=index 路径ROOT.ROOT_DIR./system
 	//数据库连接信息
 	'db' => array(
 		'pconnect' => FALSE,
@@ -28,14 +30,25 @@ return array(
 		'char' => 'utf8',	//数据库编码
 		'prefix' => 'my_'	//数据库表前缀
 	),
-	//
-	'root_dir' => '',//根目录 myphp_dir未设置时自动获取
-	//'myphp_dir' => '/myphp',//myphp框架目录
+	'cache' => null, // 'file'
+	'cache_option' => array(
+		'path' => './',
+		'prefix' => 'cache',
+		'expire' => 0, //默认有效期
+	),
+	'session' => null, // 'file'
+	'session_option' => array(
+		// 'path' => './', //可指定session存放目录
+		// 'prefix' => 'myphp', //用于内存模式
+		// 'expire' => 1440, //默认有效期
+	),
+	'root_dir' => null,//相对根目录 未设置时自动获取 结尾不要"/"
 	'admin_url' => '/admin.php',//后台执行页面
 	'class_dir'=>'',//class扩展路径 多个使用,分隔 应用于myphp.php中
 	'def_filter'=>'htmlspecialchars', //默认参数过滤
 	'isGzipEnable' => FALSE, //Gzip压缩开关
-	'encode_key' => 'sys_ncw_f512',//加密串  12位以上
+	'encode_key' => 'sys_ncw_f512',//加密串 用于cookie,api通信md5加密及rc4或其他加密
+    'authcode_key'=> 'oz7oQdlUdlPy3gKuBbi67mVxhh', //用于authcode加密
 	'timezone' => 'Etc/GMT-8', //网站时区（只对php 5.1以上版本有效），Etc/GMT-8 实际表示的是 GMT+8
 	'htmldir' => '/e',//默认静态目录
 	'updir' => '/up',//默认上传目录
@@ -48,6 +61,8 @@ return array(
 	'watermark_wh' => '280_280', //水印添加条件 宽_高
 	'tmp_theme' => FALSE,//模板主题开启-用于前端
 	'tmp_suffix' => '.html',//模板后缀名
+	'tmp_left_tag'=>'{', //模板左侧符号
+	'tmp_right_tag'=>'}', //模板右侧符号
 	'site_template' => '',//模板主题
 	'tmp_not_allow_fun' => '',//模板中不允许使用的函数 使用,分隔 如：,eval,echo,
 	/* cookie设置 */
@@ -74,5 +89,7 @@ return array(
     'log_on' => FALSE,// 默认不记录日志
 	'log_type' => 'file',// 记录类型
     'log_size' => 2097152,// 日志文件大小限制
+	//请求
+	//'var_method' => '_method', // 模拟的请求类型变量名
 );
 ?>

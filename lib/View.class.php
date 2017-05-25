@@ -2,17 +2,12 @@
 //视图模板基类
 class View{
 	var $vars = array();	//板变量数组
-	private $view_path = '';
+	var $view_path = '';
 	private $template = NULL;	//模板引擎实例
 	private static $instance = NULL;
 	//构造方法，实例化视图
 	private function __construct(){
-		if(GetC('tmp_theme')){//开启模板主题
-			$this->view_path = VIEW_PATH . $GLOBALS['cfg']['site_template'] .'/';
-		}else{
-			$this->view_path = VIEW_PATH;
-		}
-		$this->view_path = str_replace('\\', '/', $this->view_path);
+		$this->view_path = VIEW_PATH;
 		$this->template = Template::GetInstance();
 	}
 	//单例模式
@@ -35,16 +30,9 @@ class View{
 		$this->template->cachePath = CACHE_PATH;	//缓存路径
 		$this->template->cacheLifeTime = $cachetime;	//缓存更新时间 0为不限制 只有当模板修改后才重新生成缓存
 		$this->template->templateSuffix = isset($GLOBALS['cfg']['tmp_suffix']) ? $GLOBALS['cfg']['tmp_suffix'] : '.html';	//模板后缀名
-		$this->template->leftTag = '<!--{';	//模板左侧符号
-		$this->template->rightTag = '}-->';	//模板右侧符号
-		//用于模板资源路径
-		if(!isset($GLOBALS['cfg']['app_res_path'])){ 
-			$path = str_ireplace(ROOT.APP_ROOT,'', $this->view_path);//不区分大小写
-			$path = substr($path,0,2) == './' ? APP_ROOT . substr($path,1) : APP_ROOT . $path;
-			$GLOBALS['cfg']['app_res_path'] = $path;
-		}		
+		$this->template->leftTag = isset($GLOBALS['cfg']['tmp_left_tag']) ? $GLOBALS['cfg']['tmp_left_tag'] : '{';	//模板左侧符号
+		$this->template->rightTag = isset($GLOBALS['cfg']['tmp_right_tag']) ? $GLOBALS['cfg']['tmp_right_tag'] : '}';	//模板右侧符号		
 	}
-	
 	//显示模板
 	public function display($file='',$cachetime=0){
 		if($file=='')
@@ -63,12 +51,12 @@ class View{
 			$this->vars[$var] = $value;
 		}
 	}
-
 	//静态方法
 	public static function dotemp($file='',$cachetime=0){
 		if($file=='')
 			$file = ACTION.self::$instance->template->templateSuffix;
 		self::$instance->init($file,$cachetime);
+
 		return self::$instance->template->cachefile($file);
 	}
 	//打开输出缓冲

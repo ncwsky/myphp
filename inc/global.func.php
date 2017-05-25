@@ -62,30 +62,6 @@ function new_html_special_chars($string) {
 	return $string;
 }
 /**
- * iconv 编辑转换
- */
-if (!function_exists('iconv')) {
-	function iconv($in_charset, $out_charset, $str) {
-		if($pos = strpos($out_charset,'//ignore')) $out_charset = substr($out_charset,0,$pos);
-		$in_charset = strtoupper($in_charset);
-		$out_charset = strtoupper($out_charset);
-		if (function_exists('mb_convert_encoding')) {
-			return mb_convert_encoding($str, $out_charset, $in_charset);
-		} else {
-			load_func('iconv');
-			$in_charset = strtoupper($in_charset);
-			$out_charset = strtoupper($out_charset);
-			if ($in_charset == 'UTF-8' && ($out_charset == 'GBK' || $out_charset == 'GB2312')) {
-				return utf8_to_gbk($str);
-			}
-			if (($in_charset == 'GBK' || $in_charset == 'GB2312') && $out_charset == 'UTF-8') {
-				return gbk_to_utf8($str);
-			}
-			return $str;
-		}
-	}
-}
-/**
  * 格式化文本域内容
  *
  * @param $string 文本域内容
@@ -102,6 +78,7 @@ function trim_script($str) {
 			$str[$key] = trim_script($val);
 		}
  	}else{
+ 		$str = trim($str);
  		$str = remove_xss($str);
  		/*
  		$str = preg_replace ( '/\<([\/]?)script([^\>]*?)\>/si', '&lt;\\1script\\2&gt;', $str );
@@ -117,27 +94,34 @@ function cutstr($str, $len, $suffix = '') {
 	$str = str_replace(array('&nbsp;', '&amp;', '&quot;', '&#039;', '&ldquo;', '&rdquo;', '&mdash;', '&lt;', '&gt;', '&middot;', '&hellip;'), array(' ', '&', '"', "'", '“', '”', '—', '<', '>', '·', '…'), $str);
 	preg_match_all('/./u', $str, $arr);//su 匹配所有的字符，包括换行符 /u 匹配所有的字符，不包括换行符
 	//var_dump($arr);
-	$str = join('', array_slice($arr[0], 0, $len));
+	$str = implode('', array_slice($arr[0], 0, $len));
 	if (count($arr[0]) > $len) {
 		$str .= $suffix;
 	}
 	return $str;//addslashes($str);
 }
+//正则去除字符串首尾处空白字符-支持中文
+function cn_trim($str, $charlist='\s'){
+	return preg_replace('/^['.$charlist.']+|['.$charlist.']+$/u', '', $str);
+}
+//字符长度 汉字、英文字母、数字、符号每个在$len中占一个数
+if (!function_exists('mb_strlen')) {
+	function mb_strlen($str, $encoding='UTF-8'){
+		preg_match_all('/./u', $str, $arr);
+		$len = count($arr[0]);
+		unset($arr);
+		return $len;
+	}
+}else{
+	/* 设置内部字符编码为 UTF-8 */
+	mb_internal_encoding("UTF-8");
+}
 //安全过滤函数
 function safe_replace($string) {
-	$string = str_replace('%20','',$string);
-	$string = str_replace('%27','',$string);
-	$string = str_replace('%2527','',$string);
-	$string = str_replace('*','',$string);
-	$string = str_replace('"','&quot;',$string);
-	$string = str_replace("'",'',$string);
-	$string = str_replace('"','',$string);
-	$string = str_replace(';','',$string);
+	$string = trim($string);
 	$string = str_replace('<','&lt;',$string);
 	$string = str_replace('>','&gt;',$string);
-	$string = str_replace("{",'',$string);
-	$string = str_replace('}','',$string);
-	$string = str_replace('\\','',$string);
+	$string = str_replace(array('%20','%27','%2527',"'",'\\'),'',$string);
 	return $string;
 }
 // 清除HTML代码
@@ -236,8 +220,8 @@ function string2array($data) {
 function array2string($data, $isformdata = 1) {
 	if($data == '') return '';
 	if($isformdata) $data = new_stripslashes($data);
-	return escape_string(var_export($data, TRUE));
-	//return addslashes(var_export($data, TRUE));
+	return var_export($data, TRUE);
+	//return addslashes(var_export($data, TRUE)); //escape_string
 }
 /* 二维数组 排序
 $array_name:传入的数组；
@@ -309,12 +293,12 @@ function getDateStyle($time,$hi=TRUE){
         break;
     //小时
     case ($time+3600)>=$nowTime:
-        $temp_time = date('i',$nowTime-$time);
+        $temp_time = idate('i',$nowTime-$time);
         $timeHtml = $temp_time ."分钟前";
         break;
     //天
     case ($time+3600*24)>=$nowTime:
-        $temp_time = date('G',$nowTime-$time);
+        $temp_time = idate('H',$nowTime-$time);
         if($temp_time==0) $temp_time=24;
         $timeHtml = $temp_time .'小时前';
         break;
@@ -364,15 +348,16 @@ function G($request, $reqName, $vType = 1, $defValue = '', $vSize = 0, $filter =
 	return qType($val, $vType, $defValue, $vSize, $filter);
 }
 /*
-'G函数变体 对于数组变量检测 1、数组变量 2、数组检测项(var.a.c) 
+' 对于数组变量检测 1、数组变量 $var 2、数组检测项(a.c) $var['a']['b'] 便于变量isset检查
 */
-function Q2($var, $reqName, $vType = 1, $defValue = '', $vSize = 0, $filter = 0){
+function Q2($var, $reqName, $defValue = ''){
 	if(!is_array($var)) return $defValue;
-	//支持 'a.c' : $var['a']['b'] ，此方式便于变量isset检查
+	//支持 'var.a.c' : $var['a']['b'] ，此方式便于变量isset检查
 	$reqName = '[\''. str_replace('.', '\'][\'', $reqName) .'\']';
-	eval('$val = isset($var'.$reqName.') ? $var'.$reqName.' : \'\';');
-	return qType($val, $vType, $defValue, $vSize, $filter);
+	eval('$val = isset($var'.$reqName.') ? $var'.$reqName.' : $defValue;');
+	return $val;
 }
+
 /*
 '数据类型过滤
 '输入参数：
@@ -397,8 +382,6 @@ function qType($val, $vType = 1, $defValue = '', $vSize = 0, $filter = 0){
 			elseif($filter==1) $val = html_clean($val);//html过滤
 			if ($vSize!=0 && strlen($val)>$vSize) $val = cutstr($val,$vSize);
 		}
-		if (get_magic_quotes_gpc()) $val = stripslashes($val);
-		$val = escape_string($val);
 		break;
 	case 2://'日期
 		if (!IsTime($val)) { 
@@ -418,7 +401,6 @@ function qType($val, $vType = 1, $defValue = '', $vSize = 0, $filter = 0){
 function escape_string($str,$rollback=FALSE){
 	$dbms = isset($GLOBALS['cfg']['db']['dbms']) ? $GLOBALS['cfg']['db']['dbms'] : 'mysql';
 	if($dbms=='mysql') {
-		//$str = !$rollback ? str_replace(array("\\","'"),array("\\\\","\'"),$str) : str_replace(array("\\\\","\'"),array("\\","'"),$str); // 斜杠 \转义bug
 		$str = $rollback ? stripslashes($str) : addslashes($str);
 	}else {
 		$str = $rollback ? str_replace("''","'",$str) : str_replace("'","''",$str);//oracle,sqlite,mssql
@@ -427,15 +409,19 @@ function escape_string($str,$rollback=FALSE){
 }
 //数字检测函数
 function IsNum($num) {
-	return preg_match('/^[-\+]?\d+(\.\d+)?$/m', $num);
+	return is_numeric($num); //preg_match('/^[-\+]?\d+(\.\d+)?$/', $num);
 }
 //日期检测函数(格式:2007-5-6 15:30:33)
-function IsTime($DateStr) {
-	return preg_match('/^(\d{4})-(0[1-9]|[1-9]|1[0-2])-(0[1-9]|[1-9]|1\d|2\d|3[0-1])(| (0[1-9]|[1-9]|1[0-9]|2[0-3]):([0-5][0-9]|0[0-9]|[0-9])(|:([0-5][0-9]|0[0-9]|[0-9])))$/m', $DateStr);
+function IsTime($date) {
+	return preg_match('/^(\d{4})-(0[1-9]|[1-9]|1[0-2])-(0[1-9]|[1-9]|1\d|2\d|3[0-1])(| (0[0-9]|[0-9]|1[0-9]|2[0-3]):([0-5][0-9]|0[0-9]|[0-9])(|:([0-5][0-9]|0[0-9]|[0-9])))$/', $date);
 }
 //判断email格式是否正确
 function IsEmail($email) {
 	return strlen($email) > 6 && preg_match("/^[\w\-\.]+@[\w\-\.]+(\.\w+)+$/", $email);
+}
+//判断是否手机号
+function IsMobile($mobile){
+	return strlen($mobile)==11 && preg_match("/^1[3578]\d{9}$/", $mobile);
 }
 
 //显示错误信息提示过程  错误号,错误信息 
@@ -568,7 +554,6 @@ function get_url() {
 * 产生随机字符串
 *
 * @param    int        $len  输出长度
-* @param    string     $chars   可选的 ，默认为 0123456789
 * @return   string     字符串 0:数字 1:仅字母 01:数字字母混合
 */
 function random($len=6, $chars='0') {
@@ -600,7 +585,7 @@ function my_hash($hash=FALSE,$echo=TRUE){
 			$_SESSION['my_hash']=null;
 			return TRUE;
 		} else {
-			if($echo) ShowMsg('[hash]数据验证失败',HTTP_REFERER);
+			if($echo) out_msg('0:[hash]数据验证失败',HTTP_REFERER);
 			else return FALSE;
 		}
 	}else{
@@ -633,7 +618,7 @@ function CodeIsTrue($codename) {
 	if(!isset($_POST[$codename])) return FALSE;
 	$CodeStr = strtolower(trim($_POST[$codename]));
 	if(!isset($_SESSION)) session_start();
-	if ($_SESSION[$codename] == $CodeStr && !empty($CodeStr) ) {
+	if (isset($_SESSION[$codename]) && $_SESSION[$codename] == $CodeStr && $CodeStr!='' ) {
 		$_SESSION[$codename]='';
 		return TRUE;
 	} else {
@@ -787,10 +772,10 @@ function toByte($byte){
 	return $v;
 }
 //获取图片
-function get_image($image){
+function get_image($image, $nopic='/pub/images/nopic.gif'){
 	static $root_dir_len;
 	$root_dir_len=strlen(ROOT_DIR);
-	if($image=='') $image = PUB.'/images/nopic.gif';
+	if($image=='') $image = ROOT_DIR.$nopic;
 	if(substr($image,0,4)=='http' || substr($image,0,$root_dir_len)==ROOT_DIR){
 		return $image;
 	}else{
@@ -798,14 +783,35 @@ function get_image($image){
 	}
 }
 //获取缩略图 不存在返回原图 $thumb_wh : 240_180
-function get_thumb($image,$thumb_wh=''){
+function get_thumb($image,$thumb_wh='',$nopic='/pub/images/itemi.png'){
 	if(substr($image,0,4)=='http'){
 		return $image;
 	}else{
-		$image = get_image($image);
+		$image = get_image($image,$nopic);
 		$dot = strrpos($image,'.');
-		$thumb = substr($image, 0, $dot).($thumb_wh==''?GetC('thumb_wh'):$thumb_wh).substr($image, $dot);
+		if($thumb_wh==''){
+			$thumb_wh = GetC('thumb_wh');
+			$__has = strpos($thumb_wh,',');
+			if($__has!==false) $thumb_wh = substr($thumb_wh, 0, $__has);
+		}
+		$thumb = substr($image, 0, $dot).$thumb_wh.substr($image, $dot);
 		return is_file(__ROOT__.$thumb) ? $thumb : $image;
+	}
+}
+//删除上传文件 文件路径 是否图片
+function del_up_file($file, $is_img=0){
+	$realFile = __ROOT__.ROOT_DIR.$file;//真实路径
+	if (file_exists($realFile)) {
+		if($is_img){
+			$dot = strrpos($realFile,'.');
+			$base = substr($realFile, 0, $dot);
+			$ext = substr($realFile, $dot);
+			$thumbs_wh = explode(',', $GLOBALS['cfg']['thumb_wh']);//获取默认缩略图大小
+			foreach($thumbs_wh as $thumb_wh){
+				file_exists($base.$thumb_wh.$ext) && @unlink($base.$thumb_wh.$ext);	
+			}
+		}
+		@unlink($realFile);
 	}
 }
 //编辑器 field:数组,value:内容  $field:array('name'=>'name','width'=>0,'height'=>0,'ext'=>array('editor'=>'ueditor','config'=>''))
@@ -822,7 +828,8 @@ function editor_fun($field,$value=''){
 			$str .='<script type="text/javascript" src="'.($config==''?PUB.'/ueditor/ueditor.config.js':PUB.'/ueditor/'.$config).'"></script><script type="text/javascript" src="'.PUB.'/ueditor/ueditor.all.min.js"></script>';
 			$str .= '<script>var ueditor;</script>';
 		}
-		$str .= '<textarea id="'. $field['name'] .'" name="'. $field['name'] .'">'. htmlspecialchars($value) .'</textarea><script type="text/javascript">ueditor = UE.getEditor("'. $field['name'] .'",{initialFrameWidth:'. $field['width'] .',initialFrameHeight:'. $field['height'] .'});</script>';
+		//<textarea id="'. $field['name'] .'" name="'. $field['name'] .'">'. htmlspecialchars($value) .'</textarea>
+		$str .= '<script id="'. $field['name'] .'" name="'. $field['name'] .'" type="text/plain">'.$value.'</script><script type="text/javascript">ueditor = UE.getEditor("'. $field['name'] .'",{'.(isset($field['params'])? $field['params'].', ':'').'initialFrameWidth:'. $field['width'] .', initialFrameHeight:'. $field['height'] .'});</script>';
 	}else{
 		static $keditor;
 		if(empty($keditor)) {
@@ -884,8 +891,8 @@ function cookie($name, $value='', $option=null) {
         if (empty($_COOKIE))
             return null;
         // 要删除的cookie前缀，不指定则删除config设置的指定前缀
-        $prefix = empty($value) ? $config['prefix'] : $value;
-        if (!empty($prefix)) {// 如果前缀为空字符串将直接清除$_COOKIE
+        $prefix = $value=='' ? $config['prefix'] : $value;
+        if ($prefix!='') {// 如果前缀为空字符串将直接清除$_COOKIE
             foreach ($_COOKIE as $key => $val) {
                 if (0 === strpos($key, $prefix)) {
                     setcookie($key, '', time() - 3600, $config['path'], $config['domain'], $config['secure'], $config['httponly']);
@@ -910,7 +917,62 @@ function cookie($name, $value='', $option=null) {
             setcookie($name, '', time() - 3600, $config['path'], $config['domain'],$config['secure'],$config['httponly']);
             unset($_COOKIE[$name]); // 删除指定cookie
         } else {// 设置cookie
-            setcookie($name, ($encode ? sys_auth($value, 'ENCODE') : $value), $config['expire']==0 ? 0 : time()+$config['expire'], $config['path'], $config['domain'], $config['secure'], $config['httponly']);
+        	$value = $encode ? sys_auth($value, 'ENCODE') : $value;
+            setcookie($name, $value, $config['expire']==0 ? 0 : time()+$config['expire'], $config['path'], $config['domain'], $config['secure'], $config['httponly']);
+            $_COOKIE[$name] = $value;
+        }
+    }
+}
+// session 辅助类
+function session($name='', $value='') {
+	!isset($_SESSION) && Session::init(
+		isset($GLOBALS['cfg']['session'])?$GLOBALS['cfg']['session']:'file', 
+		isset($GLOBALS['cfg']['session'])?GetC('session_option'):null
+	);
+    if (is_null($name)) { // 清除所有session
+        if (isset($_SESSION)) $_SESSION = array();
+        return null;
+	}elseif($name==''){ //获取所有 session
+		return isset($_SESSION) ? $_SESSION : array();
+	}
+	if ('' === $value) {//获取 session
+        return isset($_SESSION[$name]) ? $_SESSION[$name] : null;
+    } else {
+        if (is_null($value)) {//删除 session
+            if(isset($_SESSION[$name])) unset($_SESSION[$name]);
+        } else {// 设置 session
+        	$_SESSION[$name] = $value;
+        }
+    }
+}
+// cache类 辅助方法
+function cache($name, $value='', $option=null) {
+	static $cache;
+	if(is_array($name)){
+		return $cache = Cache::getInstance($value?$value:'file', $name);
+	}elseif(is_array($option)){ //单独设置缓存并返回
+		return Cache::getInstance($name, $option);
+	}elseif(!isset($cache)){ //默认缓存设定
+		$type = isset($GLOBALS['cfg']['cache'])?$GLOBALS['cfg']['cache']:'file';
+		$cache = Cache::getInstance($type, $GLOBALS['cfg']['cache_option']);
+		if($type=='file' 
+		&& isset($GLOBALS['cfg']['cache_option']['path']) 
+		&& $GLOBALS['cfg']['cache_option']['path']=='./')
+		{
+			$cache->setCacheDir(ROOT.PUB.'/cache/');
+		}
+	}
+	if (is_null($name)) { // 清除所有cache
+        $cache->clear();
+        return null;
+	}
+	if ('' === $value) {//获取 cache
+        return $cache->get($name);;
+    } else {
+        if (is_null($value)) {//删除 cache
+            $cache->del($name);
+        } else {// 设置 session
+        	$cache->set($name, $value, is_numeric($option)?$option:0);
         }
     }
 }
@@ -961,8 +1023,8 @@ function Q($name,$defval='',$datas=null) {
     }
     if(strpos($name,'.')) { // 指定参数来源
         list($method,$name) = explode('.',$name,2);
-    }else{ // 默认为自动判断
-        $method = 'auto';
+    }else{ // 默认为_REQUEST
+        $method = 'request';
     }
 	//echo $method.'--'.$name.'--'.$type.'--'.$min.'--'.$max.'--'.$filter;
     switch(strtolower($method)) {
@@ -1005,26 +1067,26 @@ function Q($name,$defval='',$datas=null) {
         if($filter && $filter!='null') {
 			$filters = strpos($filter, ',')===false ? array($filter) : explode(',', $filter);
 			foreach($filters as $filter){
-				$data = array_call_func($filter, $data); // 参数过滤
+				function_exists($filter) && $data = array_call_func($filter, $data); // 参数过滤
 			}
         }
     }elseif(isset($input[$name])) { // 取值操作
         $data = $input[$name];
-        $filters = isset($filter)?$filter:GetC('def_filter');
-        if($filters && $filters!='null') { //过滤处理
-            if(is_string($filters)){
-                if(0 === strpos($filters,'/')){
-                    if(1 !== preg_match($filters,(string)$data)){// 支持正则验证
+        $filter = isset($filter)?$filter:GetC('def_filter');
+        if($filter && $filter!='null') { //过滤处理
+            if(is_string($filter)){
+                if(0 === strpos($filter,'/')){
+                    if(1 !== preg_match($filter,(string)$data)){// 支持正则验证
                         return $defval;
                     }
                 }else{ //多个过滤,分隔
-                    $filters = explode(',',$filters);                    
+					$filters = strpos($filter, ',')===false ? array($filter) : explode(',', $filter);
                 }
             }elseif(is_int($filters)){
                 $filters = array($filters);
             }
 
-            if(is_array($filters)){
+            if(isset($filters)){
                 foreach($filters as $filter){
                     if(function_exists($filter)) {
                         $data = is_array($data) ? array_call_func($filter,$data) : $filter($data); // 参数过滤
@@ -1047,6 +1109,7 @@ function Q($name,$defval='',$datas=null) {
     		case 'd':	// 数字
     		case 'f':	// 浮点
     			if ($data=='' || !is_numeric($data)) {$data = $defval==''?0:$defval; break;}
+				$defval = $type=='d'?(int)$defval:(float)$defval;
     			$data =	$type=='d'?(int)$data:(float)$data;
 				if($max!=null && $min!=null) $data = $min<=$data && $data<=$max ? $data : $defval;
 				elseif($max!=null) $data = $data<=$max ? $data : $defval;
@@ -1065,13 +1128,15 @@ function Q($name,$defval='',$datas=null) {
 				if($max!=null && $min!=null) $data = $min<=$len && $len<=$max ? $data : $defval;
 				elseif($max!=null) $data = $len<=$max ? $data : cutstr($data,$max);
 				elseif($min!=null) $data = $min<=$len ? $data : $defval;
-
-				//转义
-				if (get_magic_quotes_gpc()) $data = stripslashes($data);
-				$data = escape_string($data);
+				
+				if($type=='e') //不作转义处理
+					if (get_magic_quotes_gpc()) $data = stripslashes($data);
     	}
     }else{ // 变量默认值
         $data = $defval;
+		if($type=='d' || $type=='f'){
+			$data =	$type=='d'?(int)$data:(float)$data;
+		}
     }
     is_array($data) && array_walk_recursive($data,'safe_filter');
     return $data;
@@ -1081,7 +1146,7 @@ function safe_filter(&$val){
 	
 	// 过滤查询特殊字符
     if(preg_match('/^(EXP|NEQ|GT|EGT|LT|ELT|OR|XOR|LIKE|NOTLIKE|NOT BETWEEN|NOTBETWEEN|BETWEEN|NOTIN|NOT IN|IN)$/i', $val)){
-        $val .= '&nbsp;';
+        $val .= ' ';
     }
 }
 //xss 过滤

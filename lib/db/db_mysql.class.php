@@ -4,7 +4,7 @@
 /*==================================================*/
 class db_mysql extends db_abstract{
 	// 连接数据库
-    public function connect($cfg_db = array()) {
+    public function connect(&$cfg_db) {
 		//建立新连接 不返回已经打开的连接标识
 		$cfg_db['pconnect'] = isset($cfg_db['pconnect']) ? $cfg_db['pconnect'] : FALSE;
 		if($cfg_db['pconnect']){//
@@ -16,48 +16,45 @@ class db_mysql extends db_abstract{
 		
 		if (!empty($cfg_db['char'])) 
 			mysql_query('SET NAMES `'.$cfg_db['char'].'`', $this->conn);
-		mysql_select_db($cfg_db['name'], $this->conn) or exit('未找到指定的数据库（'. $cfg_db['name'] .'）');
-		unset($cfg_db);// 注销数据库连接配置信息
+		mysql_select_db($cfg_db['name'], $this->conn) or exit('Can not find DB ('. $cfg_db['name'] .')');
     }
 	//SQL安全过滤
-    public function escape_string($str) {
-        return str_replace("'", "\'", $str);
+    public function quote($str) {
+        return "'". mysql_escape_string($str) ."'";
     }
-	//对sql部分语句进行转换
-	protected function chksql(&$sql) {
-		//$sql = str_replace(array('[', ']'), '`', $sql);
-		if (stripos($sql, 'select top')!==FALSE) {
-			//([0-9]+(,[0-9]+)?) | ([0-9]+)
-			if (preg_match ('/^(select top )([0-9]+(,[0-9]+)?)/i', $sql, $regArr)) {
-				$sql = str_replace($regArr[0], "select ", $sql) . ' LIMIT ' . $regArr[2];
-			}
-			unset($regArr);
+	//执行查询语句
+	public function exec(&$sql) {
+		$result = mysql_query($sql, $this->conn);
+		if($result===false) {
+			throw new myException("SQL exec: $sql | " . mysql_error());
+			exit;
 		}
-		//$sql .= ';';
+		return $result?mysql_affected_rows():$result;
 	}
 	//执行查询语句
-	public function query($sql) {
-		if (empty($sql)) return FALSE;
+	public function query(&$sql) {
 		set_time_limit (60 * 60);
-		$this->chksql($sql);//对sql部分语句进行转换
-		//if($this->rs && $this->rs!==TRUE) $this->free();
-		$this->rs = mysql_query($sql, $this->conn) or exit("SQL语句执行错误：$sql <br />" . mysql_error());
+		$this->rs = mysql_query($sql, $this->conn);
+		if($this->rs===false) {
+			throw new myException("SQL query: $sql | " . mysql_error());
+			exit;
+		}
 		return $this->rs;
 	}
 	/**
 	 * 从结果集中取得一行作为关联数组/数字索引数组
-	 * $type : 默认MYSQL_ASSOC 关联，MYSQL_NUM 数字，MYSQL_BOTH 两者
+	 * $type : 默认MYSQL_ASSOC 关联,MYSQL_NUM 数字,MYSQL_BOTH 两者
 	 */
-	public function fetch_array($query, $type = 'assoc') {
+	public function fetch_array(&$query, $type = 'assoc') {
 		if($type=='assoc') $type = MYSQL_ASSOC;
 		elseif($type=='num') $type = MYSQL_NUM;
 		else $type = MYSQL_BOTH;
 
 		return mysql_fetch_array($query, $type);
 	}
-	//取得前一次 MySQL 操作所影响的记录行数
+	//结果集行数
 	public function num_rows() {
-		return mysql_affected_rows($this->conn);
+		return mysql_num_rows($this->rs);
 	}
 	//取得结果集中字段的数目
 	public function num_fields() {

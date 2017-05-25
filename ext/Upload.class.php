@@ -4,16 +4,19 @@ class Upload {
 	//内部实例对象
 	var $filemd5=FALSE; //文件名md5加密
 	private static $instance = null;
+	private $imgType = ',png,jpg,jpeg,bmp,gif,';
 	//上传配置
 	//".gif,.png,.jpg,.jpeg,.bmp"
 	private $config = array(
-			"uploadPath" => 'up/', //保存路径
-			"realPath" => 'up/',
-			"max_filename_len" => 250,//文件名长度
-			"valid_chars_regex" => '.A-Z0-9_ !@#$%^&()+={}\[\]\',~`-',//有效的文件名字符正则
-			"fileType" => "rar,zip,doc,docx,pdf,txt,swf,flv,wmv,png,jpg,jpeg,bmp,gif" , //文件允许格式
-			"notFileType" => "asp,asa,aspx,php,jsp",//不允许上传的格式
-			"fileSize" => 10 //文件大小限制，单位MB
+			'uploadPath' => 'up/', //保存路径
+			'realPath' => 'up/',
+			'max_filename_len' => 250, //文件名长度
+			'valid_chars_regex' => '.A-Z0-9_ !@#$%^&()+={}\[\]\',~`-', //有效的文件名字符正则
+			'fileType' => 'rar,zip,doc,docx,pdf,txt,swf,flv,wmv,png,jpg,jpeg,bmp,gif' , //文件允许格式
+			'notFileType' => 'asp,asa,aspx,php,jsp', //不允许上传的格式
+			'fileSize' => 10, //文件大小限制，单位MB
+			'width'=>false,
+			'height'=>false
 		);
 	private $data = array('state'=>'1', 'title'=>'null', 'url'=>'null', 'fileType'=>'null', 'fileSize'=>'null');
 	// 构造函数
@@ -42,6 +45,11 @@ class Upload {
 		if(empty($val)) return FALSE;
 		$this->config['fileType'] = $val;
 	}
+	//设置图片宽高 @w int @h int 用于生成指定像素范围的图片
+	public function setWH($w, $h){
+		$this->config['width'] = $w;
+		$this->config['height'] = $h;
+	}
 	//设置文件大小限制 ,单位MB
 	public function setFileSize($val){
 		//$val = floatval($val);
@@ -53,7 +61,7 @@ class Upload {
 		$sParent = dirname( $folderPath );
 		$result = 1;
 		//Check if the parent exists, or create it.
-		if (!is_dir($sParent)) createPath( $sParent, $mode );
+		if (!is_dir($sParent)) $this->createPath( $sParent, $mode );
 		if (!is_dir($folderPath)) mkdir($folderPath, $mode) or exit("创建目录 $realpath 失败");
 	}
     /**
@@ -169,10 +177,22 @@ class Upload {
 			$f_name .= strrchr( $tmp_file , '.' );
 			$fileurl = $path . $f_name;
 			$realfile = $realpath . $f_name;
-			$result = move_uploaded_file( $clientFile[ "tmp_name" ] , $realfile );
+
+			if(strpos($this->imgType, ','.$data['fileType'].',')!==false && $config['width'] && $config['height']){ //指定图片大小处理 使用第三方 Image类 方式一
+				$result = Image::thumb($clientFile[ "tmp_name" ], $realfile, '', $config['width'], $config['height']);
+				if($result===0){
+					$result = move_uploaded_file( $clientFile[ "tmp_name" ] , $realfile );
+				}
+			}else
+				$result = move_uploaded_file( $clientFile[ "tmp_name" ] , $realfile );
+
+			//$result = move_uploaded_file( $clientFile[ "tmp_name" ] , $realfile );
 			if ( !$result ) {
 				$data['state'] = "文件保存失败！";
-			}
+			}/*else{ //指定图片大小处理 使用第三方 Image类 方式二
+				if($config['width'] && $config['height'])
+					Image::thumb($realfile, $realfile, '', $config['width'], $config['height']);
+			}*/
 		} else {
 			$data['state'] = '上传文件 '. $clientFile['tmp_name'] .' 不是一个合法文件！';
 		}

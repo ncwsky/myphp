@@ -1,6 +1,4 @@
 <?php
-//判断是否定义了路径，如果没有定义，退出程序
-!defined('MY_PATH') && exit();	//或提示 exit('未定义路径')
 //模板解析基类 解析模板文件并判断是否需要在缓存目录生成缓存文件
 class Template{
 	private static $instance = NULL;	//模板实例
@@ -12,16 +10,21 @@ class Template{
 	public $leftTag = '{';	//模板左边界符号
 	public $rightTag = '}';	//模板右边界符号
 	public $tVars = array();	//模板变量
+	public $var_dot = 'array'; //.语法变量识别，array|obj|'', 为空时自动识别
 	private $templateFile = '';	//当前模板文件名
 	private $cacheFile = '';	//当前缓存文件名
 	private $level = 0, $maxLevel = 0, $limitLevel = 3; //模板嵌套层次 层次深度 限制层次深度
-	private $dir = array('level' => array(), 'file' => array()); //模板嵌套 模板层次关系 模板内容 存放数组
+	private $dir = array(); //模板嵌套 模板层次关系 模板内容 存放数组
 	//私有的构造函数，不允许直接创建对象
 	private function __construct(){}
 	//初始化模板文件夹以及缓存文件完整路径
 	private function InitFilePath($file){
 		$this->templateFile = $this->templatePath . $file;
-		$this->cacheFile = $this->cachePath . str_replace(array('/','.'),array('_','_'),$file) . '.php';//md5($file)
+
+		$this->cacheFile = $this->cachePath . str_replace(array('/','.'), '_',$file) . '.php';//md5($file)
+		//$this->level = 0; $this->maxLevel = 0;
+		$this->dir['level'] = array();
+		$this->dir['file'] = array();
 	}
 	//获取模板类实例
 	public static function GetInstance(){
@@ -54,16 +57,16 @@ class Template{
 		$this->cacheLifeTime *= 60;
 		$this->InitFilePath($file);
 		//验证是否需要更新缓存
-		if(!$this->checkCache()){
+		if(!$this->cache || !$this->checkCache()){
 			$this->analyze();
 			$this->build();
 		}
 	}
 	//模板样式 图片路径替换 可设指定路径
 	private function resetPath(&$content){
-		$path = $GLOBALS['cfg']['app_res_path']; 
-		// $patt = '(link|img)(\s*?)(src=|href=)\"(?!http://|\/)(.*?)\"';
-    	$content = preg_replace("/(link|img|script)(\s*?)(src=|href=)\"(?!http:\/\/|\/|<)(.*?)\"/i", "$1$2$3\"$path$4\"", $content);
+		//app资源路径动态输出 app_dynamic_path
+		$path = isset($GLOBALS['cfg']['app_dynamic_path'])?'<?php echo $GLOBALS[\'cfg\'][\'app_dynamic_path\'];?>':$GLOBALS['cfg']['app_res_path'];
+    	$content = preg_replace("/(link|link rel=\"stylesheet\"|img|script)(\s*?)(src=|href=)\"(?!http:\/\/|\/|<)(.*?)\"/i", "$1$2$3\"$path$4\"", $content);
 	}
 	//组合经　analyze　解析后的模板内容
 	private function build(){
@@ -92,16 +95,18 @@ class Template{
 			}
 		}
 		$this->resetPath($content);
-		return file_put_contents($this->cacheFile, $content);
+		file_put_contents($this->cacheFile, $content);
 	}
 	//模板文件分析  $fatherPath 当前页面的上级路径 $dofile 待解析模板页面
 	private function analyze($fatherPath = '', $dofile = '') {
 		$this->level++;	//层次
 		if($this->level > $this->maxLevel) $this->maxLevel = $this->level; //设置最深层次
 		//如果dofile为空表示是模板入口页面
-		if($dofile == '') $dofile = $this->templateFile; 
+		if($dofile == '') $dofile = $this->templateFile;
+		
 		$content = $this->doTmp($dofile); //获取模板解析后的内容
 		$includeVal = $this->doInclude($content); //获取模板中的包含页面
+
 		//取当前模板 关键数组的键名 keyname
 		if($this->level == 1) {
 			$keyname = $this->templateFile;
@@ -122,6 +127,7 @@ class Template{
 		} else {
 			$this->dir['level'][$this->level] = $levelVal; //'记录关系
 		}
+		
 		//获取当递归调用时页面的上级路径
 		$fatherPath = $keyname;
 		if (!$hasLevel){
@@ -147,8 +153,8 @@ class Template{
 		$patt = array('__ROOT_DIR__','__PUBLIC__', '__ACTION__', '__CONTROL__', '__ROOT__', '__APP_ROOT__', '__APP__', '__URL__');
 		$replace = array('<?php echo ROOT_DIR; ?>','<?php echo PUB; ?>', '<?php echo ACTION; ?>', '<?php echo CONTROL; ?>', '<?php echo ROOT; ?>', '<?php echo APP_ROOT; ?>', '<?php echo APP; ?>', '<?php echo URL; ?>');
 		$content = str_replace($patt, $replace, $content);
-		$patt = '(' . $this->leftTag . ')(\S.+?)(' . $this->rightTag . ')';
-		$content = preg_replace("/{$patt}/eis", "\$this->ParseTag('\\2')", $content); //i 不区分大小写 s .匹配所有的字符，包括换行符 e PHP代码求值并替换
+		$patt = preg_quote($this->leftTag) .'(\S.+?)'. preg_quote($this->rightTag);
+		$content = preg_replace_callback("/{$patt}/", array($this,'ParseTag'), $content); //i 不区分大小写 s .匹配所有的字符，包括换行符 e PHP代码求值并替换
 
 		return $content;
 	}
@@ -166,7 +172,6 @@ class Template{
 				$files = $files == '' ? $file : $files .','. $file;
 			}
 		}
-		unset($arr);
 		//<?php include模式
 		preg_match_all('/<\?php\s+include\s*\(?["\'](\.\.\/)*(.+?)["\']\)?;\s*\?>/', $data, $arr);
 		if(!empty($arr[0])) {
@@ -211,24 +216,36 @@ class Template{
 			unset($dirLevel);
 		}
 		$cacheFileMtime = filemtime($this->cacheFile) ;
-		if($cacheFileMtime < $t[0] && $this->cache) {
+		if($cacheFileMtime < $t[0]) {
 			unset($t);
 			return FALSE;
 		}
-		if($this->cacheLifeTime && $cacheFileMtime + $this->cacheLifeTime< time() && $this->cache){
+		if($this->cacheLifeTime && $cacheFileMtime + $this->cacheLifeTime< time()){
 			return FALSE;
 		}
 		return TRUE;
 	}
 	//解析{}中的内容，根据第一个字符决定使用什么函数进行解析
-	private function ParseTag($label){
-		$label = stripslashes(trim($label));
+	private function ParseTag($matches){ //$label
+		if(!isset($matches[1]) || $matches[1]=='') return '';
+		$label = $matches[1];
 		$flag = substr($label, 0, 1);
-		$flags = array('php'=>'~', 'var' => '$', 'language' => '@', 'config' => '#', 'cookie' => '+', 'session' => '-', 'get' => '%', 'post' => '&', 'constant' => '*');
+		$flags = array('isset'=>'?', 'php'=>'~', 'var' => '$', 'language' => '@', 'config' => '#', 'cookie' => '+', 'session' => '-', 'get' => '%', 'post' => '&', 'constant' => '*');
 		$name = substr($label, 1);//排除标识符
 		static $n_level = -1;//循环统计标识名层级
 		static $n_tag = array();//循环统计标识名
 		
+		//isset : ?$v[=$fun][:$defval]
+		if($flag == $flags['isset'] && substr($label, 1, 1)=='$'){
+			$defval = "''";
+			if(strpos($name,':'))
+				list($name,$defval) = explode(':',$name,2);
+			if(strpos($name,'=')){ // 指定处理方法
+				list($name,$fun) = explode('=',$name,2);
+				return '<?php echo isset('.$name.')?'.$fun.'('.$name.'):'.$defval.'; ?>';
+		    }
+			return '<?php echo isset('.$name.')?'.$name.':'.$defval.'; ?>';
+		}
 		//直接php语句
 		if($flag == $flags['php']){
 			return '<?php '.$name.' ?>';
@@ -239,44 +256,44 @@ class Template{
 		}
 		//输出语言
 		if($flag == $flags['language']){
-			return '<?php echo(GetL(\''.$name.'\')); ?>';
+			return '<?php echo GetL(\''.$name.'\'); ?>';
 		}
 		//输出配置信息
 		if($flag == $flags['config']){
-			return '<?php echo(GetC(\''.$name.'\')); ?>';
+			return '<?php echo GetC(\''.$name.'\'); ?>';
 		}
 		//输出Cookie
 		if($flag == $flags['cookie']){
-			return '<?php echo(cookie(\''.$name.'\')); ?>';
+			return '<?php echo cookie(\''.$name.'\'); ?>';
 		}
 		//输出Session
 		if($flag == $flags['session']){
-			return '<?php echo(\$_SESSION[\''.$name.'\']); ?>';
+			return '<?php echo \$_SESSION[\''.$name.'\']; ?>';
 		}
 		//输出get
 		if($flag == $flags['get']){
-			return '<?php echo(\$_GET[\''.$name.'\']); ?>';
+			return '<?php echo \$_GET[\''.$name.'\']; ?>';
 		}
 		//输出post
 		if($flag == $flags['post']){
-			return '<?php echo($_POST[\''.$name.'\']); ?>';
+			return '<?php echo $_POST[\''.$name.'\']; ?>';
 		}
 		//输出常量
 		if($flag == $flags['constant']){
-			return '<?php echo('.$name.'); ?>';
+			return '<?php echo ('.$name.'); ?>';
 		}
 		//语句结束部分 list -> foreach结束
-		if($flag == '/'){
+		if($flag == '/'){ //list if 
 			if($name == 'list') {
 				$ix = $n_level--;
 				return '<?php $'.$n_tag[$ix].'++;}unset($'.$n_tag[$ix].'); ?>';
-			}else{
+			}elseif($name=='if'){
 				return '<?php end'.$name.'; ?>';
 			}
 		}
 		//foreach开始
 		if(substr($label, 0, 4) == 'list'){
-			preg_match_all('/\\$([\w->]+)/', $label, $arr);
+			preg_match_all('/(\S+)/', substr($label, 5), $arr);
 			$arr = $arr[1];
 			if(count($arr) > 0){
 				$n_level++;
@@ -288,7 +305,8 @@ class Template{
 					$n_tag[$n_level] ='n_'.$arr[1];//n_数据别名
 					$key_name = '$key_'.$arr[1];
 				}
-				return '<?php $'.$n_tag[$n_level].'=1;if(is_array($'.$arr[0].'))  foreach($'.$arr[0].' as '.$key_name.'=>$'.$arr[1].') { ?>';
+				if(substr($arr[0],0,1)!='$') $arr[0]='$'.$arr[0];
+				return '<?php $'.$n_tag[$n_level].'=1;if(is_array('.$arr[0].'))  foreach('.$arr[0].' as '.$key_name.'=>$'.$arr[1].') { ?>';
 			}
 		}
 		//if elseif
@@ -313,7 +331,7 @@ class Template{
 		if(substr($label, 0, 4) ==  'else'){
 			return '<?php else :?>';
 		}
-		return trim($this->leftTag, '\\') . $label . trim($this->rightTag, '\\');
+		return $this->leftTag . $label . $this->rightTag;
 	}
 	//解析变量
 	private function ParseVar($varStr){
@@ -326,8 +344,18 @@ class Template{
 		if(substr($varStr, 0, 2) == 'T.'){//系统变量
 			$name = $this->ParseT($var);
 		}elseif(strpos($var, '.')){	//$var.xxx方式访问数组或属性
-			$vars = explode('.', $var);
-			$name = 'is_array($' . $vars[0] . ') ? $' . $vars[0] . '["' . $vars[1] . '"] : $' . $vars[0] . '->' . $vars[1];
+			$var = explode('.', $var);
+			$first = '$'.array_shift ($var);
+			switch ($this->var_dot) {
+                case 'array': // 识别为数组
+                    $name = $first . '[\'' . implode('\'][\'', $var) . '\']';
+                    break;
+                case 'obj': // 识别为对象
+                    $name = $first . '->' . implode('->', $var);
+                    break;
+                default: // 自动判断数组或对象
+                    $name = '(is_array(' . $first . ')?' . $first . '[\'' . implode('\'][\'', $vars) . '\']:' . $first . '->' . implode('->', $vars) . ')';
+            }
 		}else{
 			$name = '$'.$var;
 		}
@@ -337,7 +365,7 @@ class Template{
 			$name = $this->ParseFunction($name, $varArray); //多分函数支持 = 分隔 从左到右
 			$code = !empty($name) ? '<?php '. $name .' ?>' : '';
 		}else{
-			$code = !empty($name) ? '<?php echo('. $name .'); ?>' : '';
+			$code = !empty($name) ? '<?php echo '. $name .'; ?>' : '';
 		}
 		$tVars[$varStr] = $code;//记录模板变量
 		return $code;
