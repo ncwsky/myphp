@@ -498,7 +498,7 @@ class Pinyin{
 				{
 					return mb_convert_encoding ($fContents, $to, $from);
 				}
-				else if(function_exists('iconv'))
+				elseif(function_exists('iconv'))
 				{
 					return iconv($from,$to,$fContents);
 				}
@@ -521,4 +521,3 @@ class Pinyin{
 		}
 	}
 }
-?>

@@ -24,18 +24,8 @@ echo $pinyin=$py->str2py('白雪霭靄',1);
 echo $pinyin=$py->str2py('犇',1);
 */
 class Py{
-    /**
-     * 汉字拼音对照数组
-     *
-     * @var array
-     */
-    var $pinyin = array();
-    
-    /**
-     * 构造函数
-     *
-     * @return py_class
-     */
+    public $pinyin = array(); //汉字拼音对照数组
+
     public function __construct(){
         $this->pinyin=array(
         "A"=>array(59371,41648,50400,33157,41392,18661,47599),
@@ -579,7 +569,7 @@ class Py{
 				if($count==$n) break;
             }
             //if(strlen($py)>=20)return $py;
-			if($n>=20) break;
+			if($n>=50) break;
         }
         return $lower ? strtolower($py) : $py;//转换为小写
     }
@@ -590,5 +580,6 @@ class Py{
             if(in_array($a, $p))
                 return $k;
         }
+		return '';
     }
 }

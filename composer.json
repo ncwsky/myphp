@@ -1,0 +1,24 @@
+{
+    "name": "ncwsky/myphp",
+    "description": "一个简单的php框架",
+    "license": "MIT",
+    "keywords": ["myphp"],
+	"homepage": "https://github.com/ncwsky/myphp",
+	
+    "version": "1.0.0",
+    "authors": [
+        {
+            "name": "ncwsky",
+			"homepage": "https://github.com/ncwsky/myphp"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+    },
+    "autoload": {
+        "files":["myphp.php"],
+		"psr-4":{
+			
+		}
+    }
+}

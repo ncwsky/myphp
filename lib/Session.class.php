@@ -1,5 +1,7 @@
 <?php
-//Session工厂
+/**
+ * Session工厂
+ */
 class Session {
 	private static $instance = array();
 	//初始会话
@@ -15,9 +17,9 @@ class Session {
 		
 		session_set_cookie_params(
 			isset($opts['expire'])?(int)$opts['expire']:0,
-			isset($GLOBALS['cfg']['cookie_path'])?$GLOBALS['cfg']['cookie_path']:'/',
-			isset($GLOBALS['cfg']['cookie_domain'])?$GLOBALS['cfg']['cookie_domain']:'',
-			isset($GLOBALS['cfg']['cookie_secure'])?$GLOBALS['cfg']['cookie_secure']:FALSE,
+			isset(Config::$cfg['cookie_path'])?Config::$cfg['cookie_path']:'/',
+			isset(Config::$cfg['cookie_domain'])?Config::$cfg['cookie_domain']:'',
+			isset(Config::$cfg['cookie_secure'])?Config::$cfg['cookie_secure']:FALSE,
 			TRUE // HttpOnly; Yes, this is intentional and not configurable for security reasons
 		);
 		session_name($opts['id']);
@@ -26,10 +28,9 @@ class Session {
 		if(isset(self::$instance[$type])) return true;
 		
 		if($type!='file'){ //linux因权限原因自定义file操作类会出现无权限的情况
-			if(!file_exists(MY_PATH.'/lib/session/'.$type.'.class.php')) exit($type.'会话类无法加载');
 			require(MY_PATH.'/lib/session/'.$type.'.class.php');
 			$session_class = 'session_'.$type;
-			if(!class_exists($session_class)) exit($session_class.'会话类没有定义');
+			if(!class_exists($session_class)) throw new Exception($session_class.' not found');
 
 			$sess = new $session_class($opts);
 			if(version_compare(PHP_VERSION,'5.4','>=')){

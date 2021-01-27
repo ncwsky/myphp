@@ -3,11 +3,11 @@
 	<?php
 		require_once('./AES.php');
 		//$aes = new AES();
-		$aes = new AES(true);// °Ñ¼ÓÃÜºóµÄ×Ö·û´®°´Ê®Áù½øÖÆ½øĞĞ´æ´¢
-		//$aes = new AES(true,true);// ´øÓĞµ÷ÊÔĞÅÏ¢ÇÒ¼ÓÃÜ×Ö·û´®°´Ê®Áù½øÖÆ´æ´¢
-		$key = "this is a 32 byte key";// ÃÜÔ¿
+		$aes = new AES(true);// æŠŠåŠ å¯†åçš„å­—ç¬¦ä¸²æŒ‰åå…­è¿›åˆ¶è¿›è¡Œå­˜å‚¨
+		//$aes = new AES(true,true);// å¸¦æœ‰è°ƒè¯•ä¿¡æ¯ä¸”åŠ å¯†å­—ç¬¦ä¸²æŒ‰åå…­è¿›åˆ¶å­˜å‚¨
+		$key = "this is a 32 byte key";// å¯†é’¥
 		$keys = $aes->makeKey($key);//128bit
-		$encode = "Candidates selected using the works, will be part of a formal written notice, it relates to the ownership";// ±»¼ÓÃÜµÄ×Ö·û´®
+		$encode = "Candidates selected using the works, will be part of a formal written notice, it relates to the ownership";// è¢«åŠ å¯†çš„å­—ç¬¦ä¸²
 		$ct = $aes->encryptString($encode, $keys);
 		echo "encode = ".$ct."<br>";
 		$cpt = $aes->decryptString($ct, $keys);
@@ -26,7 +26,7 @@ class AES{
     	0xab, 0x4d, 0x9a, 0x2f, 0x5e, 0xbc, 0x63, 0xc6, 0x97, 0x35, 0x6a, 0xd4,
     	0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91);
     
-	// SºĞ±ä»»
+	// Sç›’å˜æ¢
 	var $S = array(
 		 99, 124, 119, 123, 242, 107, 111, 197,  48,   1, 103,  43, 254, 215, 171, 118, 
 		202, 130, 201, 125, 250,  89,  71, 240, 173, 212, 162, 175, 156, 164, 114, 192, 
@@ -46,7 +46,7 @@ class AES{
     	140, 161, 137,  13, 191, 230,  66, 104,  65, 153,  45,  15, 176,  84, 187,  22 
     );
 
-    // SºĞÄæ±ä»»
+    // Sç›’é€†å˜æ¢
     var $Si = array(
     	82,   9, 106, 213,  48,  54, 165,  56, 191,  64, 163, 158, 129, 243, 215, 251, 
        124, 227,  57, 130, 155,  47, 255, 135,  52, 142,  67,  68, 196, 222, 233, 203, 
@@ -66,7 +66,7 @@ class AES{
         23,  43,   4, 126, 186, 119, 214,  38, 225, 105,  20,  99,  85,	 33,  12, 125
     );    
 
-    // ÏßĞÔ»ìºÏ²ãÁĞ±ä»»¾ØÕó
+    // çº¿æ€§æ··åˆå±‚åˆ—å˜æ¢çŸ©é˜µ
     var $T2 = array( 
          0,   2,   4,   6,   8,  10,  12,  14,  16,  18,  20,  22,  24,  26,  28, 30, 
         32,  34,  36,  38,  40,  42,  44,  46,  48,  50,  52,  54,  56,  58,  60, 62, 
@@ -104,7 +104,7 @@ class AES{
         61, 62, 55, 52, 49, 50, 35, 32, 37, 38, 47, 44, 41, 42, 11, 
         8, 13, 14, 7, 4, 1, 2, 19, 16, 21, 22, 31, 28, 25, 26 );
 
-    // ÏßĞÔ»ìºÏ²ãÁĞ±ä»»Äæ¾ØÕó
+    // çº¿æ€§æ··åˆå±‚åˆ—å˜æ¢é€†çŸ©é˜µ
     var $T9 = array( 
         0, 9, 18, 27, 36, 45, 54, 63, 72, 65, 90, 83, 108, 101, 126, 119, 
         144, 153, 130, 139, 180, 189, 166, 175, 216, 209, 202, 195, 252, 245, 238, 
@@ -182,18 +182,18 @@ class AES{
         43, 37, 15, 1, 19, 29, 71, 73, 91, 85, 127, 113, 99, 109, 215, 
         217, 203, 197, 239, 225, 243, 253, 167, 169, 187, 181, 159, 145, 131, 141);
 
-    var $Nr = 10;// ÂÖ±ä»»È¦Êı
-    var $Nb = 4;// ´æ·ÅÖĞ¼ä½á¹û×´Ì¬µÄ¾ØÕóÁĞÊı
+    var $Nr = 10;// è½®å˜æ¢åœˆæ•°
+    var $Nb = 4;// å­˜æ”¾ä¸­é—´ç»“æœçŠ¶æ€çš„çŸ©é˜µåˆ—æ•°
     var $Nk = 4;
-    var $state = array(array());// ´æ·ÅÖĞ¼ä½á¹û×´Ì¬
+    var $state = array(array());// å­˜æ”¾ä¸­é—´ç»“æœçŠ¶æ€
     var $shifts_r = array(array(0, 1, 2, 3),array(3, 0, 1, 2),array(2, 3, 0, 1),array(1, 2, 3, 0));
     var $shifts_l = array(array(0, 1, 2, 3),array(1, 2, 3, 0),array(2, 3, 0, 1),array(3, 0, 1, 2));
     var $debug = false;
     var $toHex = false;
     /* 
-     * ¹¹Ôìº¯Êı
-     * @param: hex ½á¹ûÊÇ·ñÒÔÊ®Áù½øÖÆÏÔÊ¾£¬true£ºÏÔÊ¾
-     * @param: debug ÊÇ·ñ´òÓ¡µ÷ÊÔĞÅÏ¢ true£º´òÓ¡µ÷ÊÔĞÅÏ¢
+     * æ„é€ å‡½æ•°
+     * @param: hex ç»“æœæ˜¯å¦ä»¥åå…­è¿›åˆ¶æ˜¾ç¤ºï¼Œtrueï¼šæ˜¾ç¤º
+     * @param: debug æ˜¯å¦æ‰“å°è°ƒè¯•ä¿¡æ¯ trueï¼šæ‰“å°è°ƒè¯•ä¿¡æ¯
      */
 	/*
 	function AES($hex = false, $debug = false)
@@ -206,7 +206,7 @@ class AES{
 		$this->toHex = $hex;
 	}
 	/*
-	 * @function toHexString °Ñ×Ö·û´®ÖĞµÄÃ¿¸ö×Ö·û×ª»»³ÉÊ®Áù½øÖÆÊı
+	 * @function toHexString æŠŠå­—ç¬¦ä¸²ä¸­çš„æ¯ä¸ªå­—ç¬¦è½¬æ¢æˆåå…­è¿›åˆ¶æ•°
 	 */
 	private function toHexString ($sa) 
 	{
@@ -221,7 +221,7 @@ class AES{
 		return $buf;
 	}  
 	/*
-	 * @function fromHexString °ÑÊ®Áù½øÖÆÊı×ª»»³É×Ö·û´®
+	 * @function fromHexString æŠŠåå…­è¿›åˆ¶æ•°è½¬æ¢æˆå­—ç¬¦ä¸²
 	 */
 	private function fromHexString($sa)
 	{
@@ -234,7 +234,7 @@ class AES{
 		return $buf;
 	}
 	/*
-	 * @function showInt Êä³öµ÷ÊÔĞÅÏ¢
+	 * @function showInt è¾“å‡ºè°ƒè¯•ä¿¡æ¯
 	 */
 	private function showInt($texto)
 	{
@@ -252,9 +252,9 @@ class AES{
 		}
 	}
 	/*
-	 * @function makeKey ÃÜÔ¿À©Õ¹(128bit)
-	 * @param hash¡¡ÃÜÔ¿
-	 * @return array¡¡·µ»ØÈıÎ¬Êı×é
+	 * @function makeKey å¯†é’¥æ‰©å±•(128bit)
+	 * @param hashã€€å¯†é’¥
+	 * @return arrayã€€è¿”å›ä¸‰ç»´æ•°ç»„
 	 */
 	public function makeKey($hash)
 	{
@@ -266,7 +266,7 @@ class AES{
 		$rk = array(array(array()));
 		for($j = 0; $j < $this->Nk; $j++)
 			for($i = 0; $i < 4; $i++)
-				$tk[$i][$j] = ord($hash[$j*4+$i]) > 256 ? ord($hash[$j*4+$i])%256 : ord($hash[$j*4+$i]);// ×ª»»³ÉASCIIÂëÖµ
+				$tk[$i][$j] = ord($hash[$j*4+$i]) > 256 ? ord($hash[$j*4+$i])%256 : ord($hash[$j*4+$i]);// è½¬æ¢æˆASCIIç å€¼
 		$t = 0;
 		for($j = 0; ($j < $this->Nk) && ($t < ($this->Nr+1)*$this->Nb); $j++, $t++)
 			for($i = 0; $i < 4; $i++)
@@ -288,10 +288,10 @@ class AES{
 		return $rk;
 	}
 	/*
-	 * @function: encryptString ¼ÓÃÜ×Ö·û´®
-	 * @param: excodeStr ±»¼ÓÃÜµÄ×Ö·û´®
-	 * @param: expandedKeys À©Õ¹ºóµÄÃÜÔ¿
-	 * @return: ·µ»Ø¼ÓÃÜºóµÄ×Ö·û´®
+	 * @function: encryptString åŠ å¯†å­—ç¬¦ä¸²
+	 * @param: excodeStr è¢«åŠ å¯†çš„å­—ç¬¦ä¸²
+	 * @param: expandedKeys æ‰©å±•åçš„å¯†é’¥
+	 * @return: è¿”å›åŠ å¯†åçš„å­—ç¬¦ä¸²
 	 */
 	public function encryptString($excodeStr, $expandedKeys)
 	{
@@ -313,7 +313,7 @@ class AES{
 		return $out;
 	}
 	/*
-	 * @function blockEncrypt¡¡·Ö¿é¼ÓÃÜ
+	 * @function blockEncryptã€€åˆ†å—åŠ å¯†
 	 */
 	public function blockEncrypt($in, $keys)
 	{
@@ -342,10 +342,10 @@ class AES{
 		return $out;
 	}
 	/*
-	 * @function: decryptString ½âÃÜ×Ö·û´®
-	 * @param: decodeStr ±»½âÃÜµÄ×Ö·û´®
-	 * @param: expandedKeys À©Õ¹ºóµÄÃÜÔ¿
-	 * @return: ·µ»Ø½âÃÜºóµÄ×Ö·û´®
+	 * @function: decryptString è§£å¯†å­—ç¬¦ä¸²
+	 * @param: decodeStr è¢«è§£å¯†çš„å­—ç¬¦ä¸²
+	 * @param: expandedKeys æ‰©å±•åçš„å¯†é’¥
+	 * @return: è¿”å›è§£å¯†åçš„å­—ç¬¦ä¸²
 	 */
 	public function decryptString($decodeStr, $expandedKeys)
 	{
@@ -363,7 +363,7 @@ class AES{
 		return trim($out);
 	}
 	/*
-	 * @function blockDecrypt ·Ö¿é½âÃÜ
+	 * @function blockDecrypt åˆ†å—è§£å¯†
 	 */
 	private function blockDecrypt($in, $keys) 
 	{
@@ -393,7 +393,7 @@ class AES{
 		return $out;
 	}
 	/* 
-	 * @function ByteSubShiftRow ×÷ÓÃÔÚ×´Ì¬ÖĞÃ¿¸ö×Ö½ÚÉÏµÄÒ»ÖÖ·ÇÏßĞÔ×Ö½Ú×ª»»
+	 * @function ByteSubShiftRow ä½œç”¨åœ¨çŠ¶æ€ä¸­æ¯ä¸ªå­—èŠ‚ä¸Šçš„ä¸€ç§éçº¿æ€§å­—èŠ‚è½¬æ¢
 	 */
 	private function ByteSubShiftRow()
 	{
@@ -404,7 +404,7 @@ class AES{
 		$this->state = $tmp;
 	}
     /*
-     * @function KeyAddition ½«È¦ÃÜÔ¿×´Ì¬ÖĞµÄ¶ÔÓ¦×Ö½Ú°´Î»"Òì»ò"
+     * @function KeyAddition å°†åœˆå¯†é’¥çŠ¶æ€ä¸­çš„å¯¹åº”å­—èŠ‚æŒ‰ä½"å¼‚æˆ–"
      */
 	private function KeyAddition($rk)
 	{
@@ -413,7 +413,7 @@ class AES{
 				$this->state[$i][$j] ^= $rk[$i][$j];
 	}
     /* 
-     * @function InvShiftRowInvByteSub ×÷ÓÃÔÚ×´Ì¬ÖĞÃ¿¸ö×Ö½ÚÉÏµÄÒ»ÖÖ·ÇÏßĞÔ×Ö½Ú·´×ª»»£¬ÓëByteSubShiftRow()»¥Äæ
+     * @function InvShiftRowInvByteSub ä½œç”¨åœ¨çŠ¶æ€ä¸­æ¯ä¸ªå­—èŠ‚ä¸Šçš„ä¸€ç§éçº¿æ€§å­—èŠ‚åè½¬æ¢ï¼Œä¸ByteSubShiftRow()äº’é€†
      */
 	private function InvShiftRowInvByteSub()
 	{        
@@ -424,7 +424,7 @@ class AES{
 	$this->state = $tmp;
 	}
     /*
-     * @function MixColumnKeyAddition »ìºÏÁĞ±ä»»
+     * @function MixColumnKeyAddition æ··åˆåˆ—å˜æ¢
      */
 	private function MixColumnKeyAddition($rk)
 	{
@@ -438,7 +438,7 @@ class AES{
 		$this->state = $b;
 	}
     /* 
-     * @function InvMixColumn »ìºÏÁĞÄæ±ä»»
+     * @function InvMixColumn æ··åˆåˆ—é€†å˜æ¢
      */
 	private function InvMixColumn() 
 	{
@@ -450,11 +450,11 @@ class AES{
 	}
     /*
      * @function encryptFile
-     * @param£ºsourcePath ÎÄ¼şËùÔÚÄ¿Â¼µÄ¾ø¶ÔÂ·¾¶
-     * @param: filename ±»¼ÓÃÜµÄÎÄ¼şÃû³Æ
-     * @param: expandKeys À©Õ¹ºóµÄÃÜÔ¿
-     * @param£ºdestPath ´æ·Å¼ÓÃÜºóµÄÎÄ¼ş¾ø¶ÔÂ·¾¶
-     * @param: encodeFile ¼ÓÃÜºóµÄÎÄ¼şÃû³Æ
+     * @paramï¼šsourcePath æ–‡ä»¶æ‰€åœ¨ç›®å½•çš„ç»å¯¹è·¯å¾„
+     * @param: filename è¢«åŠ å¯†çš„æ–‡ä»¶åç§°
+     * @param: expandKeys æ‰©å±•åçš„å¯†é’¥
+     * @paramï¼šdestPath å­˜æ”¾åŠ å¯†åçš„æ–‡ä»¶ç»å¯¹è·¯å¾„
+     * @param: encodeFile åŠ å¯†åçš„æ–‡ä»¶åç§°
      * @return: boolean
      */
     public function encryptFile($sourcePath, $filename, $expandKeys, $destPath = "", $encodeFile = "")
@@ -462,5 +462,19 @@ class AES{
     	$destPath = $sourcePath;
     	$encodeFile = "en".$filename;
     }
+	//AES 128ä½åŠ å¯†
+	public static function encode($string, $key){
+		$aes = new self(true);// æŠŠåŠ å¯†åçš„å­—ç¬¦ä¸²æŒ‰åå…­è¿›åˆ¶è¿›è¡Œå­˜å‚¨
+		//$aes = new AES(true,true);// å¸¦æœ‰è°ƒè¯•ä¿¡æ¯ä¸”åŠ å¯†å­—ç¬¦ä¸²æŒ‰åå…­è¿›åˆ¶å­˜å‚¨
+		$keys = $aes->makeKey($key);//128bit
+		return $aes->encryptString($string, $keys);
+	}
+	
+	public static function decode($string, $key)
+	{
+		$aes = new self(true);// æŠŠåŠ å¯†åçš„å­—ç¬¦ä¸²æŒ‰åå…­è¿›åˆ¶è¿›è¡Œå­˜å‚¨
+		//$aes = new AES(true,true);// å¸¦æœ‰è°ƒè¯•ä¿¡æ¯ä¸”åŠ å¯†å­—ç¬¦ä¸²æŒ‰åå…­è¿›åˆ¶å­˜å‚¨
+		$keys = $aes->makeKey($key);//128bit
+		return $aes->decryptString($string, $keys);
+	}
 }
-?>

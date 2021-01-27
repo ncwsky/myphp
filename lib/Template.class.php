@@ -1,37 +1,28 @@
 <?php
 //模板解析基类 解析模板文件并判断是否需要在缓存目录生成缓存文件
 class Template{
-	private static $instance = NULL;	//模板实例
-	public $templatePath = '';	//模板文件路径
+	public $path = '';	//模板文件路径
 	public $cachePath = '';	//缓存文件存入路径
-	public $cache = FALSE;	//是否开户缓存
+	public $cache = false;	//是否开户缓存
 	public $cacheLifeTime = 0;	//缓存文件更新时间
-	public $templateSuffix = '.html';	//模板文件后缀名
+	public $suffix = '.html';	//模板文件后缀名
 	public $leftTag = '{';	//模板左边界符号
 	public $rightTag = '}';	//模板右边界符号
-	public $tVars = array();	//模板变量
 	public $var_dot = 'array'; //.语法变量识别，array|obj|'', 为空时自动识别
 	private $templateFile = '';	//当前模板文件名
 	private $cacheFile = '';	//当前缓存文件名
 	private $level = 0, $maxLevel = 0, $limitLevel = 3; //模板嵌套层次 层次深度 限制层次深度
 	private $dir = array(); //模板嵌套 模板层次关系 模板内容 存放数组
 	//私有的构造函数，不允许直接创建对象
-	private function __construct(){}
+	public function __construct(){}
 	//初始化模板文件夹以及缓存文件完整路径
 	private function InitFilePath($file){
-		$this->templateFile = $this->templatePath . $file;
+		$this->templateFile = $this->path . DS . $file;
+		$this->cacheFile = $this->cachePath . DS . str_replace(array('/','.'), '_',$file) . '.php';//md5($file)
 
-		$this->cacheFile = $this->cachePath . str_replace(array('/','.'), '_',$file) . '.php';//md5($file)
 		//$this->level = 0; $this->maxLevel = 0;
 		$this->dir['level'] = array();
 		$this->dir['file'] = array();
-	}
-	//获取模板类实例
-	public static function GetInstance(){
-		if(is_null(self::$instance)){
-			self::$instance = new Template();
-		}
-		return self::$instance;
 	}
 	//返回模板处理后的缓存文件
 	public function cachefile($file){
@@ -39,17 +30,15 @@ class Template{
 		return $this->cacheFile;
 	}
 	//显示模板、返回模板内容
-	public function display($file, $data = array()){//, $display = TRUE
+	public function display($file, &$tVars = array()){//, $display = true
 		$this->tmp_process($file);
-		$this->tVars = $data;
 		//将模板变量数组，导出为变量
-		extract($this->tVars);
+		extract($tVars);
 		//载入模板缓存文件
 		ob_start();
 		include $this->cacheFile;
 		//if(!$display){
-			$data = ob_get_clean();
-			return $data;
+			return ob_get_clean();
 		//}
 	}
 	//模板处理
@@ -65,8 +54,8 @@ class Template{
 	//模板样式 图片路径替换 可设指定路径
 	private function resetPath(&$content){
 		//app资源路径动态输出 app_dynamic_path
-		$path = isset($GLOBALS['cfg']['app_dynamic_path'])?'<?php echo $GLOBALS[\'cfg\'][\'app_dynamic_path\'];?>':$GLOBALS['cfg']['app_res_path'];
-    	$content = preg_replace("/(link|link rel=\"stylesheet\"|img|script)(\s*?)(src=|href=)\"(?!http:\/\/|\/|<)(.*?)\"/i", "$1$2$3\"$path$4\"", $content);
+		$path = isset(Config::$cfg['app_dynamic_path'])?'<?php echo Config::$cfg[\'app_dynamic_path\'];?>':Config::$cfg['app_res_path'];
+    	$content = preg_replace('/(link|link rel="stylesheet"|img|script)(\s*?)(src=|href=)"(?!http:\/\/|https:\/\/|\/|<)(.*?)"/i', "$1$2$3\"$path/$4\"", $content); #< -> <?php
 	}
 	//组合经　analyze　解析后的模板内容
 	private function build(){
@@ -114,12 +103,12 @@ class Template{
 			$keyname = $dofile;
 		}
 		//层次记录检查并记录 返回true就表示当前层次模板已经存在并记录了
-		$hasLevel = FALSE; //'层次记录是否已经存在当前页面层次记录标记
+		$hasLevel = false; //'层次记录是否已经存在当前页面层次记录标记
 		$levelVal = $fatherPath . "->" . $keyname;
 		if (!empty($this->dir['level'][$this->level])) {//'判断是否存在此层次记录
 			$tmpLevelVal = $this->dir['level'][$this->level]; //'获取此层的层次记录
 			if (strstr(','. $tmpLevelVal .',', ','. $levelVal .',')) {
-				$hasLevel = TRUE;
+				$hasLevel = true;
 			} else {
 				$levelVal .= "," . $tmpLevelVal;
 				$this->dir['level'][$this->level] = $levelVal; //'重新设置记录关系
@@ -150,8 +139,8 @@ class Template{
 	private function doTmp($tmpfile){
 		$content = file_get_contents($tmpfile);
 		//替换系统常量
-		$patt = array('__ROOT_DIR__','__PUBLIC__', '__ACTION__', '__CONTROL__', '__ROOT__', '__APP_ROOT__', '__APP__', '__URL__');
-		$replace = array('<?php echo ROOT_DIR; ?>','<?php echo PUB; ?>', '<?php echo ACTION; ?>', '<?php echo CONTROL; ?>', '<?php echo ROOT; ?>', '<?php echo APP_ROOT; ?>', '<?php echo APP; ?>', '<?php echo URL; ?>');
+		$patt = array('__PUBLIC__', '__URL__', '__APP__');
+		$replace = array('<?php echo PUB; ?>','<?php echo myphp::env("URL"); ?>','<?php echo myphp::env("APP"); ?>');
 		$content = str_replace($patt, $replace, $content);
 		$patt = preg_quote($this->leftTag) .'(\S.+?)'. preg_quote($this->rightTag);
 		$content = preg_replace_callback("/{$patt}/", array($this,'ParseTag'), $content); //i 不区分大小写 s .匹配所有的字符，包括换行符 e PHP代码求值并替换
@@ -191,49 +180,49 @@ class Template{
 		if (substr($tagfile, 0, 1) =='/') // '表示根目录 其他非默认模板目录的页面
 			$tofile = $tagfile;
 		else
-			$tofile = $this->templatePath . $tagfile;
+			$tofile = $this->path . DS . $tagfile;
 		return $tofile;
 	}
 	//验证缓存是否有效
 	private function checkCache(){
-		if(!file_exists($this->cacheFile)) return FALSE;
+		if(!is_file($this->cacheFile)) return false;
 
-		//获取模板缓存嵌套记录数组
-		$content = file_get_contents(strtr($this->cacheFile, array('.php' => '_.php')));
+		//获取模板缓存嵌套记录数组 可考虑include模式 但cli下会被缓存
+		$content = file_get_contents(str_replace('.php', '_.php', $this->cacheFile));
 		$dirLevel = unserialize(substr($content,13));
-		$t = array();
+		$max_mtime = 0;
 		if(!empty($dirLevel)) {
+            //'读取当前层次的页面最大修改时间
 			foreach($dirLevel as $val) {
-				//'读取当前层次的页面列表 遍历
 				$fileArr = explode(',', $val);
-	
 				foreach($fileArr as $filelist) {
 					$files = explode('->', $filelist);
-					$t[] = filemtime($files[1]);//获取各页面的修改时间
+					$mtime = filemtime($files[1]); //获取各页面的修改时间
+                    if($mtime>$max_mtime) $max_mtime = $mtime;
 				}	
 			}
-			rsort($t);//对修改时间降序
 			unset($dirLevel);
 		}
 		$cacheFileMtime = filemtime($this->cacheFile) ;
-		if($cacheFileMtime < $t[0]) {
-			unset($t);
-			return FALSE;
+		if($cacheFileMtime < $max_mtime) {
+			return false;
 		}
 		if($this->cacheLifeTime && $cacheFileMtime + $this->cacheLifeTime< time()){
-			return FALSE;
+			return false;
 		}
-		return TRUE;
+		return true;
 	}
+	private $n_level = -1; //循环统计标识名层级
+	private $n_tag = []; //循环统计标识名
 	//解析{}中的内容，根据第一个字符决定使用什么函数进行解析
 	private function ParseTag($matches){ //$label
 		if(!isset($matches[1]) || $matches[1]=='') return '';
 		$label = $matches[1];
 		$flag = substr($label, 0, 1);
-		$flags = array('isset'=>'?', 'php'=>'~', 'var' => '$', 'language' => '@', 'config' => '#', 'cookie' => '+', 'session' => '-', 'get' => '%', 'post' => '&', 'constant' => '*');
+		$flags = array('isset'=>'?', 'php'=>'~', 'var' => '$', 'language' => '@', 'config' => '#', 'echo' => '*'); #'cookie' => '+', 'session' => '-', 'get' => '%', 'post' => '&',
 		$name = substr($label, 1);//排除标识符
-		static $n_level = -1;//循环统计标识名层级
-		static $n_tag = array();//循环统计标识名
+		$n_level = &$this->n_level;//循环统计标识名层级
+        $n_tag = &$this->n_tag;//循环统计标识名
 		
 		//isset : ?$v[=$fun][:$defval]
 		if($flag == $flags['isset'] && substr($label, 1, 1)=='$'){
@@ -262,24 +251,24 @@ class Template{
 		if($flag == $flags['config']){
 			return '<?php echo GetC(\''.$name.'\'); ?>';
 		}
-		//输出Cookie
-		if($flag == $flags['cookie']){
-			return '<?php echo cookie(\''.$name.'\'); ?>';
-		}
-		//输出Session
-		if($flag == $flags['session']){
-			return '<?php echo \$_SESSION[\''.$name.'\']; ?>';
-		}
-		//输出get
-		if($flag == $flags['get']){
-			return '<?php echo \$_GET[\''.$name.'\']; ?>';
-		}
-		//输出post
-		if($flag == $flags['post']){
-			return '<?php echo $_POST[\''.$name.'\']; ?>';
-		}
-		//输出常量
-		if($flag == $flags['constant']){
+/*		//输出Cookie
+        if($flag == $flags['cookie']){
+            return '<?php echo cookie(\''.$name.'\'); ?>';
+        }
+        //输出Session
+        if($flag == $flags['session']){
+            return '<?php echo session(\''.$name.'\'); ?>';
+        }
+        //输出get
+        if($flag == $flags['get']){
+            return '<?php echo \$_GET[\''.$name.'\']; ?>';
+        }
+        //输出post
+        if($flag == $flags['post']){
+            return '<?php echo $_POST[\''.$name.'\']; ?>';
+        }*/
+		//输出
+		if($flag == $flags['echo']){
 			return '<?php echo ('.$name.'); ?>';
 		}
 		//语句结束部分 list -> foreach结束
@@ -302,11 +291,12 @@ class Template{
 				if(!isset($arr[1])) {
 					$arr[1] = 'data';
 				}else{
+					if(substr($arr[1],0,1)=='$') $arr[1]=substr($arr[1],1);
 					$n_tag[$n_level] ='n_'.$arr[1];//n_数据别名
 					$key_name = '$key_'.$arr[1];
 				}
-				if(substr($arr[0],0,1)!='$') $arr[0]='$'.$arr[0];
-				return '<?php $'.$n_tag[$n_level].'=1;if(is_array('.$arr[0].'))  foreach('.$arr[0].' as '.$key_name.'=>$'.$arr[1].') { ?>';
+				//if(substr($arr[0],0,1)!='$') $arr[0]='$'.$arr[0];
+				return '<?php $'.$n_tag[$n_level].'=1;if(isset('.$arr[0].') && is_array('.$arr[0].')) foreach('.$arr[0].' as '.$key_name.'=>$'.$arr[1].') { ?>';
 			}
 		}
 		//if elseif
@@ -354,7 +344,7 @@ class Template{
                     $name = $first . '->' . implode('->', $var);
                     break;
                 default: // 自动判断数组或对象
-                    $name = '(is_array(' . $first . ')?' . $first . '[\'' . implode('\'][\'', $vars) . '\']:' . $first . '->' . implode('->', $vars) . ')';
+                    $name = '(is_array(' . $first . ')?' . $first . '[\'' . implode('\'][\'', $var) . '\']:' . $first . '->' . implode('->', $var) . ')';
             }
 		}else{
 			$name = '$'.$var;
@@ -379,7 +369,7 @@ class Template{
 		$vars[1] = strtoupper(trim($vars[1]));
 		$len = count($vars);
 		if($len >= 3){
-			if(strpos(',COOKIE,SESSION,GET,POST,SERVER,', ','.$vars[1].',')!==FALSE ){
+			if(strpos(',COOKIE,SESSION,GET,POST,SERVER,', ','.$vars[1].',')!==false ){
 				//替换调名称，并将使用ArrayHandler函数获取下标，支持多维
 				$code = '$_'. $vars[1] . $this->ArrayHandler($vars);
 			}elseif($vars[1] == 'CONFIG' || $vars[1] == 'LANG'){//这里替换为函数
@@ -406,13 +396,13 @@ class Template{
 		$code = '';
 		$len = count($varArray);
 		// 获取不允许使用的函数
-		$not_fun = $GLOBALS['cfg']['tmp_not_allow_fun'];
+		$not_fun = Config::$cfg['tmp_not_allow_fun'];
 		for($i = 0; $i < $len; $i++){
 			//以=分割函数参数，第一个元素就是函数名，之后的都是参数
 			$arr = explode('|', $varArray[$i]);
 			$funcName = array_shift($arr);//函数名
 			$arr = array_shift($arr);//函数参数
-			if(strpos( $not_fun, ','.$funcName.',')===FALSE){//不允许使用的函数判断
+			if(strpos( $not_fun, ','.$funcName.',')===false){//不允许使用的函数判断
 				$args = explode(',', $arr);
 				$param = '';
 				if(count($arr)>0){//参数不为空   字符的参数需要加上单引号

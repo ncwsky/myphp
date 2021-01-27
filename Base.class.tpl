@@ -6,4 +6,3 @@ class Base extends Control{
 		parent::__construct();
     }
 }
-?>

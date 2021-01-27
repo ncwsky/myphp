@@ -10,14 +10,9 @@ class session_redis extends session_abstract{
 				
 		if(!isset($this->options['conf']))
 			$this->options['conf'] = 'redis'; //默认配置名
-
-		if ( !extension_loaded('redis') ) {
-            //exit('系统不支持:redis');
-			throw new myException('系统不支持:redis',0);
-        }
 		
-		if(isset($GLOBALS['cfg'][$this->options['conf']]))
-			$this->options = array_merge($this->options, $GLOBALS['cfg'][$this->options['conf']]);
+		if(isset(Config::$cfg[$this->options['conf']]))
+			$this->options = array_merge(Config::$cfg[$this->options['conf']], $this->options);
 
 		if(!isset($this->options['host']))
 			$this->options['host'] = '127.0.0.1'; //默认地址
@@ -27,7 +22,10 @@ class session_redis extends session_abstract{
 			$this->options['prefix'] = 'sess'; //默认前缀
 		if(!isset($this->options['timeout']))
 			$this->options['timeout'] = 0; //超时时间
-		
+		if(!isset($this->options['password']))
+			$this->options['password'] = ''; //auth pass
+		if(!isset($this->options['select']))
+			$this->options['select'] = 0; //选择库
 	}
 	/**
 	 * 类似构造
@@ -37,9 +35,20 @@ class session_redis extends session_abstract{
 	 * @return	bool
 	 */
 	public function open($save_path, $name){
-        $this->handler = new Redis;
-        $this->options['timeout'] == 0 ? $this->handler->connect($this->options['host'], $this->options['port']) : $this->handler->connect($this->options['host'], $this->options['port'], $this->options['timeout']);
-		
+        if ( extension_loaded('redis') ) {
+            $this->handler = new Redis();
+            $this->options['timeout'] == 0 ? $this->handler->connect($this->options['host'], $this->options['port']) : $this->handler->connect($this->options['host'], $this->options['port'], $this->options['timeout']);
+            if ('' != $this->options['password']) {
+                $this->handler->auth($this->options['password']);
+            }
+            if (0 != $this->options['select']) {
+                $this->handler->select($this->options['select']);
+            }
+        }else{
+            $this->options['database'] = $this->options['select'];
+            $this->handler = new MyRedis($this->options);
+        }
+
 		return $this->handler ? true : false;
 	}
 	//类似析构

@@ -53,7 +53,7 @@ class session_file extends session_abstract{
 		//Log::trace(__FUNCTION__.':'.$this->_path.$sid);
 		//$sess_path = substr($sid,0,2);
 		//$save_path = $this->_path . $sess_path . DIRECTORY_SEPARATOR;
-		return file_exists($this->_path.$sid) ? file_get_contents($this->_path.$sid) : '';
+		return is_file($this->_path.$sid) ? file_get_contents($this->_path.$sid) : '';
     }
 
     public function write($sid, $data){
@@ -78,7 +78,7 @@ class session_file extends session_abstract{
 		//$sess_path = substr($sid,0,2);
 		//$save_path = $this->_path . $sess_path . DIRECTORY_SEPARATOR;
 		//Log::trace(__FUNCTION__.':'.$this->_path.'=='.$sid);
-		if (file_exists($this->_path.$sid)) {
+		if (is_file($this->_path.$sid)) {
 			return unlink($this->_path.$sid) ? true : false;
 		}
 		return true;

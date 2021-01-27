@@ -1,435 +1,1087 @@
 <?php
-header("Content-type:text/html;charset=utf-8");
-header('Cache-control: private');
-header('X-Powered-By:MyPHP');
-define('VERSION', '1.0');
-//系统开始时间
-define('SYS_START_TIME', microtime(TRUE));//时间戳.微秒数
-define('SYS_TIME', time());//时间戳和微秒数
-// 记录内存初始使用
-define('MEMORY_LIMIT_ON', function_exists('memory_get_usage'));
-MEMORY_LIMIT_ON && define('SYS_MEMORY', memory_get_usage());
-//来源
-define('HTTP_REFERER', isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '');
-//主机协议
-define('SITE_PROTOCOL', isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == '443' ? 'https://' : 'http://');
-//当前访问的主机名
-define('SITE_URL', isset($_SERVER['HTTP_X_FORWARDED_HOST'])?$_SERVER['HTTP_X_FORWARDED_HOST']:(isset($_SERVER['HTTP_HOST'])?$_SERVER['HTTP_HOST']:''));
-//当前站点url
-define('CURR_SITE_URL',SITE_PROTOCOL.SITE_URL);
-//系统变量
-define('IS_CLI', PHP_SAPI == 'cli' ? true : false);
-define('DS', '/');
-//定义MY_PATH常量
-define('MY_PATH', str_replace('\\', '/', dirname(__FILE__)));
-defined('APP_PATH') or define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']));
-//目录 在创建日志时自动生成
-define('CACHE_DIR', 'cache');
-define('CONTROL_DIR', 'control');
-define('MODEL_DIR', 'model');
-define('VIEW_DIR', 'view');
-define('LANG_DIR', 'lang');	
-define('LOG_DIR', 'logs');
-//当前项目相对根目录
-$s_n = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
-($s_n=='.' || $s_n=='/' || IS_CLI) && $s_n='';
-defined('APP_ROOT') or define('APP_ROOT', $s_n);
-//绝对根目录 ROOT_PATH手动指定项目的绝对目录
-define('__ROOT__', IS_CLI ? dirname($_SERVER['SCRIPT_FILENAME']) : str_replace($_SERVER['SCRIPT_NAME'], '', $_SERVER['SCRIPT_FILENAME']));
-define('ROOT', __ROOT__); //站点的绝对目录 
-//相对根目录
-if(!isset($cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
-	$cfg['root_dir'] = '';
-	if(APP_ROOT!=''){
-		if($_s_pos=strpos($s_n,'/',1)) $cfg['root_dir'] = substr($s_n,0,$_s_pos);
-		else $cfg['root_dir'] = APP_ROOT;
-	}
-}
-define('ROOT_DIR', $cfg['root_dir']);
 
-//相对公共目录
-define('PUB', ROOT_DIR.'/pub');
-//配置组合
-$def_config = require MY_PATH . '/def_config.php';	//引入默认配置文件
-$cfg = isset($cfg) && is_array($cfg) ? array_merge($def_config, $cfg) : $def_config; //组合参数配置
-unset($def_config);
-//设置本地时差
-function_exists('date_default_timezone_set') && date_default_timezone_set($cfg['timezone']);
-//PATHINFO处理
-if(!isset($_SERVER['PATH_INFO'])) {
-	$types = array('ORIG_PATH_INFO','REDIRECT_PATH_INFO','REDIRECT_URL');
-	foreach ($types as $type){
-		if(isset($_SERVER[$type])) {
-			$_SERVER['PATH_INFO'] = (0 === strpos($_SERVER[$type],$_SERVER['SCRIPT_NAME']))?
-				substr($_SERVER[$type], strlen($_SERVER['SCRIPT_NAME'])) : $_SERVER[$type];
-			break;
-		}
-	}
-	$_SERVER['PATH_INFO'] = isset($_SERVER['PATH_INFO'])?$_SERVER['PATH_INFO']:'';
-}
-//REQUEST_URI 处理
-if(!isset($_SERVER['REQUEST_URI'])){
-    if (isset($_SERVER['HTTP_X_REWRITE_URL'])) {
-        $_SERVER['REQUEST_URI'] = $_SERVER['HTTP_X_REWRITE_URL'];
-    } else {
-        if ( isset($_SERVER['PATH_INFO']) ) {
-            if ( $_SERVER['PATH_INFO'] == $_SERVER['SCRIPT_NAME'] )
-                $_SERVER['REQUEST_URI'] = $_SERVER['PATH_INFO'];
-            else
-                $_SERVER['REQUEST_URI'] = $_SERVER['SCRIPT_NAME'] . $_SERVER['PATH_INFO'];
-        }
-        if (!empty($_SERVER['QUERY_STRING'])) {
-            $_SERVER['REQUEST_URI'] .= '?' . $_SERVER['QUERY_STRING'];
+final class myphp{
+    use MyMsg;
+    public static $authFun = null; //验证回调方法 Closure
+    public static $sendFun = null; //自定义输出处理 Closure($code, $data, $header)
+    public static $lang = [];
+    private static $env = []; //Run执行时的环境值 array
+    private static $header = [];
+    private static $req_cache = null;
+    public static $statusCode = 200;
+
+    private static $db = [];
+    private static $container = []; //容器
+    public static $classDir = []; //设置可加载的目录
+    public static $classList = []; //已加载的类
+    public static $phpList = []; //已加载的php
+    public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
+
+    // 获取环境变量的值
+    public static function env($name, $def = '')
+    {
+        return isset(self::$env[$name]) ? self::$env[$name] : $def;
+    }
+    public static function setEnv($name, $val=null){
+        if(is_array($name)){
+            self::$env = self::$env ? array_merge(self::$env, $name) : $name;
+        }else{
+            self::$env[$name] = $val;
         }
     }
-}
-//开启错误提示
-if($cfg['debug']){
-	error_reporting(E_ALL);// 报错级别设定,一般在开发环境中用E_ALL,这样能够看到所有错误提示
-	function_exists('ini_set') && ini_set('display_errors', 'On');// 有些环境关闭了错误显示
+    //运行程序 $isCli 可设置CLI模式下false用于解析数据的参数
+    public static function Run($sendFun=null, $isCli=IS_CLI){
+        self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法
+        self::init_app();
+        self::$sendFun = $sendFun;
+        try {
+            if(self::$authFun instanceof Closure){ //权限验证处理
+                call_user_func(self::$authFun);
+            }else{
+                self::Auth();
+            }
+            $control = (strpos($_GET['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', $_GET['c']), ' ')) : ucfirst($_GET['c'])) . 'Act'; //转驼峰 控制器的类名
+            $action = strpos($_GET['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', $_GET['a']), ' ')) : $_GET['a']; //转驼峰
+            if (!class_exists($control)) throw new Exception('class not exists ' . $control, 404);
+            // 请求缓存检查
+            if(!self::reqCache(Config::$cfg['req_cache'], Config::$cfg['req_cache_expire'], Config::$cfg['req_cache_except'])){
+                /**
+                 * @var Control $instance
+                 */
+                $instance = new $control();
+                $data = $instance->_run($action);
+                null!==$data && self::send($data, self::$statusCode, $instance->req_cache);
+                //echo self::runTime();
+            }
+        } catch (Exception $e) {
+            self::send('err: '.$e->getMessage(), $e->getCode());
+            if($e->getCode()!=404) Log::Exception($e, false);
+        }
+        self::$env = null;
+        self::$lang = null;
+        self::$header = null;
+        self::$req_cache = null;
+        self::$statusCode = 200;
+    }
+    //闭包
+    public static function url($url, $func, $type='get'){
+        //todo
+    }
+    /** 输出数据到页面
+     * @param $data
+     * @param int $code
+     * @param null $req_cache //缓存配置[键名,缓存时间]
+     */
+    public static function send($data, $code=200, $req_cache=null){
+        // 监听res_send
+        Hook::listen('res_send', $data);
+        if (200 == $code) {
+            if($req_cache===null) $req_cache = self::$req_cache;
+            if ($req_cache) {
+                self::$header['Cache-Control'] = 'max-age=' . $req_cache[1] . ',must-revalidate';
+                self::$header['Last-Modified'] = gmdate('D, d M Y H:i:s') . ' GMT';
+                self::$header['Expires'] = gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME'] + $req_cache[1]) . ' GMT';
+                Config::$cfg['cache'] && self::cache()->set($req_cache[0], [$data, self::$header], $req_cache[1]); //缓存内容和输出头
+            }
+        }
+        if(!isset(self::$header['Content-Type'])){
+            myphp::conType(Helper::isAjax() ? 'application/json' : 'text/html'); //默认输出类型设置
+        }
+        if(self::$sendFun===null){
+            if (!IS_CLI) {
+                //if (headers_sent($file, $line)) {
+                //    throw new Exception($file, $line); //"Headers already sent in $file on line $line\n"
+                //}
+                // 发送状态码
+                self::httpCode($code); #http_response_code($code); #>=5.4
+                // 发送头部信息
+                self::sendHeader();
+            }
+            echo is_string($data) ? $data : toJson($data);
+        }else{
+            call_user_func(self::$sendFun, $code, $data, self::$header);
+        }
+        // 监听res_end
+        Hook::listen('res_end', $data);
+    }
+    //请求缓存处理
+    protected static function reqCache($req_cache, $expire = null, $except = []){
+        self::$req_cache = null;
+        if(!Helper::isGet()) return false;
 
-	//加载基本类
-	include MY_PATH . '/lib/Control.class.php';	//引入控制器类
-	include MY_PATH . '/lib/View.class.php';	//引入视图类
-	include MY_PATH . '/lib/Model.class.php';	//引入模型类
-	include MY_PATH . '/lib/Cache.class.php'; //引入缓存类
-	include MY_PATH . '/lib/Template.class.php';//引入模板类
-	include MY_PATH . '/lib/Log.class.php'; //引入缓存类
-	//引入公共及扩展函数文件
-	include MY_PATH . '/inc/global.func.php';
-	include MY_PATH . '/inc/ext.func.php';
-	include MY_PATH . '/inc/comm.func.php';
-}else{
-	error_reporting(E_ALL || ~E_NOTICE); //error_reporting(0);//把错误报告，全部屏蔽
+        //有客户端缓存
+        if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) && (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) + $expire > $_SERVER['REQUEST_TIME'])) {
+            self::send('',304);
+            return true;
+        }
+        //有页面缓存
+        if (Config::$cfg['cache']){
+            $reqKey = 'req';
+            foreach ($_GET as $v){
+                $reqKey .= '_'.str_replace(['\\','/',':','*','?','"','<','>','|'],'',$v);
+            }
+            if($res = self::cache()->get($reqKey)) {
+                if($res[1]) self::setHeader($res[1]);
+                self::send($res[0],200);
+                return true;
+            }
+        }
+        //不使用缓存
+        if (false === $req_cache || false === $expire) return false;
 
-	$runfile = ROOT.ROOT_DIR.'/~run.php';
-	if(!is_file($runfile)) {
-		$php = compile(MY_PATH . '/lib/Control.class.php');
-		$php .= compile(MY_PATH . '/lib/View.class.php');
-		$php .= compile(MY_PATH . '/lib/Model.class.php');
-		$php .= compile(MY_PATH . '/lib/Cache.class.php');
-		$php .= compile(MY_PATH . '/lib/Template.class.php');
-		$php .= compile(MY_PATH . '/lib/Log.class.php');
-		$php .= compile(MY_PATH . '/inc/global.func.php');
-		$php .= compile(MY_PATH . '/inc/ext.func.php');
-		$php .= compile(MY_PATH . '/inc/comm.func.php');
-		
-		file_put_contents($runfile, '<?php '.$php);
-		unset($php);
-	}
-	include $runfile;
-}
-//获取终端发送的HTTP请求头 
-if (!function_exists('getallheaders')) { 
-    function getallheaders() { 
-		$headers = array(); 
-		$ucwords = 'Accept/Host/X-Requested-With/Cache-Control/Content-Type';
-		foreach ($_SERVER as $name => $value) { 
-			if (substr($name, 0, 5) == 'HTTP_') { 
-				$_name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
-				$headers[(strpos($ucwords, $_name)!==false? $_name : str_replace('_', '-', substr($name, 5)))] = $value;
-			}else if ($name == 'CONTENT_TYPE') { 
-				$headers['Content-Type'] = $value; 
-			} else if ($name == 'CONTENT_LENGTH') { 
-				$headers['Content-Length'] = $value; 
-			}   
-		} 
-		if (isset($_SERVER['PHP_AUTH_DIGEST'])) { 
-			$headers['AUTHORIZATION'] = $_SERVER['PHP_AUTH_DIGEST']; 
-		} elseif (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) { 
-			$headers['AUTHORIZATION'] = base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $_SERVER['PHP_AUTH_PW']); 
-		}
-		return $headers; 
+        //使用缓存
+        if (true === $req_cache) {
+            $ca = '/'.$_GET['c'].'/'.$_GET['a'];
+            foreach ($except as $rule) {
+                if (0 === stripos($ca, $rule)) {
+                    return false;
+                }
+            }
+            if(!isset($reqKey)){
+                // 缓存key名
+                $reqKey = 'req';
+                foreach ($_GET as $v){
+                    $reqKey .= '_'.str_replace(['\\','/',':','*','?','"','<','>','|'],'',$v);
+                }
+            }
+        }
+        elseif ($req_cache instanceof \Closure) {
+            $reqKey = call_user_func_array($req_cache, $_GET);
+        }
+
+        self::$req_cache = array($reqKey, $expire); //记录缓存键名 过期时间 用于send
+        return false;
+    }
+    public static $httpCodeStatus = array(
+        100 => 'Continue',
+        101 => 'Switching Protocols',
+        102 => 'Processing',
+        200 => 'OK',
+        201 => 'Created',
+        202 => 'Accepted',
+        203 => 'Non-Authoritative Information',
+        204 => 'No Content',
+        205 => 'Reset Content',
+        206 => 'Partial Content',
+        300 => 'Multiple Choices',
+        301 => 'Moved Permanently',
+        302 => 'Found',
+        303 => 'See Other',
+        304 => 'Not Modified',
+        305 => 'Use Proxy',
+        400 => 'Bad Request',
+        401 => 'Unauthorized',
+        402 => 'Payment Required',
+        403 => 'Forbidden',
+        404 => 'Not Found',
+        405 => 'Method Not Allowed',
+        500 => 'Internal Server Error',
+        501 => 'Not Implemented',
+        502 => 'Bad Gateway',
+        503 => 'Service Unavailable',
+        504 => 'Gateway Time-out',
+    );
+    //http状态输出
+    public static function httpCode($code=200){
+        if(!isset(self::$httpCodeStatus[$code])) $code=200;
+        $msg = self::$httpCodeStatus[$code];
+        $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.0');
+        header($protocol.' '.$code.' '.$msg);
+    }
+    //http头输出
+    public static function sendHeader(){
+        if(!self::$header) return;
+        foreach (self::$header as $name => $val) {
+            header($name . ':' . $val);
+        }
+        self::$header = [];
+    }
+    //输出头设置
+    public static function setHeader($name, $val=null){
+        if (is_array($name)) {
+            self::$header = array_merge(self::$header, $name);
+        } else {
+            self::$header[$name] = $val;
+        }
+    }
+    //输出类型设置
+    public static function conType($conType, $charset = '')
+    {
+        self::$header['Content-Type'] = $conType . '; charset=' . ($charset ? $charset : Config::$cfg['charset']);
+    }
+    /*
+    url模式：分隔符 "-"
+        0、http://localhost/index.php?c=控制器&a=方法
+        1、http://localhost/index.php?do=控制器-方法-id-1-page-1
+        2、http://localhost/index.php/控制器-方法-其他参数
+    */
+    //解析URL获得控制器的与方法
+    public static function Analysis($isCLI = IS_CLI){
+        static $hasAppConfig;
+        $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //获取当前执行文件名
+        $app_root = IS_CLI ? DS : APP_ROOT . DS; //app_url根路径
+        $url_mode = isset(Config::$cfg['url_mode']) ? Config::$cfg['url_mode'] : -1;
+        if($isCLI){ //cli模式请求处理
+            //cli_url_mode请求模式 默认2 PATH_INFO模式
+            $url_mode = Config::$cfg['url_mode'] = isset(Config::$cfg['cli_url_mode'])?Config::$cfg['cli_url_mode']:2;
+            if($url_mode == 1){
+                $_GET['do'] = implode(Config::$cfg['url_para_str'], array_slice($_SERVER['argv'], 1));
+            }elseif($url_mode == 2){
+                $_SERVER["REQUEST_URI"] = implode(Config::$cfg['url_para_str'], array_slice($_SERVER['argv'], 1));
+            }else{
+                parse_str(implode('&', array_slice($_SERVER['argv'], 1)), $_GET);
+            }
+        }
+        // 简单 url 映射  //仅支持映射到普通url模式
+        $uri = UrlRoute::run();
+
+        $_app = $_url = '';
+        if(!$uri) $uri = $app_root . $basename; //当前URL路径
+        //echo __URI__,'===',$uri,PHP_EOL;
+        if($url_mode == 1){
+            $_url = $_app = $uri .'?do=';
+            $do = isset($_GET['do']) ? trim($_GET['do']) : '';	//获得执行参数
+            self::parseUrl($do);
+        }
+        elseif($url_mode == 2){	//如果Url模式为2，那么就是使用PATH_INFO模式
+            $_url = $_app = (Config::$cfg['url_rewrite'] && $uri == Config::$cfg['url_index'] ? '' : $uri) . '/';
+            $url = $_SERVER["REQUEST_URI"];//获取完整的路径，包含"?"之后的字
+
+            //去除url包含的当前文件的路径信息
+            if ( strpos($url,$uri,0) !== false ){
+                $url = substr($url, strlen($uri));
+            } else { //伪静态时去除
+                if ( substr($url, 0, strlen($app_root))==$app_root ){
+                    $url = substr($url, strlen($app_root));
+                }
+            }
+            //去除?处理
+            $pos = strpos($url,'?');
+            if($pos!==false){
+                if($isCLI){ #cli 命令模式支持?b=1&d=1
+                    parse_str(substr($url, $pos+1), $_GET);
+                    $_REQUEST = array_merge($_REQUEST, $_GET);
+                }
+                $url = substr($url, 0, $pos);
+            }
+            $url = trim($url, '/');
+            self::parseUrl($url);
+        }
+        else{//0
+            $_app = $uri;
+            $_url = $_app.'?c=';
+        }
+        //控制器和方法是否为空，为空则使用默认
+        $_GET['c'] = isset($_GET['c']) ? $_GET['c'] : Config::$cfg['default_control'];
+        $_GET['a'] = isset($_GET['a']) ? $_GET['a'] : Config::$cfg['default_action'];
+        $module = isset($_GET['m']) ? str_replace(array('\\', DS), '', $_GET['m']) : '';
+        //指定项目模块
+        $module_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
+        if ($module != '') {
+            if (isset(Config::$cfg['module_maps'][$module])) {
+                $module_path = substr(Config::$cfg['module_maps'][$module], 0, 1) == DS ? ROOT . ROOT_DIR . Config::$cfg['module_maps'][$module] : APP_PATH . DS . Config::$cfg['module_maps'][$module];
+            } else {
+                $module_path = APP_PATH . DS . $module;
+            }
+        }
+
+        //引入模块配置
+        if(!isset($hasAppConfig[$module_path]) && is_file($module_path . '/config.php')){
+            $hasAppConfig[$module_path] = 1; #标识已引入
+            $appConfig = require($module_path . '/config.php');
+            if(isset($appConfig['class_dir'])){
+                $classDir = is_array($appConfig['class_dir']) ? $appConfig['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, $appConfig['class_dir']));
+                self::class_dir($classDir);
+                unset($appConfig['class_dir']);
+            }
+            Config::$cfg = array_merge(Config::$cfg, $appConfig);
+        }
+
+        //是否开启模板主题
+        $view_path = $module_path . DS . 'view' . (Config::$cfg['tmp_theme'] ? DS . Config::$cfg['site_template'] : '');
+        //自定义项目模板目录 用于模板资源路径
+        if(!isset(Config::$cfg['app_res_path'])){
+            $path = $view_path;
+            if(!IS_CLI){
+                if(strpos($view_path,ROOT)===0){
+                    $path = str_replace(ROOT,'', $view_path);
+                }elseif(substr($view_path,0,2) == './'){
+                    $path = APP_ROOT . substr($view_path,1);
+                }
+            }
+            Config::$cfg['app_res_path'] = $path;
+        }
+        if(!IS_CLI){
+            define('__APP__', $_app);
+            define('__URL__', $_url . $_GET['c']);
+            define('__URI__', $app_root . $basename);//当前URL路径
+            define('URL', __URL__);
+            define('APP', __APP__);
+            define('MODULE', $module);
+        }
+
+        //运行变量
+        self::setEnv([
+            'url_vars'=>Config::$cfg['url_vars'],
+            'URI'=> $uri,
+            'CONTROL' => $_GET['c'],
+            'ACTION' => $_GET['a'],
+            'APP' => $_app, //相对当前地址的应用入口
+            'URL' => $_url . $_GET['c'], //相对当前地址的url控制
+            'BASE_URL' => $_url . $_GET['c'] . Config::$cfg['url_para_str'] . $_GET['a'],
+            'MODULE' => $module,
+            'MODULE_PATH' => $module_path,
+            //路径 自动生成
+            'CACHE_PATH' => $module_path . DS . 'cache',
+            'CONTROL_PATH' => $module_path . DS . 'control',
+            'MODEL_PATH' => $module_path . DS . 'model',
+            'LANG_PATH' => $module_path . DS . 'lang',
+            'VIEW_PATH' => $view_path,
+            //相对项目的模板目录
+            'APP_VIEW'=>Config::$cfg['app_res_path'],
+        ]);
+    }
+    //网址解析生成
+    protected static function parseUrl($url = ''){
+        if($url=='' || isset($_GET['c']) || isset($_GET['a'])) return;
+        $paths = explode(Config::$cfg['url_para_str'], urldecode($url));	//分离路径
+
+        $_GET['c'] = array_shift($paths);	//获得控制器名
+        $_GET['a'] = array_shift($paths);	//获得方法名
+
+        //获取参数设置到get中
+        if(!empty($paths)) {
+            $param=$paths;
+            $param_count=count($param);
+            for($i=0; $i<$param_count;$i=$i+2) {
+                if(isset($param[$i+1]) && !is_numeric($param[$i])) {//预防最后个参数没有获取值。
+                    $_REQUEST[$param[$i]] = $_GET[$param[$i]]=$param[$i+1];
+                }
+            }
+        }
+    }
+
+    // 权限验证处理 在config.php配置中设置开启
+    public static function Auth(){
+        if(!Config::$cfg['auth_on']) return;
+        $auth_class = Config::$cfg['auth_model'];
+        $auth_action = Config::$cfg['auth_action'];
+        $auth_login = Config::$cfg['auth_login'];
+        $c = $_GET['c']; $a = $_GET['a'];
+        //无需验证模块
+        if(strpos( Config::$cfg['auth_model_not'] , ','.$c.',')!==false){
+            if(Config::$cfg['auth_model_action']=='') return;
+            //验证此模块中需要验证的动作
+            if(strpos( Config::$cfg['auth_model_action'] , ','.$c.'/'.$a.',')===false){
+                return;
+            }
+        }
+        //无需验证方法
+        if(strpos( Config::$cfg['auth_action_not'] , ','.$c.'/'.$a.',')!==false){
+            return;
+        }
+
+        if (!class_exists($auth_class)) throw new Exception('class not exists ' . $auth_class, 404);
+
+        $auth = myphp::app($auth_class);	//引入权限验证类
+        if(!method_exists($auth, $auth_action)) throw new Exception('auth method not found! ' . $auth_action, 404);
+
+        //仅登陆验证
+        if(strpos( Config::$cfg['auth_login_model'] , ','.$c.',')!==false || strpos( Config::$cfg['auth_login_action'] , ','.$c.'/'.$a.',')!==false){
+            if(!$auth->$auth_login()) {
+                if($c==Config::$cfg['default_control']) redirect(ROOT_DIR .Config::$cfg['auth_gateway']);
+                else Helper::outMsg('你未登录,请先登录!', ROOT_DIR .Config::$cfg['auth_gateway']);
+            }
+            //验证此模块中需要验证的动作
+            if(Config::$cfg['auth_login_M_A']=='') return;
+            if(strpos( Config::$cfg['auth_login_M_A'] , ','.$c.'/'.$a.',')===false){
+                return;
+            }
+        }
+        $auth->$auth_action();	//启动验证方法
+    }
+
+    // app项目初始化
+    private static function init_app(){
+        if(!IS_CLI && self::$env['MODULE']!='') return true; //仅cli自动生成项目模块
+        $path = self::$env['MODULE_PATH'];
+        if(!is_file($path .'/index.htm')) {// 生成项目目录
+            $cPath = self::$env['CONTROL_PATH'];
+            // 创建项目目录
+            if(!is_dir($path)) mkdir($path,0755);
+            $dirs  = array(
+                self::$env['CACHE_PATH'],
+                $cPath,
+                self::$env['VIEW_PATH'],
+                self::$env['LANG_PATH']
+            );
+            foreach ($dirs as $dir){
+                if(!is_dir($dir))  mkdir($dir,0755);
+            }
+            file_put_contents(self::$env['CACHE_PATH'].'/.gitignore', "*\r\n!.gitignore");
+            // 写入测试Action
+            if(!is_file($cPath.'/IndexAct.class.php')){
+                file_put_contents($path.'/index.htm', 'dir');
+
+                $content = file_get_contents(MY_PATH.'/Base.class.tpl');
+                file_put_contents($cPath.'/Base.class.php',$content);
+
+                $content = file_get_contents(MY_PATH.'/IndexAct.class.tpl');
+                file_put_contents($cPath.'/IndexAct.class.php',$content);
+
+                $content = file_get_contents(MY_PATH.'/index.tpl');
+                file_put_contents(self::$env['VIEW_PATH'].'/index.html',$content);
+            }
+            // 生成项目配置
+            $runconfig = $path .'/config.php';
+            if(!is_file($runconfig))
+                file_put_contents($runconfig, file_get_contents(MY_PATH.'/config.tpl'));
+        }
+
+        self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
+        self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
+    }
+    //初始框架
+    public static function init($cfg=null){
+        //项目相对根目录
+        $appRoot = IS_WIN ? strtr(dirname($_SERVER['SCRIPT_NAME']), '\\', DS) : dirname($_SERVER['SCRIPT_NAME']);
+        ($appRoot=='.' || $appRoot==DS) && $appRoot='';
+        #Config::$cfg['APP_ROOT'] = $appRoot;
+        define('APP_ROOT', $appRoot);
+        //配置组合
+        Config::load(MY_PATH . '/def_config.php'); //引入默认配置文件
+        if(is_array($cfg)){ //组合参数配置
+            Config::set($cfg);
+            unset($cfg);
+        }
+        //引入公共配置文件
+        is_file(COMMON . '/config.php') && Config::load(COMMON . '/config.php');
+
+        //相对根目录
+        if(!isset(Config::$cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
+            Config::$cfg['root_dir'] = '';
+            if($appRoot!=''){
+                if($_s_pos=strpos($appRoot,DS,1)) Config::$cfg['root_dir'] = substr($appRoot,0,$_s_pos);
+                else Config::$cfg['root_dir'] = $appRoot;
+            }
+        }
+        //相对根目录
+        define('ROOT_DIR', Config::$cfg['root_dir']);
+        //相对公共目录
+        define('PUB', ROOT_DIR . '/pub');
+
+        if (Config::$cfg['debug']) { //开启错误提示
+            error_reporting(E_ALL);// 报错级别设定,一般在开发环境中用E_ALL,这样能够看到所有错误提示
+            ini_set('display_errors', 1);// 有些环境关闭了错误显示
+
+            //引入功能函数文件
+            require MY_PATH . '/inc/comm.func.php';
+            //加载基本类
+            require MY_PATH . '/lib/Control.class.php';    //引入控制器类
+            require MY_PATH . '/lib/View.class.php';    //引入视图类
+            require MY_PATH . '/lib/Db.class.php';    //引入DB类
+            require MY_PATH . '/lib/Model.class.php';
+            require MY_PATH . '/lib/Cache.class.php'; //引入缓存类
+            require MY_PATH . '/lib/Template.class.php';//引入模板类
+            require MY_PATH . '/lib/Log.class.php'; //引入缓存类
+            require MY_PATH . '/lib/Hook.class.php'; //引入构子类
+            require MY_PATH . '/lib/Helper.class.php'; //引入辅助类
+        }
+        else {
+            error_reporting(E_ALL ^ E_NOTICE); #除了 E_NOTICE，报告其他所有错误
+            ini_set('display_errors', 0);
+
+            $runFile = ROOT . '/~run.php';
+            if (!is_file($runFile)) {
+                $php = self::compile(MY_PATH . '/inc/comm.func.php');
+                $php .= self::compile(MY_PATH . '/lib/Control.class.php');
+                $php .= self::compile(MY_PATH . '/lib/View.class.php');
+                $php .= self::compile(MY_PATH . '/lib/Db.class.php');
+                $php .= self::compile(MY_PATH . '/lib/Model.class.php');
+                $php .= self::compile(MY_PATH . '/lib/Cache.class.php');
+                $php .= self::compile(MY_PATH . '/lib/Template.class.php');
+                $php .= self::compile(MY_PATH . '/lib/Log.class.php');
+                $php .= self::compile(MY_PATH . '/lib/Hook.class.php');
+                $php .= self::compile(MY_PATH . '/lib/Helper.class.php');
+                file_put_contents($runFile, '<?php ' . $php);
+                unset($php);
+            }
+            require $runFile;
+        }
+        //设置本地时差
+        date_default_timezone_set(Config::$cfg['timezone']);
+        //初始类的可加载目录
+        self::class_dir([MY_PATH . '/lib', MY_PATH . '/ext', COMMON, COMMON . '/model']); //基础类 扩展类 公共模型
+        if(Config::$cfg['class_dir']){
+            $classDir = is_array(Config::$cfg['class_dir']) ? Config::$cfg['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, Config::$cfg['class_dir']));
+            self::class_dir($classDir);
+        }
+        //注册类的自动加载
+        spl_autoload_register('self::autoload', true, true);
+
+        // 设定错误和异常处理
+        Log::register();
+        //日志记录初始
+        Log::init(Config::$cfg['log_dir'], Config::$cfg['log_level'], Config::$cfg['log_size']);
+        is_file(COMMON . '/common.php') && require(COMMON . '/common.php');	//引入公共函数
+
+        if(!defined('APP_PATH')){
+            define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']));
+            if (!IS_CLI) {
+                self::conType(Helper::isAjax() ? 'application/json' : 'text/html'); //默认输出类型设置
+                self::sendHeader();
+            }
+        }
+    }
+    //php代码格式化
+    public static function compile($filename) {
+        $content = php_strip_whitespace($filename);
+        $content = substr(trim($content), 5);
+        if ('?>' == substr($content, -2)) $content = substr($content, 0, -2);
+        return $content;
+    }
+    //读取或设置类加载路径
+    public static function class_dir($dir){
+        //单独设置类加载路径需要写全地址
+        if(is_array($dir)) self::$classDir = array_merge(self::$classDir, array_fill_keys($dir, 1));
+        else self::$classDir[$dir] = 1;
+    }
+    //自动加载对象
+    public static function autoload($class_name) {
+        $class_name = strtr($class_name, '\\', '/');
+        if (isset(self::$classList[$class_name])) return true;
+        if (isset(static::$classMap[$class_name])) { //优先加载类映射
+            return self::loadPHP(static::$classMap[$class_name], '', '');
+        }
+        //命名空间类加载 仿psr4
+        if ($pos = strrpos($class_name, '/')) {
+            $path = ROOT . ROOT_DIR . ($class_name[0] == '/' ? '' : '/') . substr($class_name, 0, $pos);
+            $name = substr($class_name, $pos + 1);
+            if (self::loadPHP($name, $path, '.php')) {
+                self::$classList[$class_name] = true;
+                return true;
+            }
+            if (self::loadPHP($name, $path, '.class.php')) {  //兼容处理
+                self::$classList[$class_name] = true;
+                return true;
+            }
+        }
+        //循环判断
+        foreach (self::$classDir as $path=>$v) {
+            if (self::loadPHP($class_name, $path, '.class.php')) { //兼容处理
+                self::$classList[$class_name] = true;
+                return true;
+            }
+            if (self::loadPHP($class_name, $path, '.php')) {
+                self::$classList[$class_name] = true;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 载入php文件
+     * @param string $name         文件名
+     * @param string $path  路径
+     * @param string $ext   后缀
+     * @return bool
+     */
+    public static function loadPHP($name, $path='', $ext='.php') {
+        //尾部无“/”追加
+        if ($path != '') {
+            $path .= (substr($path, -1, 1) == '/' ? '' : '/');
+        }
+        $path .= $name . $ext;
+        if (isset(self::$phpList[$path])) {
+            return true;
+        }
+        if (is_file($path)) {
+            include $path;
+            self::$phpList[$path] = true;
+            return true;
+        }
+        return false;
+    }
+    /**
+     * 加载函数库
+     * @param string $func 函数库名
+     * @param string $path 地址
+     * @param string $ext 指定扩展名
+     * @return bool
+     */
+    public static function loadFunc($func, $path = '', $ext='.func.php') {
+        if (''===$path) $path = MY_PATH.'/inc/';
+        return self::loadPHP($func, $path, $ext);
+    }
+    /**
+     * 加载类文件函数
+     * @param string $name 类名
+     * @param string $path 扩展地址
+     * @param string $ext 指定扩展名
+     * @return bool|mixed
+     */
+    public static function loadClass($name, $path = '', $ext='.class.php') {
+        if (''===$path) $path = MY_PATH.'/lib/';
+        return self::loadPHP($name, $path, $ext);
+    }
+    //语言
+    public static function loadLang($file){
+        self::$lang = array_merge(self::$lang, is_array($file) ? $file : include $file);
+    }
+    public static function lang($name, $val=''){
+        if($val!==''){ //设置值
+            if ( false === ($pos = strpos($name, '.')) )
+                self::$lang[$name]=$val;
+            // 二维数组支持
+            $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
+            //$name = explode('.', $name);
+            self::$lang[$name1][$name2]=$val;
+            return null;
+        }
+        //获取值
+        if ( false === ($pos = strpos($name, '.')) )
+            return isset(self::$lang[$name]) ? self::$lang[$name] : null;
+        // 二维数组支持
+        $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
+        return isset(self::$lang[$name1][$name2]) ? self::$lang[$name1][$name2] : null;
+    }
+/*    //错误提示设置或读取
+    public static function err($msg=null){
+        if ($msg === null) return isset(Config::$cfg['__err']) ? Config::$cfg['__err'] : $msg;
+        else Config::$cfg['__err'] = $msg;
+    }*/
+    /** 组件使用
+     * @param string $name 组件名称 唯一
+     * @param null $option 自定义载入'aa'+['class'=>'ab\aa', param1,....]||'ab\aa'+[param1,....]
+     * @return object
+     */
+    public static function app($name, $option=null){
+        if(isset(self::$container[$name])) return self::$container[$name];
+
+        $appConf = null;
+        $class = $name;
+        if($option){
+            if(is_callable($option) || is_object($option)){
+                self::$container[$name] = $option;
+            }else{
+                $appConf = $option;
+            }
+        }else{
+            $appConf = Config::get('app.'.$name);
+        }
+        if(isset($appConf['class'])) {
+            $class = $appConf['class'];
+            unset($appConf['class']);
+        }
+
+        self::$container[$name] = $appConf ? new $class($appConf) : new $class();
+        return self::$container[$name];
+    }
+    /**
+     * db实例化
+     * @param string $name 数据库配置名
+     * @param bool $force 是否强制生成新实例
+     * @return Db
+     */
+    public static function db($name = 'db', $force=false)
+    {
+        if ($force || !isset(self::$db[$name])) {
+            self::$db[$name] = new Db($name, $force);    //实例化模型类
+        }
+        return self::$db[$name]; //返回实例
+    }
+
+    /**
+     * 默认缓存实例
+     * @return CacheFile|CacheRedis
+     */
+    public static function cache(){
+        $type = isset(Config::$cfg['cache']) ? Config::$cfg['cache'] : 'file';
+        return Cache::getInstance($type, Config::$cfg['cache_option']);
+    }
+
+    public static function runTime(){
+        return '页面耗时'.run_time().'秒, 内存占用'.run_mem().', 执行'.N('sql').'次SQL';
     }
 }
-//注册类的自动加载
-if(function_exists('spl_autoload_register'))
-	spl_autoload_register('__autoload');
-// 设定错误和异常处理
-Log::register();
+//异常类
+class myException extends Exception{}
+//url路由器
+class UrlRoute{
+    //url地址转换对应的模块/控制/方法
+    static public function run(){
+        /*
+        url映射(无)：直接原样url分析
+        url映射(有)：
+            1、静态url	如：/ask=> /index.php?a=ask(直接返回地址) | /ask=> ask | index/ask 解析成对应的执行url
+                    'news'=>'info/lists?id=7', // 解析-> /index.php?c=info&a=lists&id=7
+            2、动态url	如：<参数1>[<可选参数>]; [正则]->[*]特殊情况下使用 不支持‘.<>[]’
+                'news-<id\d>[-<page\d>]'=>'info/lists?<id>[&<page>]' 解析-> /index.php?c=info&a=lists&id=7&page=$2
+        */
+        if(empty(Config::$cfg['url_maps'])) return false;
+        $url = rtrim($_SERVER["REQUEST_URI"], '/');
+        if(ROOT_DIR!='')
+            $url = str_replace(ROOT_DIR,'',$url);
+        if(strpos($url,Config::$cfg['url_index'])===0)
+            $url = substr($url,strlen(Config::$cfg['url_index']));
+        if($url_pos=strpos($url,'?'))
+            $url = substr($url,0,$url_pos);
 
-//自动加载对象
-function __autoload($class_name) {
-	static $_file  = array();
-	$class_name = trim(str_replace(array('\\','/'), '', $class_name));
-	if($class_name=='') return false;
-	if (isset($_file[$class_name])) return true;
-	$class_dir = GetC('class_dir');
-	$class_array= empty($class_dir) ? array() : explode(',', ROOT.ROOT_DIR. str_replace(',', ','.ROOT.ROOT_DIR, $class_dir));//获取自行添加的class目录
-	defined('CONTROL_PATH') && $class_array[]= CONTROL_PATH;//当前项目类目录
-	defined('MODEL_PATH') && $class_array[]= MODEL_PATH;//当前项目模型目录
-	$class_array[]= MY_PATH.'/lib/';
-	$class_array[]= MY_PATH.'/ext/';//扩展类目录
-	//循环判断
-	foreach($class_array as $file) {
-		$file .= $class_name.'.class.php';
-		if(is_file($file)) {
-			if (!isset($_file[$class_name])){
-				$_file[$file] = $file;
-				include $file; 
-			}
-			return true;
-		} 
-	}
-	return false;
-}
-//anti_reflesh(5);//GetC('refresh_time',10)
-//浏览器防刷新检测
-function anti_reflesh($time=3){
-	if($_SERVER['REQUEST_METHOD'] == 'GET') {
-		//	启用页面防刷新机制
-		$id = md5($_SERVER['PHP_SELF']);
-		// 浏览器防刷新的时间间隔（秒） 默认为3
-		$refleshTime = $time;;
-		// 检查页面刷新间隔
-		if(cookie('_last_visit_time_'.$id) && cookie('_last_visit_time_'.$id)>time()-$refleshTime) {
-			// 页面刷新读取浏览器缓存
-			header('HTTP/1.1 304 Not Modified');
-			exit;
-		}else{
-			// 缓存当前地址访问时间
-			cookie('_last_visit_time_'.$id, $_SERVER['REQUEST_TIME']);
-			//header('Last-Modified:'.(date('D,d M Y H:i:s',$_SERVER['REQUEST_TIME']-C('refresh_time'))).' GMT');
-		}
-	}
-}
-//php代码格式化
-function compile($filename) {
-    $content = php_strip_whitespace($filename);
-    $content = substr(trim($content), 5);
-    if ('?>' == substr($content, -2)) $content = substr($content, 0, -2);
-    return $content;
-}
-// 统计程序运行时间 秒
-function run_time() {
-	return number_format(microtime(TRUE) - SYS_START_TIME, 4);
-}
-// 统计程序内存开销
-function run_mem() {
-	return MEMORY_LIMIT_ON ? toByte(memory_get_usage() - SYS_MEMORY) : 'unknown';
-}
-//获取配置值 支持二维数组
-function GetC($name, $defVal = NULL){
-	$pos = strpos($name, '.');
-	if ($pos===FALSE) 
-    	return isset($GLOBALS['cfg'][$name]) ? $GLOBALS['cfg'][$name] : $defVal;
-	// 二维数组支持
-	$name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
-	//$name = explode('.', $name);
-	return isset($GLOBALS['cfg'][$name1][$name2]) ? $GLOBALS['cfg'][$name1][$name2] : $defVal;
-}
-//动态设置配置值
-function SetC($name, $val){
-	$pos = strpos($name, '.');
-	if ($pos===FALSE) 
-    	$GLOBALS['cfg'][$name]=$val;
-	// 二维数组支持
-	$name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
-	//$name = explode('.', $name);
-	$GLOBALS['cfg'][$name1][$name2]=$val;
-}
-//获取语言信息 支持二维 需要先载入语言数组文件
-function GetL($name){
-	if (!strpos($name, '.')) {
-    	return isset($GLOBALS['lang'][$name]) ? $GLOBALS['lang'][$name] : $name;
-	}
-	// 二维数组支持
-	$name = explode('.', $name);
-	return isset($GLOBALS['lang'][$name[0]][$name[1]]) ? $GLOBALS['lang'][$name[0]][$name[1]] : $name;
-}
-//url解析 地址 [! 普通模式]admin/index/show?b=c&d=e, 附加参数 数组|null, url字符串如：/pub/index.php 
-function U($uri='',$vars=null,$url=''){
-	return UrlRoute::forward_url($uri,$vars,$url);
-}
-/*
-设置和获取统计数据
-$key string 标识位置, $step integer 步进值, $save boolean 是否保存结果
-return mixed
-example:
-N('sql',1); // 记录sql执行次数
-echo N('sql'); // 获取当前sql执行次数
- */
-function N($key, $step=0, $save=false) {
-    static $_num = array();
-    if (!isset($_num[$key])) {
-        $_num[$key] = 0;//(false !== $save)? cache('N_'.$key) :  0;
+        $uri = $mac = $para = '';
+        if(isset(Config::$cfg['url_maps'][$url])){ //静态url
+            $uri = Config::$cfg['url_maps'][$url];
+        }elseif(isset(Config::$cfg['url_maps'][Helper::getMethod().' '.$url])){ //仅支持单项 GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS
+            $uri = Config::$cfg['url_maps'][Helper::getMethod().' '.$url];
+        }else{ //动态url '/news/<id>[-<page>][-<pl>]'=>'info/lists?<id>[&<page>][&<pl>]',
+            foreach(Config::$cfg['url_maps'] as $k=>$v){
+                $reg_match = false;
+                if(strpos($k,'[')){ //可选参数或特殊regx模式
+                    $k = str_replace(array('[',']'),array('(',')?'),$k);
+                    $reg_match = true;
+                }
+                if(false!==$pos=strpos($k,'<')){ //是动态执行分析
+                    $reg_match = true; $vars = array(); //解析变量数组
+                    do{
+                        $end = strpos($k,'>',$pos);
+                        $var = $__var = substr($k,$pos+1,$end-$pos-1);
+                        $regx='(\w+)'; //字符数字下划线
+                        if($depr=strpos($__var,'\\')){
+                            $type = substr($__var,-1);
+                            $var = substr($__var,0,$depr);
+                            if($type=='d'){ //仅数字
+                                $regx='(\d+)';
+                            }elseif($type=='s'){ //仅字母
+                                $regx='([A-Za-z]+)';
+                            }elseif($type=='a'){ //非空白字符
+                                $regx='(\S+)';
+                            }elseif($type=='!'){ //正则
+                                $x = substr($__var,$depr+1,-1);
+                                $regx = isset(Config::$cfg['url_maps_regx'][$x]) ? Config::$cfg['url_maps_regx'][$x] : '([\w=]+)';
+                            }
+                        }
+                        $vars[$var]=1;
+                        if(substr($k,$end+1,2)==')?')//可选 "]"->")?"
+                            $vars[$var]=0;
+                        $k = str_replace('<'.$__var.'>',$regx,$k);
+                        $pos=strpos($k,'<',$pos);
+                    } while ($pos);
+                }
+                if($reg_match){
+                    $k = str_replace(array('.','/'),array('\.','\/'),$k);
+                    //Log::trace($k.'|||'.$url);
+                    if (preg_match ('/^'.$k.'$/i', $url, $regArr)) {
+                        if(isset($vars)){
+                            $count = count($regArr)-1; $i=1; //var_dump($regArr);
+                            foreach($vars as $_k=>$_v){
+                                if($_v==1) $vars[$_k]=$regArr[$i];
+                                else $vars[$_k]=$regArr[++$i]; //可选 因是双括号匹配 目标索引得加1
+                                if(++$i>$count) break;
+                            }
+                            //$_GET = $vars;
+                            $_GET = array_merge($_GET, $vars);
+                            unset($regArr, $vars);
+                        }
+                        //var_dump($_GET);//Log::trace(json_encode($_GET));
+                        $uri = $v;
+                        break;
+                    }
+                }
+            }
+            //var_dump($_GET);exit;
+        }
+        //echo $uri;
+        if($uri=='') return false;
+        //解析获取实际执行的地址
+        if(substr($uri,0,1)=='/'){ //静态url /index.php?a=ask | /pub/index.php?a=ask(待实现)
+            $pos = strpos($uri,'?');
+            if($pos!==false) {// para获取
+                $script_name = substr($uri, 0, $pos);
+                $para = substr($uri,$pos+1);
+            }else{
+                $script_name = $uri;
+            }
+        }elseif($pos = strpos($uri,'?')){ // index/ask?id=1
+            $mac = substr($uri,0,$pos);
+            $para = substr($uri,$pos+1);
+        }else{ // ask | index/ask | pub/index/ask
+            $mac = $uri;
+        }
+        // url_mode 2 $_SERVER["REQUEST_URI"] = ROOT_DIR.$uri;
+        // if($script_name=='/') $script_name .='index.php';
+
+        if(isset($script_name) && $script_name!=$_SERVER['SCRIPT_NAME']){
+            if(substr_count($script_name,'/')>1){
+                $_SERVER['SCRIPT_NAME'] = substr($script_name,-1)=='/'?$script_name.'index.php':$script_name;
+                $_GET['m'] = md5($script_name);
+                Config::$cfg['module_maps'][$_GET['m']]=substr($script_name,0,strrpos($script_name,'/')).'/app';
+            }
+            //var_dump(Config::$cfg['module_maps']);
+        }
+        //echo $_SERVER['SCRIPT_NAME'].'<br>'; //当前URL路径
+        //echo $script_name.'<br>';
+        //echo $mac.'===='.$para;
+
+        if($para!=''){
+            parse_str($para,$get);
+            $_GET = array_merge($_GET,$get);
+        }
+        if($mac!=''){//分解m a c
+            if($pos = strpos($mac,'/')){
+                $path = explode('/',$mac);
+                $_GET['a'] = array_pop($path);
+                $_GET['c'] = array_pop($path);
+                if(!empty($path)) $_GET['m'] = array_pop($path);
+            }else{
+                $_GET['a'] = $mac;
+            }
+        }
+        $_REQUEST = array_merge($_REQUEST,$_GET);
+        return $_SERVER['SCRIPT_NAME']; //当前URL路径
     }
-    if (empty($step)){
-        return $_num[$key];
-    }else{
-        $_num[$key] = $_num[$key] + (int)$step;
+    /*
+        url反转时 使用静态变量存放 v 记录 如 info/lists?id=7 第二次调用时就要以array来验证
+        伪静态模式：
+        '/wydz'=>'/index.php?c=do&a=wydz',
+        '/kjzc'=>'do/kjzc', //
+        正常模式： /index.php/news  , /index.php/news-1-9
+        'news'=>'info/lists?id=7', // -> /index.php?c=info&a=lists&id=7
+        'news-<id\d>[-<page\d>]'=>'info/lists?<id>[&<page>]' -> /index.php?c=info&a=lists&id=7&page=$2
+
+
+        规则：字母、下划线、数字   /news-1     /news-1-9
+        默认情况：\w  指定数字：\d	指定字母 \s -> [A-Za-z]
+        /news-<id\d>[-<page\d>] -> /new-(\d+?)(-\d+)?
+    */
+    // 反转url	如：info/lists?id=7 -> /news
+    // url模式:url_maps_k, url实际参数
+    static public function reverse_url($k,$vars){
+        if($pos=strpos($k,'<')){ //是动态执行分析
+            do{
+                $end = strpos($k,'>',$pos);
+                $var = $__var = substr($k,$pos+1,$end-$pos-1);
+                if($depr=strpos($__var,'\\'))
+                    $var = substr($__var,0,$depr);
+                if(!isset($vars[$var]))
+                    $vars[$var] = null;
+
+                if(substr($k,$end+1,1)==']'){//可选
+                    $pos = strpos($k,'[');
+                    $end = strpos($k,']');
+                    if($vars[$var]==null){
+                        $k = substr($k,0,$pos).substr($k,$end+1);
+                    }else{
+                        $k = substr($k,0,$pos).substr($k,$pos+1,$end-$pos-1).substr($k,$end+1);
+                    }
+                }
+                $k = str_replace('<'.$__var.'>',$vars[$var],$k);
+                $pos=strpos($k,'<',$pos);
+            } while ($pos);
+            if(strpos($k,'['))
+                $k = str_replace(array('[',']'),'',$k);
+        }
+        return $k;
     }
-    if(false !== $save){ // 保存结果
-        //cache('N_'.$key,$_num[$key],$save);
+    /*
+    url解析重写： 模块/控制器/方法?参数1=值1&....[#锚点@域名], 附加参数选项（待）
+        模块：
+            1、设定的模块参数 如： module_maps = array(),
+                array('adm'=>'/admin');  模块名=>模块（项目）路径  ->  /index.php
+                此处会自动的设置项目路径及加载项目配置		配置中未设置 log cache 时，会默认框架的log cache做来设置
+            2、实际的访问地址 如 /admin.php
+            3、实际的访问路径 如 /pub -> /pub/index.php
+
+        U('/admin/index/show?b=2&c=4',$option=null)  /index.php/index-show-m-adm-b-2-c-4	此时的项目路径 是/admin
+        U('/admin.php/index/show?b=2&c=4',$option=null)  /admin.php/index-show-b-2-c-4
+        U('/pub/index/show?b=2&c=4',$option=null)  /pub/index.php/index-show-b-2-c-4
+
+        U('/index/show?b=2&c=4',$option=null)  /index.php/index-show-b-2-c-4	当前项目 index->show方法
+        U('/show?b=2&c=4',$option=null) 同上  当前项目 默认控制器/show方法
+    */
+
+    //url正向解析 地址 [!]admin/index/show?b=c&d=e&....[#锚点@域名（待实现）], 附加参数 数组|null, url字符串如：/pub/index.php
+    static public function forward_url($uri='', $vars=null, $url=''){
+        $normal = false;#$uri = trim($uri);
+        $m = $c = $a = $mac = $para = '';
+        if(substr($uri,0,1)=='!'){ //普通url模式
+            $normal = true; $uri = substr($uri,1);
+        }
+        $pos = strpos($uri,'?');
+        $url_vars = myphp::env('url_vars');
+        if(is_array($url_vars)){ //全局url参数设定
+            $vars = $vars!=null ? array_merge($url_vars, $vars) : $url_vars;
+        }
+
+        if($pos!==false && isset($vars['!'])){ //排除参数处理 参数!的参数值为排除项 多个使用,分隔
+            $del_paras = explode(',', $vars['!']);
+            foreach($del_paras as $k){
+                if($k!='' && $_s = strpos($uri, $k, $pos)){ //?位置开始
+                    $_e = strpos($uri, '&', $_s); //参数位置开始
+                    $uri = substr($uri, 0, $_s).($_e?substr($uri, $_e+1):'');
+                }
+            }
+            if(count($vars)>1) unset($vars['!']);
+            else $vars=null;
+            // $uri = rtrim($uri,'&');
+        }
+        //url映射
+        if(is_array(Config::$cfg['url_maps']) && !empty(Config::$cfg['url_maps'])){
+            static $url_maps;
+            if(!isset($url_maps)){
+                foreach (Config::$cfg['url_maps'] as $k => $v) {
+                    $url_maps[$v]=$k;
+                }
+            }
+            $maps_para = '';
+            if(is_array($vars)) $maps_para = http_build_query($vars);
+        }
+        //分析mac及参数
+        if($pos!==false) {// 参数处理
+            $mac = substr($uri,0,$pos);
+            if(is_array($vars)){
+                parse_str(substr($uri,$pos+1),$get);
+                $vars = array_merge($vars,$get);
+            }else{
+                parse_str(substr($uri,$pos+1),$vars);
+            }
+        }else{
+            $mac = $uri;
+        }
+
+        if($mac!=''){//分解m a c
+            if($pos=strpos($mac,'.php')){ #有指定入口php url
+                $url = substr($mac,0, $pos+4);
+                $mac = substr($mac, $pos+4);
+            }
+            $mac = ltrim($mac,'/');
+            if($pos = strpos($mac,'/')){
+                $path = explode('/',$mac);
+                $a = array_pop($path);
+                $c = array_pop($path);
+                if(!empty($path)) $m = array_pop($path);
+            }else{
+                $c = myphp::env('CONTROL');
+                $a = $mac ? $mac : myphp::env('ACTION');
+            }
+        }
+        if($c=='' && $a=='' && !is_array($vars)){
+            return $url==''?myphp::env('URI'):ROOT_DIR.$url;
+        }
+        //
+        $url_mode = Config::$cfg['url_mode'];
+        $ups = Config::$cfg['url_para_str'];
+        $para = '';
+        #$c = $c==''?myphp::env('CONTROL'):$c;
+        #$a = $a==''?myphp::env('ACTION'):$a;
+        if ($c) $para = 'c=' . $c;
+        if ($a) $para .= '&a=' . $a;
+        if ($m) $para .= '&m=' . $m;
+
+        #$para = 'c='.$c.'&a='.$a;
+        #if($m) $para .= '&m='.$m;
+        //url映射处理
+        if(isset($url_maps)){
+            $_url = $url==''?substr(myphp::env('URI'),strlen(ROOT_DIR)):$url;
+
+            if(is_array($vars)) $para .= '&'.urldecode(http_build_query($vars));
+            $_url .='?'.trim($para,'&');
+
+            //先完整比配 再mac?附加参数比配 再 mac比配
+            if(isset($url_maps[$_url])){
+                return ROOT_DIR.$url_maps[$_url];
+            }elseif(isset($url_maps[$mac.'?'.$maps_para])){
+                return ROOT_DIR . self::reverse_url($url_maps[$mac.'?'.$maps_para],$vars);
+            }elseif(isset($url_maps[$mac])){
+                return ROOT_DIR . self::reverse_url($url_maps[$mac],$vars);
+            }
+        }
+
+        //直接解析
+        if($url_mode==0 || $normal){//普通模式
+            $url = $url==''?myphp::env('URI'):ROOT_DIR.$url;
+            if(is_array($vars)) $para .= '&'.urldecode(http_build_query($vars));
+            return $url.'?'.trim($para,'&');
+        }
+        //其他模式
+        if($url!=''){
+            $url = ROOT_DIR.$url;
+            if($url_mode == 1){
+                $url .= '?do=';
+            }elseif($url_mode == 2){
+                $url .= '/';
+            }
+        }else{
+            $url = myphp::env('APP');
+        }
+
+
+        $url .= $c . $ups . $a;
+        if($m!='') $url .= $ups.'m'.$ups.$m;
+        if(is_array($vars)){
+            foreach($vars as $k=>$v){
+                if($v==='') continue;
+                $url .=$ups.$k.$ups.$v;
+            }
+        }
+        return $url;
     }
-    return null;
 }
-/**
- * 模型实例化
- * @param string $name 数据库配置名(.表名)?
- * @return object
- */
-function M($name='db'){
-	static $_model  = array();
-	$id = 'M_'. $name;
-	if (!isset($_model[$id])){
-		$_model[$id] = new Model($name);	//实例化模型类
-	}
-	return $_model[$id]; //返回实例
+//配置处理类
+class Config{
+    public static $cfg = [];
+    //载入配置
+    public static function load($file){
+        self::set(include $file);
+    }
+    //获取配置值 支持二维数组
+    public static function get($name, $defVal = null){
+        if ( false === ($pos = strpos($name, '.')) )
+            return isset(self::$cfg[$name]) ? self::$cfg[$name] : $defVal;
+        // 二维数组支持
+        $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
+        return isset(self::$cfg[$name1][$name2]) ? self::$cfg[$name1][$name2] : $defVal;
+    }
+    //动态设置配置值
+    public static function set($name, $val=null){
+        if(is_array($name)) {
+            self::$cfg = array_merge(self::$cfg, $name); return;
+        }
+        if ( false === ($pos = strpos($name, '.')) ){
+            self::$cfg[$name]=$val; return;
+        }
+        // 二维数组支持
+        $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
+        //$name = explode('.', $name);
+        self::$cfg[$name1][$name2]=$val;
+    }
+    //删除配置
+    public static function del($name){
+        if ( false === ($pos = strpos($name, '.')) ){
+            unset(self::$cfg[$name]); return;
+        }
+        // 二维数组支持
+        $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
+        unset(self::$cfg[$name1][$name2]);
+    }
 }
-if (!function_exists('out_msg')) { //用于前端自动定义信息输出模板
-//跳转提示信息输出: ([0,1]:)信息标题, url, 辅助信息, 等待时间（秒）
-	function out_msg($message, $url='', $info='', $time = 1) {
-		if ($url=='') {
-			$jumpUrl = 'javascript:window.history.back()';
-			$js = 'window.history.back()';
-		} elseif (substr($url,0,11)=='javascript:') {
-			$jumpUrl = $url;
-			$js = substr($url,11);
-		} else {
-			$jumpUrl = $url;
-			$js = "window.location='$jumpUrl'";
-		}
-		$status = substr($message,0,1); //提示状态 默认为普通
-		$flag = 'normal'; //普通提示
-		if($status=='1' || $status=='0'){
-			$message=substr($message,2);
-			$flag = $status=='1'?'success':'error'; //成功提示 | 错误提示
-		}else{
-			$status = -1;
-		}
-
-		if(ob_get_length() !== false) ob_clean();//清除页面
-		if(is_ajax()){ //ajax输出
-			$json = array('status'=>(int)$status, 'msg'=>$message, 'url'=>$jumpUrl, 'info'=>$info, 'time'=>$time);
-			exit(json($json));
-		}
-		
-		$out_html = '<!doctype html><html><head><meta charset="utf-8"><title>'.($url!='err'?'跳转提示':'错误提示').'</title><style type="text/css">*{padding:0;margin:0}body{background:#fff;font-family:"Microsoft YaHei";color:#333;font-size:100%}.system-message{padding:1.5em 3em}.system-message h1{font-size:6.25em;font-weight:400;line-height:120%;margin-bottom:.12em}.system-message .jump{padding-top:.625em}.system-message .jump a{color:#333}.system-message .success{color:#207E05}.system-message .error{color:#da0404}.system-message .normal,.system-message .success,.system-message .error{line-height:1.8em;font-size:2.25em}.system-message .detail{font-size:1.2em;line-height:160%;margin-top:.8em}</style></head><body><div class="system-message">';
-		
-		$out_html .= '<h1>:)</h1><p class="'.$flag.'">'.$message.'</p>'; //输出
-		
-		$out_html .= $info!=''?'<p class="detail">'.$info.'</p>':'';
-		if($url!='err') //错误提示不跳转
-			$out_html .= '<p class="jump">页面自动 <a id="href" href="'.$jumpUrl.'">跳转</a>  等待时间： <b id="time">'.$time.'</b><!--<br><a href="'.$jumpUrl.'">如未跳转请点击此处手工跳转</a>--></p></div><script type="text/javascript">var pgo=0,t=setInterval(function(){var time=document.getElementById("time");var val=parseInt(time.innerHTML)-1;time.innerHTML=val;if(val<=0){clearInterval(t);if(pgo==0){pgo=1;'.$js.';}}},1000);</script></body></html>';
-
-		exit($out_html);
-	}
-}
-if (!function_exists('json')) {
-	//json_encode 缩写
-	function json($res, $option=0){
-		if($option==0 && defined('JSON_UNESCAPED_UNICODE'))
-			$option = JSON_UNESCAPED_UNICODE;
-		return json_encode($res, $option);
-	}
-}
-/**
- * 加载函数库
- * @param string $func 函数库名
- * @param string $path 地址
- */
-function load_func($func, $path = '') {
-	static $funcs = array();
-	if ($path=='') $path = MY_PATH.'/inc/';
-	$path .= $func.'.func.php';
-	$key = md5($path);
-	if (isset($funcs[$key])) return true;
-	if (file_exists($path)) {
-		include $path;
-	} else {
-		$funcs[$key] = false;
-		return false;
-	}
-	$funcs[$key] = true;
-	return true;
-}
-/**
- * 加载类文件函数
- * @param string $classname 类名
- * @param string $path 扩展地址
- * @param intger $initialize 是否初始化
- */
-function load_class($classname, $path = '', $initialize = 1) {
-	static $classes = array();
-	if (empty($path)) $path = MY_PATH.'/lib/';
-	$path .=$classname.'.class.php';
-
-	$key = md5($path);
-	if (isset($classes[$key])) {
-		if (!empty($classes[$key])) {
-			return $classes[$key];
-		} else {
-			return true;
-		}
-	}
-	
-	if (file_exists($path)) {
-		include $path;
-		$name = $classname;
-		if ($initialize) {
-			$classes[$key] = new $name;
-		} else {
-			$classes[$key] = true;
-		}
-		return $classes[$key];
-	} else {
-		return false;
-	}
-}
-/**
- * 加载其他类文件函数
- * @param string $path 类地址
- * @param string $classname 指定类名并初始化
- */
-function load_other_class($path, $classname='') {
-	static $classes = array();
-	$key = md5($path);
-	if (isset($classes[$key])) {
-		if (!empty($classes[$key])) {
-			return $classes[$key];
-		} else {
-			return true;
-		}
-	}
-	
-	if (file_exists($path)) {
-		include $path;
-		if ($classname!='') {
-			$classes[$key] = new $classname;
-		} else {
-			$classes[$key] = true;
-		}
-		return $classes[$key];
-	} else {
-		return false;
-	}
-}
-
-/**
- * 当前的请求类型
- * @return string
- */
-function get_method()
+trait MyMsg
 {
-	//static $_method;
-	//if (!isset($_method) {
-		// 如果指定 $_POST['_method'] ，表示使用POST请求来模拟其他方法的请求。
-		// 此时 $_POST['_method'] 即为所模拟的请求类型。
-		if (isset($_POST['_method'])) {
-			$_method = strtoupper($_POST['_method']);
-		} elseif (isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'])) {
-			$_method = strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']);
-		} else {
-			$_method = IS_CLI ? 'GET' : (isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET');
-		}
-	//}
-	return $_method;
-}
-// 当前是否Ajax请求
-function is_ajax()
-{
-	//跨域情况  // javascript 或 JSONP 格式    //  JSON 格式  
-	//isset($_SERVER['HTTP_ACCEPT']) && ( $_SERVER['HTTP_ACCEPT']=='text/javascript, application/javascript, */*' || $_SERVER['HTTP_ACCEPT']=='application/json, text/javascript, */*')
-	return (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') ? true : false;
+    public static $myMsg = '';
+    public static $myCode = 0;
+    //消息记录
+    public static function msg($msg=null, $code=0){
+        if ($msg === null) {
+            return self::$myMsg;
+        } else {
+            self::$myMsg = $msg;
+            self::$myCode = $code;
+        }
+    }
+    //错误提示设置或读取
+    public static function err($msg=null, $code=1){
+        if ($msg === null) {
+            return self::$myMsg;
+        } else {
+            self::msg($msg, $code);
+        }
+    }
 }

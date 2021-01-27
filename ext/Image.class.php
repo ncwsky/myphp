@@ -1,23 +1,14 @@
 <?php
 //生成图像缩略图和生成验证码
 class Image
-{//类定义开始
+{
     /**
-     +----------------------------------------------------------
      * 取得图像信息
-     +----------------------------------------------------------
-     * @static
-     * @access public
-     +----------------------------------------------------------
-     * @param string $image 图像文件名
-     +----------------------------------------------------------
-     * @return mixed
-     +----------------------------------------------------------
+     * @param string $img 图像文件名
+     * @return bool|array
      */
     static function getImageInfo($img) {
-        $imageInfo = getimagesize($img);
-        if( $imageInfo!== false)
-		 {
+        if(filesize($img) && false!==($imageInfo = getimagesize($img))) {
             $imageType = strtolower(substr(image_type_to_extension($imageInfo[2]),1));
             $imageSize = filesize($img);
             $info = array(
@@ -34,29 +25,35 @@ class Image
     }
 
     /**
-     +----------------------------------------------------------
      * 生成缩略图
-     +----------------------------------------------------------
-     * @static
      * @param string $image  原图
+     * @param string $thumbName 缩略图文件名
      * @param string $type 图像格式
-     * @param string $thumbname 缩略图文件名
-     * @param string $maxWidth  宽度
-     * @param string $maxHeight  高度
-     * @param string $position 缩略图保存目录
+     * @param int $maxWidth  宽度
+     * @param int $maxHeight  高度
      * @param boolean $interlace 启用隔行扫描
 	 * @param boolean $fixed 固定缩略图大小
-     +----------------------------------------------------------
-     * @return void
-     +----------------------------------------------------------
+     * @return bool|int|string
      */
-    static function thumb($image,$thumbname,$type='',$maxWidth=200,$maxHeight=50,$interlace=TRUE,$fixed=FALSE)
+    static function thumb($image,$thumbName,$type='',$maxWidth=200,$maxHeight=50,$interlace=TRUE,$fixed=FALSE)
     {
         $info  = Image::getImageInfo($image); // 获取原图信息
         if($info === false) return false;
 
 		$srcWidth  = $info['width'];
 		$srcHeight = $info['height'];
+		if($maxWidth==0 && $maxHeight==0){
+            return 0;//直接返回
+        }
+		elseif($maxWidth==0){ //固定高度
+            $maxWidth = intval($srcWidth*$maxHeight/$srcHeight);
+            $fixed = false;
+        }
+        elseif($maxHeight==0){ //固定宽度
+            $maxHeight = intval($srcWidth*$maxWidth/$srcWidth);
+            $fixed = false;
+        }
+
 		$type = empty($type)?$info['type']:$type;
 		$type = strtolower($type);
 		$interlace  =  $interlace? 1:0;
@@ -111,40 +108,36 @@ class Image
 		// 生成图片
 		if($type=='jpeg' || $type=='jpg'){
 			imageinterlace($thumbImg, $interlace); //图形设置隔行扫描
-			imagejpeg($thumbImg, $thumbname, 80);
+			imagejpeg($thumbImg, $thumbName, 80);
 		} elseif($type=='png'){
-			imagepng($thumbImg, $thumbname);
+			imagepng($thumbImg, $thumbName);
 		} elseif($type=='gif') {
-			imagegif($thumbImg, $thumbname);
+			imagegif($thumbImg, $thumbName);
 		} else {
-			imagejpeg($thumbImg, $thumbname);
+			imagejpeg($thumbImg, $thumbName);
 		}
 
 		imagedestroy($thumbImg); imagedestroy($srcImg);
-		return $thumbname;
+		return $thumbName;
     }
 
     /**
-     +----------------------------------------------------------
      * 生成图像验证码 中文需字体支持
-     +----------------------------------------------------------
-     * @static
-     * @access public
-     * @param string $width  宽度
-     * @param string $height  高度
-     * @param string $length  位数
-     * @param string $mode  类型
-     +----------------------------------------------------------
-     * @return string
-     +----------------------------------------------------------
+     * @param int $length  位数
+     * @param int $mode  类型
+     * @param int $width  宽度
+     * @param int $height  高度
+     * @param string|null $randVal  验证码
+     * @param string $verifyName  验证标识
+     * @return void
      */
-    static function buildImageVerify($length=4,$mode=1,$width=48,$height=22,$randval=NULL,$verifyName='verify')
+    static function buildImageVerify($length=4,$mode=1,$width=48,$height=22,$randVal=NULL,$verifyName='verify')
     {
         if(!isset($_SESSION)) session_start();//如果没有开启，session，则开启session
 
-		$randval =empty($randval)? String::rand_string($length, $mode):$randval;
+		$randVal =empty($randVal)? String::rand_string($length, $mode):$randVal;
 
-        $_SESSION[$verifyName]= $randval;
+        $_SESSION[$verifyName]= $randVal;
         $width = ($length*10+10)>$width?$length*10+10:$width;
         $im = imagecreate($width,$height);
   
@@ -176,29 +169,24 @@ class Image
 			}
 			for ($i = 0; $i < $length; $i++) {
 				$fontcolor = imagecolorallocate($im, mt_rand(0, 120), mt_rand(0, 120), mt_rand(0, 120)); //这样保证随机出来的颜色较深。
-				$codex = String::msubstr($randval, $i, 1);
+				$codex = String::msubstr($randVal, $i, 1);
 				imagettftext($im, mt_rand(16, 18), mt_rand(-40, 45), 30 * $i + 10, mt_rand(20, 25), $fontcolor, $fontface, $codex);
 			}
 		}else{
 			for($i=0;$i<$length;$i++) {
-				imagestring($im,5,$i*10+5,mt_rand(1,8),$randval{$i}, $stringColor);
+				imagestring($im,5,$i*10+5,mt_rand(1,8),$randVal{$i}, $stringColor);
 			}
 		}
 
         Image::output($im,'png');
     }
     /**
-      +----------------------------------------------------------
      * 生成UPC-A条形码
-      +----------------------------------------------------------
-     * @static
      * @param string $code 11位数字
      * @param string $type 图像格式
-     * @param string $lw  单元宽度
-     * @param string $hi   条码高度
-      +----------------------------------------------------------
-     * @return string
-      +----------------------------------------------------------
+     * @param int $lw  单元宽度
+     * @param int $hi   条码高度
+     * @return void
      */
     static function UPCA($code, $type='png', $lw=2, $hi=100) {
         static $Lencode = array('0001101', '0011001', '0010011', '0111101', '0100011',
@@ -282,18 +270,23 @@ class Image
     }
 	
      /**
-     * +----------------------------------------------------------
      * 图片水印
-     * +----------------------------------------------------------
      * @$image  原图
      * @$water 水印图片
      * @$$waterPos 水印位置(0-9) 0为随机，其他代表上中下9个部分位置
-     * +----------------------------------------------------------
+      *@return void
+     */
+    /**
+     * 图片水印
+     * @param string $image 原图
+     * @param string $water 水印图片
+     * @param int $waterPos   水印位置(0-9) 0为随机，其他代表上中下9个部分位置
+     * @return void
      */
     static function water($image, $water, $waterPos =9)
     {
 	    //检查图片是否存在
-        if (!file_exists($image) || !file_exists($water))
+        if (!is_file($image) || !is_file($water))
             return false;
 	   //读取原图像文件
         $imageInfo = self::getImageInfo($image);
@@ -370,5 +363,4 @@ class Image
         imagedestroy($image_im);
     }
 
-}//类定义结束
-?>
+}

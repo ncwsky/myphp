@@ -2,7 +2,9 @@
 //上传类
 class Upload {
 	//内部实例对象
-	var $filemd5=FALSE; //文件名md5加密
+    public $fileMd5 = false; //文件名md5加密
+    public $fileName = null; //指定保存文件名
+    public $fileZero = false; //文件零字节开关
 	private static $instance = null;
 	private $imgType = ',png,jpg,jpeg,bmp,gif,';
 	//上传配置
@@ -18,7 +20,7 @@ class Upload {
 			'width'=>false,
 			'height'=>false
 		);
-	private $data = array('state'=>'1', 'title'=>'null', 'url'=>'null', 'fileType'=>'null', 'fileSize'=>'null');
+	private $defData = array('state'=>'1', 'title'=>'null', 'url'=>'null', 'fileType'=>'null', 'fileSize'=>'null');
 	// 构造函数
     public function __construct() {
 
@@ -56,14 +58,13 @@ class Upload {
 		if(empty($val)) return FALSE;
 		$this->config['fileSize'] = $val;
 	}
-	//递归创建目录 createPath ("./up/img/ap")
-	private function createPath( $folderPath, $mode=0777 ) {
-		$sParent = dirname( $folderPath );
-		$result = 1;
-		//Check if the parent exists, or create it.
-		if (!is_dir($sParent)) $this->createPath( $sParent, $mode );
-		if (!is_dir($folderPath)) mkdir($folderPath, $mode) or exit("创建目录 $realpath 失败");
-	}
+    //递归创建目录 createPath("./up/img/ap")
+    public function createPath( $path, $mode=0755 ) {
+        if ( !is_dir($path) && !@mkdir( $path, $mode, true)) {
+            throw new Exception('创建目录 '. $path .'失败');
+        }
+        return true;
+    }
     /**
      * 返回数据格式
      * {
@@ -75,123 +76,128 @@ class Upload {
      * }
      */	
 	//文件上传表单元素名称
-	public function upload($name='upfile'){
-		//上传目录创建
-		$realpath = $this->config['realPath'];
-		$this->createPath($realpath);
-		//文件句柄
-		$clientFile = isset($_FILES[$name]) ? $_FILES[$name] : NULL;
-		if(!isset($clientFile)){
-			$this->data['state'] = '未选择上传文件！';
-			return $this->data;
-		}
-		$this->data = array();//清空
-		//批量上传判断
-		if ( is_array($clientFile['name']) ){
-			$tmpFile = array();
-			for ($i = 0; $i < count($clientFile['name']); $i++) {
-				$tmpFile['name'] = $clientFile['name'][$i];
-				$tmpFile['type'] = $clientFile['type'][$i];
-				$tmpFile['tmp_name'] = $clientFile['tmp_name'][$i];
-				$tmpFile['error'] = $clientFile['error'][$i];
-				$tmpFile['size'] = $clientFile['size'][$i];
-				//传递上传文件信息
-				$this->data[] = $this->doupload($tmpFile);
-				/*
-				$tmpData = $this->doupload($tmpFile);
-				$this->data['state'][] = $tmpData['state'];
-				$this->data['title'][] = $tmpData['title'];
-				$this->data['url'][] = $tmpData['url'];
-				$this->data['fileType'][] = $tmpData['fileType'];
-				$this->data['fileSize'][] = $tmpData['fileSize'];
-				*/
-			}
-		} else {
-			$this->data = $this->doupload($clientFile);
-		}
-		return $this->data;
-	}
+	public function upload($name='upfile') {
+        //上传目录创建
+        $realPath = $this->config['realPath'];
+        $this->createPath($realPath);
+        //文件句柄
+        $clientFile = isset($_FILES[$name]) ? $_FILES[$name] : NULL;
+        if (!isset($clientFile)) {
+            $data = $this->defData;
+            $data['state'] = '未选择上传文件！';
+            return $data;
+        }
+        $data = array();//清空
+        //批量上传判断
+        if (is_array($clientFile['name'])) {
+            $tmpFile = array();
+            for ($i = 0; $i < count($clientFile['name']); $i++) {
+                $tmpFile['name'] = $clientFile['name'][$i];
+                $tmpFile['type'] = $clientFile['type'][$i];
+                $tmpFile['tmp_name'] = $clientFile['tmp_name'][$i];
+                $tmpFile['error'] = $clientFile['error'][$i];
+                $tmpFile['size'] = $clientFile['size'][$i];
+                //传递上传文件信息
+                $data[] = $this->doupload($tmpFile);
+            }
+        } else {
+            $data = $this->doupload($clientFile);
+        }
+        return $data;
+    }
 	//执行上传保存
 	public function doupload($clientFile){
 		//上传配置
 		$config = $this->config;
 		//返回数组初始 文件上传状态,当成功时返回1，其余值将直接返回对应字符窜  $state = "1";
-		$data = array('state'=>'1', 'title'=>'null', 'url'=>'null', 'fileType'=>'null', 'fileSize'=>'null');
+		$data = $this->defData;
 		//判断文件上传是否出错
 		if($clientFile['error']>0){
 			switch($clientFile['error']){
-				case 1:
+				case UPLOAD_ERR_INI_SIZE:
 					$data['state'] = "上传文件大小超出了PHP配置文件中的约定值:upload_max_filesize";
 					break;
-				case 2:
+				case UPLOAD_ERR_FORM_SIZE:
 					$data['state'] = "上传文件大小超出了表单中的约定值:MAX_FILE_SIZE";
 					break;
-				case 3:
-					$data['state'] = "文件只被部分上载";
+				case UPLOAD_ERR_PARTIAL:
+					$data['state'] = "文件只有部分被上传";
 					break;
-				case 4:
-					$data['state'] = "没有上传任何文件";
+				case UPLOAD_ERR_NO_FILE:
+					$data['state'] = "没有文件被上传";
 					break;
+                case UPLOAD_ERR_NO_TMP_DIR:
+                    $data['state'] = "找不到临时文件夹";
+                    break;
+                case UPLOAD_ERR_CANT_WRITE:
+                    $data['state'] = "文件写入失败";
+                    break;
 				default:
 					$data['state'] = "未知错误";
 			}
 			return $data;
 		}
-		//有效文件名字符验证
-		$file_name = preg_replace('/[^'.$config['valid_chars_regex'].']|\.+$/i', "", basename($clientFile[ "name" ]));
-		if (strlen($file_name) == 0 || strlen($file_name) > $config['max_filename_len']) {
-			$data['state'] = '无效的文件名！';
-			return $data;
-		}
-		//上传框中的描述表单名称，描述内容
-   		$data['title'] = htmlspecialchars($clientFile[ "name" ], ENT_QUOTES);
-		$data['fileType'] = strtolower( substr($clientFile[ "name" ], strrpos($clientFile[ "name" ], '.')+1) );
-		$data['fileSize'] = $clientFile[ "size" ];
+        //有效文件名字符验证
+        $file_name = preg_replace('/[^' . $config['valid_chars_regex'] . ']|\.+$/i', "", basename($clientFile["name"]));
+        if (strlen($file_name) == 0 || strlen($file_name) > $config['max_filename_len']) {
+            $data['state'] = '无效的文件名！';
+            return $data;
+        }
+        //上传框中的描述表单名称，描述内容
+        $data['title'] = htmlspecialchars($clientFile["name"], ENT_QUOTES);
+        $data['fileType'] = strtolower(substr($clientFile["name"], strrpos($clientFile["name"], '.') + 1));
+        $data['fileSize'] = $clientFile["size"];
 
 		//类型格式验证
-		$fileType = explode(',', $config[ 'fileType' ]);
-		if ( !in_array( $data['fileType'] , $fileType ) ) {
-			$data['state'] = "不支持的文件类型！";
-			return $data;
-		}
-		$notFileType = explode(',', $config[ 'notFileType' ]);
-		//不允许的类型格式
-		if ( in_array( $data['fileType'] , $notFileType ) ) {
-			$data['state'] = "不支持上传的文件类型！";
-			return $data;
-		}
-		//大小验证
-		$file_size = 1024 * 1024 * $config[ 'fileSize' ];
-		if ( $data['fileSize'] > $file_size ) {
-			$data['state'] = "文件大小超出限制！";
-			return $data;
-		}
-		//保存文件
-		$path = $config[ 'uploadPath' ];
-		$realpath = $config[ 'realPath' ];
-		$fileurl = "";
-		if(is_uploaded_file($clientFile['tmp_name'])){//判断文件是否是上传文件
-			$tmp_file = $clientFile[ "name" ];
-			$f_name = rand( 1 , 10000 ) . time();
-			$f_name = $this->filemd5 ? md5($f_name) : $f_name;//md5文件名加密
-			$f_name .= strrchr( $tmp_file , '.' );
-			$fileurl = $path . $f_name;
-			$realfile = $realpath . $f_name;
+        if ($config['fileType'] != '*') {
+            $fileType = explode(',', $config['fileType']);
+            if (!in_array($data['fileType'], $fileType)) {
+                $data['state'] = "不支持的文件类型！";
+                return $data;
+            }
+        }
+        $notFileType = explode(',', $config['notFileType']);
+        //不允许的类型格式
+        if (in_array($data['fileType'], $notFileType)) {
+            $data['state'] = "不支持上传的文件类型！";
+            return $data;
+        }
+        //大小验证
+        $file_size = 1024 * 1024 * $config['fileSize'];
+        if ($data['fileSize'] > $file_size) {
+            $data['state'] = "文件大小超出限制！";
+            return $data;
+        }
 
-			if(strpos($this->imgType, ','.$data['fileType'].',')!==false && $config['width'] && $config['height']){ //指定图片大小处理 使用第三方 Image类 方式一
-				$result = Image::thumb($clientFile[ "tmp_name" ], $realfile, '', $config['width'], $config['height']);
-				if($result===0){
-					$result = move_uploaded_file( $clientFile[ "tmp_name" ] , $realfile );
-				}
-			}else
-				$result = move_uploaded_file( $clientFile[ "tmp_name" ] , $realfile );
+        if (!$this->fileZero && $data['fileSize'] == 0) {
+            $data['state'] = "文件大小为0字节";
+            return $data;
+        }
+        //保存文件
+        $path = $config['uploadPath'];
+        $realPath = $config['realPath'];
+        $fileUrl = "";
+        if (is_uploaded_file($clientFile['tmp_name'])) {//判断文件是否是上传文件
+            $tmp_file = $clientFile["name"];
+            $f_name = $this->fileName ? $this->fileName : str_replace('.', '', microtime(true)) . mt_rand(0, 99);
+            $f_name = $this->fileMd5 ? md5($f_name) : $f_name;//md5文件名加密
+            $f_name .= strrchr($tmp_file, '.');
+            $fileUrl = $path . $f_name;
+            $realFile = $realPath . $f_name;
 
-			//$result = move_uploaded_file( $clientFile[ "tmp_name" ] , $realfile );
-			if ( !$result ) {
-				$data['state'] = "文件保存失败！";
-			}/*else{ //指定图片大小处理 使用第三方 Image类 方式二
+            if (strpos($this->imgType, ',' . $data['fileType'] . ',') !== false && $config['width'] && $config['height']) { //指定图片大小处理 使用第三方 Image类 方式一
+                $result = Image::thumb($clientFile["tmp_name"], $realFile, '', $config['width'], $config['height']);
+                if ($result === 0) {
+                    $result = move_uploaded_file($clientFile["tmp_name"], $realFile);
+                }
+            } else {
+                $result = move_uploaded_file($clientFile["tmp_name"], $realFile);
+            }
+            if (!$result) {
+                $data['state'] = "文件保存失败！";
+            }/*else{ //指定图片大小处理 使用第三方 Image类 方式二
 				if($config['width'] && $config['height'])
-					Image::thumb($realfile, $realfile, '', $config['width'], $config['height']);
+					Image::thumb($realFile, $realFile, '', $config['width'], $config['height']);
 			}*/
 		} else {
 			$data['state'] = '上传文件 '. $clientFile['tmp_name'] .' 不是一个合法文件！';
@@ -199,7 +205,7 @@ class Upload {
 
 	 	if ($data['state']=='1') {
 			//$data['title'] = $title;
-			$data['url'] = $fileurl;
+			$data['url'] = $fileUrl;
 			//$data['fileType'] = $current_type;
 			//$data['fileSize'] = $current_size;
 		}
@@ -227,12 +233,12 @@ if($_POST['dofile']=='1'){
 	//$upload->setRealPath('app/up/'); //单独设置文件的绝对路径
 	
 	$data = $upload->upload('file');
-	if (is_array($data['state'])){//多个文件上传
-		for($i=0;$i<count($data['state']);$i++){
-			if ($data['state'][$i]=='1'){
-				echo '上传成功：'. $data['url'][$i] .'，类型：'. $data['fileType'][$i] .'，大小：'. $data['fileSize'][$i] .'<br>';
+	if (isset($data[0]['state'])){//多个文件上传
+		for($i=0;$i<count($data);$i++){
+			if ($data[$i]['state']=='1'){
+				echo '上传成功：'. $data[$i]['url'] .'，类型：'. $data[$i]['fileType'] .'，大小：'. $data[$i]['fileSize'] .'<br>';
 			} else {
-				echo '上传失败：'. $data['url'][$i] .'，类型：'. $data['fileType'][$i] .'，大小：'. $data['fileSize'][$i] .'<br>';
+				echo '上传失败：'. $data[$i]['url'] .'，类型：'. $data[$i]['fileType'] .'，大小：'. $data[$i]['fileSize'] .'<br>';
 			}	
 		}
 	} else {//单个文件上传
@@ -245,4 +251,3 @@ if($_POST['dofile']=='1'){
 }
 ?>
 */
-?>

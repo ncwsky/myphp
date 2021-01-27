@@ -15,14 +15,14 @@ class IndexAct extends Base{
 		//赋值给模板变量
 		$this->assign('title', $title);
 		$this->assign('mess', $mess);
-		$this->display('index.html');
+		return $this->fetch('index.html');
 /*
 		//可不用assign进行模板赋值
 		$this->view->obstart();
 		include $this->view->dotemp('index.html');
 
 		$this->assign('mess', '');
-		$this->display();
+		return $this->fetch();
 
 		extract($this->view->vars);
 		View::obstart();
@@ -34,4 +34,3 @@ class IndexAct extends Base{
 */
 	}
 }
-?>
