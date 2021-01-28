@@ -701,7 +701,7 @@ final class myphp{
     }
 
     public static function runTime(){
-        return '页面耗时'.run_time().'秒, 内存占用'.run_mem().', 执行'.N('sql').'次SQL';
+        return '页面耗时'.run_time().'秒, 内存占用'.run_mem().', 执行'.Db::$times.'次SQL';
     }
 }
 //异常类

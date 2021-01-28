@@ -80,26 +80,6 @@ if (!function_exists('getallheaders')) {
         return $headers;
     }
 }
-//anti_reflesh(5);//GetC('refresh_time',10)
-//浏览器防刷新检测
-function anti_reflesh($time=3){
-    if($_SERVER['REQUEST_METHOD'] == 'GET') {
-        //	启用页面防刷新机制
-        $id = md5($_SERVER['PHP_SELF']);
-        // 浏览器防刷新的时间间隔（秒） 默认为3
-        $refleshTime = $time;;
-        // 检查页面刷新间隔
-        if(cookie('_last_visit_time_'.$id) && cookie('_last_visit_time_'.$id)>time()-$refleshTime) {
-            // 页面刷新读取浏览器缓存
-            header('HTTP/1.1 304 Not Modified');
-            exit;
-        }else{
-            // 缓存当前地址访问时间
-            cookie('_last_visit_time_'.$id, $_SERVER['REQUEST_TIME']);
-            //header('Last-Modified:'.(date('D,d M Y H:i:s',$_SERVER['REQUEST_TIME']-C('refresh_time'))).' GMT');
-        }
-    }
-}
 // 统计程序运行时间 秒
 function run_time() {
     return number_format(microtime(TRUE) - SYS_START_TIME, 4);
@@ -123,29 +103,6 @@ function GetL($name){
 //url解析 地址 [! 普通模式]admin/index/show?b=c&d=e, 附加参数 数组|null, url字符串如：/pub/index.php
 function U($uri='',$vars=null, $url=''){
     return UrlRoute::forward_url($uri,$vars,$url);
-}
-/*
-设置和获取统计数据
-$key string 标识位置, $step integer 步进值, $save boolean 是否保存结果
-return mixed
-example:
-N('sql',1); // 记录sql执行次数
-echo N('sql'); // 获取当前sql执行次数
- */
-function N($key, $step=0, $save=false) {
-    static $_num = array();
-    if (!isset($_num[$key])) {
-        $_num[$key] = 0;//(false !== $save)? cache('N_'.$key) :  0;
-    }
-    if (empty($step)){
-        return $_num[$key];
-    }else{
-        $_num[$key] = $_num[$key] + (int)$step;
-    }
-    if(false !== $save){ // 保存结果
-        //cache('N_'.$key,$_num[$key],$save);
-    }
-    return null;
 }
 /**
  * db实例化

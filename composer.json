@@ -13,6 +13,6 @@
 		"php": ">=5.4.0"
 	},
 	"autoload": {
-		"files": ["myphp.php"]
+		"files": ["base.php"]
 	}
 }
