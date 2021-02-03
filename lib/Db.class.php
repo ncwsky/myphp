@@ -623,7 +623,7 @@ class Db {
         if (isset($this->options['group'])) $sql .= ' GROUP BY ' . $this->options['group'];
         if (isset($this->options['having'])) $sql .= ' HAVING ' . $this->options['having'];
 
-        $row = $this->getOne($sql, 'num');
+        $row = $this->getOne($sql, null, 'num');
         return (int)$row[0];
 	}
 	//获取指定字段最新值
@@ -642,7 +642,7 @@ class Db {
 		
 		if ($orderBy != '') $sql .= ' ORDER BY '. $orderBy;
 		
-		$row = $this->getOne($sql,'num');
+		$row = $this->getOne($sql, null, 'num');
 		return is_array($row)?$row[0]:false;
 	}
 	//执行一个SQL语句,仅返回一条记录 $bind[array:绑定数据],$type $bind为array时才有效
