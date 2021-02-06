@@ -2,6 +2,7 @@
 class CheckValue{
     public static $before; //验证的前置操作 流程处理完请重置为null
     public static $after; //验证的后置操作 流程处理完请重置为null
+    public static $defaultFilter = 'html_encode'; #默认过滤
     /** 执行过滤方法
      * @param mixed $val
      * @param bool|int|string $filter 过滤方式 指定的过滤函数不存在时使用filter_var
@@ -9,7 +10,7 @@ class CheckValue{
      */
     public static function filter(&$val, $filter=true){
         if ($filter===true) {
-            $val = is_array($val) ? array_call_func('html_encode', $val) : call_user_func('html_encode', $val);
+            self::$defaultFilter && $val = is_array($val) ? array_call_func(self::$defaultFilter, $val) : call_user_func(self::$defaultFilter, $val);
         }
         elseif(is_string($filter)){
             if ($filter[0] == '/') { // 支持正则验证
