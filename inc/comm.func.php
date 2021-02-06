@@ -944,6 +944,9 @@ function Q($name, $defVal='', $datas=null) {
             $val = isset($input[$name]) ? $input[$name] : null;
         }
     }
+    if($filter===null) $filter = true; #使用默认过滤处理
+    elseif($filter==='null') $filter = null; #禁用默认过滤
+
     CheckValue::type2val($val, [$type, 'min' => $min, 'max' => $max, 'digit' => $digit, 'filter' => $filter], $defVal);
 
     return $val;

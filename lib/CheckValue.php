@@ -4,12 +4,11 @@ class CheckValue{
     public static $after; //验证的后置操作 流程处理完请重置为null
     /** 执行过滤方法
      * @param mixed $val
-     * @param int|string $filter 过滤方式 指定的过滤函数不存在时使用filter_var
+     * @param bool|int|string $filter 过滤方式 指定的过滤函数不存在时使用filter_var
      * @return bool
      */
-    public static function filter(&$val, $filter=null){
-        if ($filter === false || $filter === '') return true;
-        if ($filter === null || $filter===true) {
+    public static function filter(&$val, $filter=true){
+        if ($filter===true) {
             $val = is_array($val) ? array_call_func('html_encode', $val) : call_user_func('html_encode', $val);
         }
         elseif(is_string($filter)){
@@ -129,10 +128,9 @@ class CheckValue{
             //规则处理
             self::parseType($rule, $type, $min, $max, $filter, $digit);
         }
-        if($filter=='null' || ($filter===null && $strict)) $filter = false; #不执行
         #var_dump($type, $min, $max, $digit);
         #filter过滤验证
-        if($errCode==0 && !CheckValue::filter($val, $filter)) $errCode = 2;
+        if($errCode==0 && $filter && !CheckValue::filter($val, $filter)) $errCode = 2;
 
         if($errCode==0){
             if(self::$before instanceof \Closure){ //验证的前置操作
