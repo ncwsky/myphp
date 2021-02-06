@@ -78,17 +78,17 @@ class Helper{
      * @throws RuntimeException
      */
     public static function valid($name, $rule, &$data=null, $default=''){
-        $strict = true;
+        $hasDef = true;
         $val = isset($data[$name]) ? $data[$name] : null;
 
         if(is_array($rule)){
-            $strict = isset($rule['def']) || array_key_exists('def', $rule); //是否有默认值  无默认值时则不能为空
-            $default = $strict ? $rule['def'] : '';
+            $hasDef = isset($rule['def']) || array_key_exists('def', $rule); //是否有默认值  无默认值时则不能为空
+            $default = $hasDef ? $rule['def'] : '';
             $_rule = $rule['rule'];
         }else{
             $_rule = $rule;
         }
-        CheckValue::type2val($val, $_rule, $default, $strict, $name);
+        CheckValue::type2val($val, $_rule, $default, !$hasDef, $name);
         return $val;
     }
     /** 数据有效性全处理
