@@ -53,7 +53,7 @@ class CacheFile extends CacheAbstract{
     /**
      * 设置一个缓存
      * @param string $name 缓存name
-     * @param array  $data 缓存内容
+     * @param mixed  $data 缓存内容
      * @param int    $expire 缓存生命 默认为0无限生命
      * @return bool
      */
