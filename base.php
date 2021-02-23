@@ -119,5 +119,5 @@ function toJson($res, $option=0){
 }
 //消息输出
 function out_msg($message, $url='', $info='', $time = 1){
-    Helper::outMsg($message, $url, $info, $time);
+    return Helper::outMsg($message, $url, $info, $time);
 }

@@ -54,8 +54,12 @@ final class myphp{
                 //echo self::runTime();
             }
         } catch (Exception $e) {
-            self::send('err: '.$e->getMessage(), $e->getCode());
-            if($e->getCode()!=404) Log::Exception($e, false);
+            if($e->getCode()==404 || $e->getCode()==200){
+                self::send($e->getMessage(), $e->getCode());
+            }else{
+                self::send($e->getMessage()."\n".'line:'.$e->getLine().', file:'.$e->getFile()."\n".$e->getTraceAsString(), 500);
+                Log::Exception($e, false);
+            }
         }
         self::$env = null;
         self::$lang = null;

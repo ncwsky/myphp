@@ -50,13 +50,24 @@ class Control
         $this->_init();
     }
 
-    //初始化执行
     protected function _init()
     {
         //todo
     }
+
+    /**
+     * @return bool
+     */
     protected function _before(){
-        //todo
+        return true;
+    }
+
+    /**
+     * @param $result
+     * @return mixed
+     */
+    protected function _after($result){
+        return $result;
     }
 
     //执行动作
@@ -66,8 +77,8 @@ class Control
         if (!method_exists($this, $action)) throw new Exception('method not exists ' . $action, 404);
         //todo 前置操作定义处理
         $this->req_cache = null;
-        $this->_before();
-        return $this->$action();
+
+        return $this->_before() ? $this->_after($this->$action()) : null;
     }
 
     //设置模板变量

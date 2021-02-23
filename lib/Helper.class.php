@@ -236,6 +236,7 @@ class Helper{
         if(ob_get_length() !== false) ob_clean();//清除页面
         if(self::isAjax()){ //ajax输出
             $json = array('code'=>$flag=='error'?1:0, 'msg'=>$message, 'url'=>$jumpUrl, 'info'=>$info, 'time'=>$time);
+            if(IS_CLI) return self::toJson($json);
             exit(self::toJson($json));
         }
 
@@ -246,7 +247,7 @@ class Helper{
         $out_html .= $info!=''?'<p class="detail">'.$info.'</p>':'';
         if($url!='nil') //提示不跳转
             $out_html .= '<p class="jump">页面自动 <a id="href" href="'.$jumpUrl.'">跳转</a>  等待时间： <b id="time">'.$time.'</b><!--<br><a href="'.$jumpUrl.'">如未跳转请点击此处手工跳转</a>--></p></div><script type="text/javascript">var pgo=0,t=setInterval(function(){var time=document.getElementById("time");var val=parseInt(time.innerHTML)-1;time.innerHTML=val;if(val<=0){clearInterval(t);if(pgo==0){pgo=1;'.$js.';}}},1000);</script></body></html>';
-
+        if(IS_CLI) return $out_html;
         exit($out_html);
     }
     public static function getSiteUrl(){
