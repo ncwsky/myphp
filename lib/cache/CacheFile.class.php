@@ -367,7 +367,7 @@ class CacheFile extends CacheAbstract{
         $file = $this->options['path'] . $base . $this->options['prefix'] . $name . $this->suffix;
         if ($mkdir && $this->options['dir_level'] > 0) {
             $dir = dirname($file);
-            if(!is_dir($dir)) @mkdir($dir, 0775, true);
+            if(!is_dir($dir)) @mkdir($dir, 0755, true);
         }
         return $file;
 	}
