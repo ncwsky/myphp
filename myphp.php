@@ -467,6 +467,7 @@ final class myphp{
             if($appRoot!=''){
                 if($_s_pos=strpos($appRoot,DS,1)) Config::$cfg['root_dir'] = substr($appRoot,0,$_s_pos);
                 else Config::$cfg['root_dir'] = $appRoot;
+                if(Config::$cfg['root_dir']=='.') Config::$cfg['root_dir'] = '';
             }
         }
         //相对根目录
