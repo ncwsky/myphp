@@ -282,6 +282,7 @@ class Template{
 		}
 		//foreach开始
 		if(substr($label, 0, 4) == 'list'){
+            //示例 list $retData=> $retData as $key=>$data; list $retData $custom=>$retData as $key_custom=>$custom
 			preg_match_all('/(\S+)/', substr($label, 5), $arr);
 			$arr = $arr[1];
 			if(count($arr) > 0){
