@@ -344,6 +344,8 @@ final class myphp{
             //相对项目的模板目录
             'APP_VIEW'=>Config::$cfg['app_res_path'],
         ]);
+        self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
+        self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
     }
     //网址解析生成
     protected static function parseUrl($url = ''){
@@ -441,9 +443,6 @@ final class myphp{
             if(!is_file($runconfig))
                 file_put_contents($runconfig, file_get_contents(MY_PATH.'/config.tpl'));
         }
-
-        self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
-        self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
     }
     //初始框架
     public static function init($cfg=null){
