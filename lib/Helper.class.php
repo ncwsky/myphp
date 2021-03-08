@@ -679,14 +679,14 @@ class Helper{
      * });
      *
      * @param array $array array or object to extract value from
-     * @param string|\Closure|array $key
+     * @param string|Closure|array $key
      * @param mixed $default
      * @return mixed
      */
     public static function getValue($array, $key, $default = null)
     {
         if (!is_array($array)) return $default;
-        if ($key instanceof \Closure) {
+        if ($key instanceof Closure) {
             return $key($array, $default);
         }
         if (is_string($key) && strpos($key, '.')) {
@@ -723,7 +723,7 @@ class Helper{
      * });
      * ```
      * @param array $array
-     * @param string|\Closure $name 列名
+     * @param string|Closure $name 列名
      * @param bool $keepKeys 保持键名.
      * @return array 数组列
      */

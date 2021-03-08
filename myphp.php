@@ -149,7 +149,7 @@ final class myphp{
                 }
             }
         }
-        elseif ($req_cache instanceof \Closure) {
+        elseif ($req_cache instanceof Closure) {
             $reqKey = call_user_func_array($req_cache, $_GET);
         }
 

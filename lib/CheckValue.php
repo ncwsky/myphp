@@ -1,7 +1,7 @@
 <?php
 class CheckValue{
-    public static $before; //验证的前置操作 流程处理完请重置为null
-    public static $after; //验证的后置操作 流程处理完请重置为null
+    public static $before = null; //验证的前置操作 流程处理完请重置为null
+    public static $after = null; //验证的后置操作 流程处理完请重置为null
     public static $defaultFilter = 'html_encode'; #默认过滤
     /** 执行过滤方法
      * @param mixed $val
@@ -134,9 +134,8 @@ class CheckValue{
         if($errCode==0 && $filter && !CheckValue::filter($val, $filter)) $errCode = 2;
 
         if($errCode==0){
-            if(self::$before instanceof \Closure){ //验证的前置操作
-                $fun = self::$before;
-                $val = $fun($val);
+            if(self::$before){ //验证的前置操作
+                $val = call_user_func(self::$before, $val);
             }
             /*
             (int), (integer) - 转换为整形 integer (bool), (boolean) - 转换为布尔类型 boolean (float), (double), (real) - 转换为浮点型 float
@@ -211,9 +210,8 @@ class CheckValue{
                         //$val = $min<=$len ? $val : $default;
                     }
             }
-            if(self::$after instanceof \Closure){ //验证的后置操作
-                $fun = self::$after;
-                $val = $fun($val);
+            if(self::$after){ //验证的后置操作
+                $val = call_user_func(self::$after, $val);
             }
         }
 
