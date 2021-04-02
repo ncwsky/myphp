@@ -330,7 +330,7 @@ class Model extends ArrayObject
                 return $result instanceof Db ? $model : $result;
             }catch (Exception $e){
                 myphp::err($e->getMessage());
-                #Log::WARN($e->getFile().', '.$e->getLine().', '.$e->getMessage());
+                Log::WARN($e->getFile().', '.$e->getLine().', '.$e->getMessage(). PHP_EOL. $e->getTraceAsString());
                 return false;
             }
         }

@@ -20,7 +20,7 @@ class Log{
 	    if(!self::$instance) return;
         if(self::$instance->handler){
             foreach(self::$instance->handler as $handler)
-                fclose($handler);
+                @fclose($handler);
         }
         self::$instance=null;
     }
@@ -51,7 +51,7 @@ class Log{
 		}
 		self::$dir = $dir;
 		if(!isset(self::$instance->handler[$dir])){
-            !file_exists(self::$logDir.$dir) && mkdir(self::$logDir.$dir, 0755, true);
+            !file_exists(self::$logDir.$dir) && @mkdir(self::$logDir.$dir, 0755, true);
 			self::$file = self::$logDir.$dir.'/log.log';
 			self::$instance->handler[$dir] = fopen(self::$file,'a');
 		}
@@ -237,7 +237,7 @@ class Log{
 			clearstatcache(true, $file);
 		}
 		if($level && $level!='_def') $msg = '['.date('Y-m-d H:i:s').']['.$level.'] '.$msg."\r\n";
-		$fp ? fwrite($fp, $msg, strlen($msg)+1) : error_log($msg, 3, $file);
+		$fp ? @fwrite($fp, $msg, strlen($msg)+1) : error_log($msg, 3, $file);
     }
 /*
 
