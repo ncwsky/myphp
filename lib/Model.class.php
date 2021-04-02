@@ -323,16 +323,16 @@ class Model extends ArrayObject
             call_user_func_array([$model, $method], $args);
             return $model;
         } else { //调用db方法
-            try{
+            //try{
                 $model->_preDbMethod($method);
                 $result = call_user_func_array([$model->db, $method], $args);
                 $model->_sufDbMethod($method, $result);
                 return $result instanceof Db ? $model : $result;
-            }catch (Exception $e){
+/*            }catch (Exception $e){
                 myphp::err($e->getMessage());
                 Log::WARN($e->getFile().', '.$e->getLine().', '.$e->getMessage(). PHP_EOL. $e->getTraceAsString());
                 return false;
-            }
+            }*/
         }
     }
     //连贯操作
