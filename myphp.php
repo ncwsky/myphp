@@ -101,7 +101,7 @@ final class myphp{
                 // 发送头部信息
                 self::sendHeader();
             }
-            echo is_string($data) ? $data : toJson($data);
+            echo is_string($data) ? $data : Helper::toJson($data);
         }else{
             call_user_func(self::$sendFun, $code, $data, self::$header);
         }
