@@ -646,7 +646,7 @@ function get_thumb($image,$thumb_wh='',$nopic='/pub/images/itemi.png'){
             if($__has!==false) $thumb_wh = substr($thumb_wh, 0, $__has);
         }
         $thumb = substr($image, 0, $dot).$thumb_wh.substr($image, $dot);
-        return is_file(ROOT.$thumb) ? $thumb : $image;
+        return is_file(ROOT.ROOT_DIR.$thumb) ? $thumb : $image;
     }
 }
 //生成缩略图  return array 缩略图列表
