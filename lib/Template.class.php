@@ -282,7 +282,7 @@ class Template{
 		}
 		//foreach开始
 		if(substr($label, 0, 4) == 'list'){
-            //示例 list $retData=> $retData as $key=>$data; list $retData $custom=>$retData as $key_custom=>$custom
+            //示例 list $retData -> $retData as $key=>$val; list $retData $custom -> $retData as $k_custom=>$custom
 			preg_match_all('/(\S+)/', substr($label, 5), $arr);
 			$arr = $arr[1];
 			if(count($arr) > 0){
@@ -290,11 +290,11 @@ class Template{
 				$n_tag[$n_level] = 'n';
 				$key_name = '$key';
 				if(!isset($arr[1])) {
-					$arr[1] = 'data';
+					$arr[1] = 'val';
 				}else{
 					if(substr($arr[1],0,1)=='$') $arr[1]=substr($arr[1],1);
-					$n_tag[$n_level] ='n_'.$arr[1];//n_数据别名
-					$key_name = '$key_'.$arr[1];
+					$n_tag[$n_level] ='n_'.$arr[1];//n_数据别名 从1自增
+					$key_name = '$k_'.$arr[1];
 				}
 				//if(substr($arr[0],0,1)!='$') $arr[0]='$'.$arr[0];
 				return '<?php $'.$n_tag[$n_level].'=1;if(isset('.$arr[0].') && is_array('.$arr[0].')) foreach('.$arr[0].' as '.$key_name.'=>$'.$arr[1].') { ?>';
