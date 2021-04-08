@@ -208,6 +208,16 @@ final class myphp{
             self::$header[$name] = $val;
         }
     }
+    public static function rawBody(){
+        if(isset(self::$env['rawBody'])){
+            return self::$env['rawBody'];
+        }
+        self::$env['rawBody'] = file_get_contents("php://input");
+        return self::$env['rawBody'];
+    }
+    public static function setRawBody($rawBody){
+        self::setEnv('rawBody', $rawBody);
+    }
     //输出类型设置
     public static function conType($conType, $charset = '')
     {

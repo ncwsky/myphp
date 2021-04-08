@@ -896,36 +896,33 @@ function Q($name, $defVal='', $datas=null) {
     $digit = 0; //小数位处理 四舍五入
     CheckValue::parseType($name, $type, $min, $max, $filter, $digit);
 
+    $method = 'request'; // 默认为_REQUEST
     if(strpos($name,'.')!==false) { // 指定参数来源
         list($method,$name) = explode('.',$name,2);
-        if(!$method) $method = 'auto';
-    }else{ // 默认为_REQUEST
-        $method = 'request';
+        if(!$method) $method = 'request';
     }
     #echo $method.'--'.$name.'--'.$type.'--'.$min.'--'.$max.'--'.$filter,PHP_EOL;
     switch($method) { #strtolower($method)
+        case 'request': $input = &$_REQUEST; break;
         case 'get' : $input = &$_GET; break;
         case 'post': $input = &$_POST; break;
+        case 'data'   : $input = &$datas; break;
         case 'put' :
-            if(!IS_CLI && is_null($_PUT)) parse_str(file_get_contents('php://input'), $_PUT);
-            $input = &$_PUT; break;
-        case 'auto':
-            switch($_SERVER['REQUEST_METHOD']) {
-                case 'POST':
-                    $input = &$_POST; break;
-                case 'PUT':
-                    if(!IS_CLI && is_null($_PUT)) parse_str(file_get_contents('php://input'), $_PUT);
-                    $input = &$_PUT; break;
-                default:
-                    $input = &$_GET;
+            if(IS_CLI || is_null($_PUT)) { // cli模式下每次都需要解析
+                $rawBody = myphp::rawBody();
+                $first_c = substr($rawBody,0,1);
+                if($first_c=='[' || $first_c=='{'){
+                    $_PUT = (array)json_decode($rawBody, true);
+                }else{
+                    parse_str($rawBody, $_PUT);
+                }
             }
-            break;
-        case 'request': $input = &$_REQUEST; break;
+            $input = &$_PUT; break;
+        case 'files': $input = &$_FILES; break;
         case 'session': $input = &$_SESSION; break;
         case 'cookie' : $input = &$_COOKIE; break;
         case 'server' : $input = &$_SERVER; break;
         case 'globals': $input = &$GLOBALS; break;
-        case 'data'   : $input = &$datas; break;
         default:
             if($type=='d' || $type=='f'){
                 $defVal = $type=='d'?(int)$defVal:(float)$defVal;
