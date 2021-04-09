@@ -27,7 +27,7 @@
  * @method bool rollBack($force=false);
  * @property Db $db
  */
-class Model extends ArrayObject
+class Model implements ArrayAccess
 {
     use MyMsg;
     // 当前操作数据表名
@@ -59,9 +59,9 @@ class Model extends ArrayObject
     public $fieldRule = array();//'id'=>array('rule'=>'%d{1,10}','def'=>0)
 
     /**
-     * 构造函数  $tbName 不定义表模型 直接指定, $db 指定db配置名称
+     * 构造函数  $tbName 不定义表模型 直接指定, $dbName 指定db配置名称
      * @param null $tbName
-     * @param null $dbName
+     * @param null|string|Db $dbName
      * @throws Exception
      */
     public function __construct($tbName = null, $dbName = null)
@@ -71,11 +71,20 @@ class Model extends ArrayObject
             if(is_subclass_of($this, 'Model')){
                 $this->tbName = strtolower(get_class($this));
             }*/
-            $this->tbName = $tbName!==null ? $tbName : strtolower(get_class($this)); //get_called_class()
+            $this->tbName = $tbName===null ? strtolower(get_class($this)) : $tbName; //get_called_class()
         }
 
         $this->init();
-        $this->db = new Db($dbName ? $dbName : $this->dbName);
+        if($dbName===null){
+            $this->db = new Db($this->dbName);
+        }else{
+            if($dbName instanceof Db){
+                $this->db = $dbName;
+            }else{
+                $this->db = new Db($dbName);
+            }
+        }
+
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
             //$this->fields = implode(',', array_keys($this->fieldRule));
@@ -85,7 +94,7 @@ class Model extends ArrayObject
     //初始操作处理
     protected function init()
     {
-        //$this->dbName = 'db';
+
     }
     //设置字段规则  [id'=>array('rule'=>'%d{1,10}','def'=>0)]|id,array('rule'=>'%d{1,10}','def'=>0)
     public function setRule($name, $rule=null){
@@ -150,7 +159,7 @@ class Model extends ArrayObject
         }
     }
     /** 保存数据
-     * $def:0 用于添加或更新部分数据,不对未设置字段验证及默认值处理 禁用默认值处理
+     * $def:0 禁用默认值处理 用于添加或更新部分数据,不对未设置字段验证及默认值处理
      * $def:false 对未设置字段not null验证(不为空验证)
      * $def:true 对未设置字段not null验证,同时有默认值时设默认值
      * @param null $data
