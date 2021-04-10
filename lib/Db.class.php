@@ -123,7 +123,7 @@ class Db {
                      * @var tb_mysql|tb_sqlite $tbType
                      */
                     $tbType = new $tb_type();
-                    $this->_table($tbName, true);
+                    $this->_table($tbName, false);
                     $fieldInfo = $tbType->getFields($this->db, $tbName);
                 }
                 if ($this->config['prod']) { #生成模式下提前解析
@@ -535,7 +535,7 @@ class Db {
             $field=substr($field, 1); $values='('.substr($value, 1).')';
         }
         if($table=='' && isset($this->options['table'])) $table=$this->options['table'];
-        $this->_table($table, true);
+        $this->_table($table, false);
         $sql = 'INSERT INTO '.$table.'('.$field.') VALUES '.$values;
 		return $sql;//返回执行sql
 	}
@@ -563,7 +563,7 @@ class Db {
         }
 		
 		if($table=='' && isset($this->options['table'])) $table=$this->options['table'];
-		$this->_table($table, true);
+		$this->_table($table, false);
 		$sql = 'UPDATE '.$table.' SET '.$value;
 		
 		if($where!='') $this->_where($where);
@@ -583,7 +583,7 @@ class Db {
 	//删除记录
 	function del($table='', $where = '') {
 		if($table=='' && isset($this->options['table'])) $table=$this->options['table'];
-		$this->_table($table, true);
+		$this->_table($table, false);
 		$sql = 'DELETE FROM '.$table;
 		
 		if($where!='') $this->_where($where);
@@ -702,10 +702,26 @@ class Db {
             $this->cache->suffix = '.bin';
         }
 	}
+	//格式名称-关键字冲突处理
+	public function formatName($val){
+        $val = trim(str_replace('`', '', $val));
+        if(strpos($val,'.')){
+            $val = str_replace('.',$this->endSpec.'.'.$this->startSpec, $val);
+        }
+        if(strpos($val,',')) {
+            $val = str_replace(',',$this->endSpec.','.$this->startSpec, $val);
+        }
+        if(strpos($val,' ')){ //有别名
+            $val = str_replace(' ',$this->endSpec.' '.$this->startSpec, $val);
+        }
+        // ( )
+        $val = $this->startSpec . $val . $this->endSpec;
+        return $val;
+    }
 
 	//是否给表名增加关键字冲突处理符号
-	private function _table(&$tb, $only=false){
-	    if(!$only){
+	private function _table(&$tb, $more=true){
+        if($more){
             $tb = trim($tb);
             if($tb[0]=='(' || strpos($tb,'.') || strpos($tb,',')) return $tb; //子查询|指定库名|联合查询
             if(strpos($tb,' ')){ //有别名

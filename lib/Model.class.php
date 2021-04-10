@@ -298,7 +298,7 @@ class Model implements ArrayAccess
             }
             //有指定fields时 且db->fields为空0null或='*' 且db->join[因为这里联合查询fields会指定为*不适合使用自动获取表字段的方式]为空0null 设置db->fields
             if ($this->fields != '*' && (!$this->db->fields || $this->db->fields == '*') && !$this->db->join) {
-                $this->db->fields($this->fields);
+                $this->db->fields($this->db->formatName($this->fields));
             }
         }
     }
