@@ -20,7 +20,11 @@ final class myphp{
     // 获取环境变量的值
     public static function env($name, $def = '')
     {
-        return isset(self::$env[$name]) ? self::$env[$name] : $def;
+        if(isset(self::$env[$name])){
+            return self::$env[$name];
+        }
+        self::$env[$name] = $def;
+        return $def;
     }
     public static function setEnv($name, $val=null){
         if(is_array($name)){
