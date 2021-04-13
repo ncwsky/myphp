@@ -19,9 +19,9 @@ class db_mysqli extends DbBase{
 		if (!empty($cfg_db['char'])) 
 			$this->conn->query('SET NAMES `'.$cfg_db['char'].'`');
 		
-		if(!$this->conn->select_db($cfg_db['name'])){
+		/*if(!$this->conn->select_db($cfg_db['name'])){
 			throw new Exception('Can not use '. $cfg_db['name'] .'!'. mysqli_error($this->conn));
-		}
+		}*/
     }
     /** SQL安全过滤
      * @param $str

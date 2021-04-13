@@ -57,7 +57,7 @@ return array(
 	'isGzipEnable' => false, //Gzip压缩开关
 	'encode_key' => 'sys_ncw_f512',//加密串 用于cookie,api通信md5加密及rc4或其他加密
     'authcode_key'=> 'oz7oQdlUdlPy3gKuBbi67mVxhh', //用于authcode加密
-	'timezone' => 'Etc/GMT-8', //网站时区（只对php 5.1以上版本有效），Etc/GMT-8 实际表示的是 GMT+8
+	'timezone' => 'RPC', //RPC中国 Etc/GMT-8东八区  Asia/Chongqing重庆 Asia/Shanghai上海
 	'htmldir' => '/e',//默认静态目录
 	'updir' => '/up',//默认上传目录
 	'thumb_wh' => '240_180',//默认缩略图大小
