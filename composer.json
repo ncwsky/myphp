@@ -4,10 +4,14 @@
 	"license": "MIT",
 	"keywords": ["myphp"],
 	"homepage": "https://github.com/ncwsky/myphp",
-	"authors": [{
-		"name": "ncwsky",
-		"homepage": "https://github.com/ncwsky/myphp"
-	}],
+	"authors": [
+        {
+            "name": "路人",
+            "email": "ep1086@qq.com",
+            "homepage": "https://github.com/ncwsky/myphp",
+            "role": "Developer"
+        }
+    ],
 	"require": {
 		"php": ">=5.4.0"
 	}
