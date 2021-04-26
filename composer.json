@@ -4,7 +4,6 @@
 	"license": "MIT",
 	"keywords": ["myphp"],
 	"homepage": "https://github.com/ncwsky/myphp",
-	"version": "1.0.0",
 	"authors": [{
 		"name": "ncwsky",
 		"homepage": "https://github.com/ncwsky/myphp"
