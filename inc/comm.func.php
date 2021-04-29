@@ -31,7 +31,7 @@ function redirect($url, $time=0, $msg='') {
 
 /**
  * 返回经stripslashes处理过的字符串或数组
- * @param $string 需要处理的字符串或数组
+ * @param array|string $string 需要处理的字符串或数组
  * @return mixed
  */
 function new_stripslashes($string) {
@@ -43,7 +43,7 @@ function new_stripslashes($string) {
 /**
  * 格式化文本域内容
  *
- * @param $string 文本域内容
+ * @param string $string 文本域内容
  * @return string
  */
 function trim_textarea($string) {
