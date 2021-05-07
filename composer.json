@@ -13,11 +13,6 @@
         }
     ],
 	"require": {
-		"php": ">=5.4.0",
-      	"ext-json": "*",
-		"ext-libxml": "*",
-		"ext-simplexml": "*",
-		"ext-mcrypt": "*",
-		"ext-openssl": "*"
+		"php": ">=5.4.0"
 	}
 }
