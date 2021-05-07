@@ -83,11 +83,12 @@ class Helper{
 
         if(is_array($rule)){
             $hasDef = isset($rule['def']) || array_key_exists('def', $rule); //是否有默认值  无默认值时则不能为空
-            $default = $hasDef ? $rule['def'] : '';
+            if($hasDef) $default = $rule['def'];
             $_rule = $rule['rule'];
         }else{
             $_rule = $rule;
         }
+
         CheckValue::type2val($val, $_rule, $default, !$hasDef, $name);
         return $val;
     }
@@ -99,37 +100,36 @@ class Helper{
      * @return bool
      * @throws RuntimeException
      */
-    public static function validAll(&$data, $rules, $exclude=false,$setDef=false){
-        //$_data = $exclude ? array() : $data;
+    public static function validAll(&$data, $rules, $exclude=false, $setDef=false){
         try{
             foreach($data as $k=>$v){ //数据验证及是否多余数据处理
                 if(isset($rules[$k])){
-                    if($v instanceof Expr) continue;
-                    $data[$k] = self::valid($k, $rules[$k], $data);
+                    $is_continue = $setDef === 0 || $v instanceof Expr; //禁用默认值及验证处理或表达式
+                    if (!$is_continue) {
+                        $data[$k] = self::valid($k, $rules[$k], $data);
+                    }
+                    unset($rules[$k]);
                 }elseif($exclude){
                     unset($data[$k]);
                 }
             }
+
             if($setDef!==0){ #未指定字段默认值处理
                 foreach ($rules as $k=>$rule){ //是否可为空使用默认值
                     if(!isset($data[$k])) {
-                        $val = self::valid($k, $rule, $data);
-                        if($setDef) $data[$k] = $val;
-/*
-                        $hasDef = true;
-                        $defVal = null;
+                        #$val = self::valid($k, $rule, $data);
+                        #if($setDef) $data[$k] = $val;
+
+                        $default = null;
                         if(is_array($rule)){
                             $hasDef = isset($rule['def']) || array_key_exists('def', $rule); //是否有默认值  无默认值时则不能为空
                             if($hasDef) {
-                                $defVal = $rule['def'];
+                                $default = $rule['def'];
+                            }else{
+                                throw new RuntimeException(isset($rule['err']) ? $rule['err'] : $k . ' is invalid');
                             }
                         }
-                        if(!$hasDef){
-                            throw new RuntimeException(isset($rule['err']) ? $rule['err'] : $k . ' is invalid');
-                        }
-                        #$val = self::valid($k, $rule, $data);
-                        if($setDef) $data[$k] = $defVal;
-*/
+                        if($setDef) $data[$k] = $default;
                     }
                 }
             }

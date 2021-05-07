@@ -223,18 +223,15 @@ class CheckValue{
             }
             if($type=='d' || $type=='f') {
                 $default = $type == 'd' ? (int)$default : (float)$default;
-            }elseif($type=='s'){
+            }/*elseif($type=='s'){
                 $default = (string)$default;
-            }elseif($type=='a'){
+            }*/elseif($type=='a'){
                 $default = is_array($default) ? $default : [];
             }elseif($type=='b'){
                 $default = (bool)$default;
             }
-            $val = $default; #值验证未通过但有默认值
+            $val = $default; #值验证未通过用默认值
         }
         return $errCode;
     }
 }
-/* 示例
-
- */

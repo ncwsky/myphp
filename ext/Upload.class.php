@@ -61,7 +61,7 @@ class Upload {
     //递归创建目录 createPath("./up/img/ap")
     public function createPath( $path, $mode=0755 ) {
         if ( !is_dir($path) && !@mkdir( $path, $mode, true)) {
-            throw new Exception('创建目录 '. $path .'失败');
+            throw new Exception('创建目录 '. $path .' 失败');
         }
         return true;
     }
