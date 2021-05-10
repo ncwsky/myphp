@@ -45,11 +45,11 @@ class DesSecurity
      *      CTR
      *      OFB
      * @param string $iv
-     * @param int $options
+     * @param int $options  OPENSSL_RAW_DATA | OPENSSL_NO_PADDING
      * @param string $output
      *      base64、hex
      */
-    public function __construct($key, $method = 'DES-ECB', $iv = '', $options = OPENSSL_RAW_DATA | OPENSSL_NO_PADDING, $output = self::OUTPUT_BASE64)
+    public function __construct($key, $method = 'DES-ECB', $iv = '', $options = OPENSSL_NO_PADDING, $output = self::OUTPUT_BASE64)
     {
         $this->key = $key;
         $this->method = $method;

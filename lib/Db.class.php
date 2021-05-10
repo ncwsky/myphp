@@ -7,8 +7,6 @@
  * @method Db limit($val)
  * @method Db table($val)
  * @method Db idx($val)
- * @property db_pdo $db or db_mysqli
- * @property CacheFile $cache
  * @property string table
  */
 class Db {
@@ -16,9 +14,20 @@ class Db {
     public static $times = 0; //执行次数
     protected static $log_type = 0; //是否记录sql
     protected static $instance = array();
-	//内部数据连接对象,记录集,缓存,配置数组
+    /**
+     * 内部数据连接对象
+     * @var db_pdo|db_mysqli
+     */
     public $db = null;
+    /**
+     * 缓存
+     * @var CacheFile
+     */
 	protected $cache = null;
+    /**
+     * 配置
+     * @var array
+     */
 	protected $config = array(
 		'type' => 'pdo',	//数据库类型 仅有mysql、pdo
 		'dbms' => 'mysql', //数据库
@@ -831,7 +840,7 @@ abstract class TbBase{
 abstract class DbBase{
 	public $conn = null; //连接实例
 	public $rs = null; //数据集
-	protected $config = null;
+    public $config = null;
     public $transCounter = 0;
 	
 	public function __construct($config) {
