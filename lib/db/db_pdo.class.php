@@ -42,9 +42,13 @@ class db_pdo extends DbBase{
 		if($cfg_db['pconnect']) {//持久连接开启
 			$options[PDO::ATTR_PERSISTENT] = TRUE;
 		}
-		if(version_compare(PHP_VERSION,'5.3.6','<=')){//禁用模拟预处理语句
+		/*if(empty($options[PDO::ATTR_TIMEOUT])){ //超时设置
+            $options[PDO::ATTR_TIMEOUT] = 5;
+        }*/
+		/*if(version_compare(PHP_VERSION,'5.3.6','<=')){//禁用模拟预处理语句
 			$options[PDO::ATTR_EMULATE_PREPARES] = false;
-		}
+		}*/
+		//PDO::MYSQL_ATTR_USE_BUFFERED_QUERY:false mysql非缓冲查询 查询大量数据时设置false不会出现内存不足的情况
 
 		try {
 			$this->conn = new PDO($dsn, $cfg_db['user'], $cfg_db['pwd'], $options);
