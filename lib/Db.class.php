@@ -57,31 +57,36 @@ class Db {
      * @throws Exception
      */
     public function __construct($conf='db', $force=false) {
-        $key = $conf;
-        if(is_string($conf)) {
-            if(!isset(Config::$cfg[$conf]))
-                throw new Exception($conf.'数据库连接数组配置不存在');
-            $conf = Config::$cfg[$conf];
-        }else{
-            $key = md5(json_encode($conf));
+        $key = '';
+        if (is_string($conf)) {
+            if (!isset(Config::$cfg[$conf])) throw new Exception($conf . 'DB连接配置不存在');
+
+            $key = $conf;
+            $this->config = array_merge($this->config, Config::$cfg[$conf]);
+        } else {
+            $this->config = array_merge($this->config, $conf);
         }
-        $this->config = array_merge($this->config, $conf);
-        //$key = $this->config['dbms'].';'.$this->config['server'].';'.$this->config['port'].';'.$this->config['name'];
-        if($force || !isset(self::$instance[$key])) {
-            $db_type = 'db_'.$this->config['type'];
 
-            $db_file = MY_PATH.'/lib/db/'.$db_type.'.class.php';
+        if ($key === '') $key = $this->config['type'] . $this->config['dbms'] . $this->config['server'] . $this->config['name'] . $this->config['port'];
+
+        if ($force || !isset(self::$instance[$key])) {
+            $db_type = 'db_' . $this->config['type'];
+
+            $db_file = MY_PATH . '/lib/db/' . $db_type . '.class.php';
             is_file($db_file) && require_once($db_file);//加载数据库类
-            if(!class_exists($db_type)) throw new Exception($db_type.'数据库类没有定义');
+            if (!class_exists($db_type)) throw new Exception($db_type . '类没有定义');
 
-            $tb_type = 'tb_'.$this->config['dbms'];
-            $tb_file = MY_PATH.'/lib/db/'.$tb_type.'.php';
+            $tb_file = MY_PATH . '/lib/db/tb_' . $this->config['dbms'] . '.php';
             is_file($tb_file) && require_once($tb_file);//加载数据库类
 
-            self::$instance[$key] = new $db_type($this->config);//连接数据库
+            $this->db = new $db_type($this->config);//连接数据库
+
+            if (false === $force) self::$instance[$key] = $this->db;
+        } else {
+            $this->db = self::$instance[$key];
         }
-        $this->db = self::$instance[$key];
-        switch($this->config['dbms']){
+
+        switch ($this->config['dbms']) {
             case 'mssql':
             case 'oracle':
             case 'pgsql':
