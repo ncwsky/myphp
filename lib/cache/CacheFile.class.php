@@ -183,16 +183,26 @@ class CacheFile extends CacheAbstract{
         $name = $this->buildKey($name);
         $keyList = [];
         $path = $this->options['path'].DIRECTORY_SEPARATOR.$name;
+/*
+        $files = glob($path.DIRECTORY_SEPARATOR.'*'.$this->suffix);
+        if($files) {
+            foreach ($files as $file){
+                $fullPath = $path . DIRECTORY_SEPARATOR . $file;
+                $data = $this->_fileGetContent($fullPath);
+                if($data && ($data['expire'] == 0 || time() < $data['expire'])) {
+                    $keyList[basename($file, $this->suffix)] = $data['contents'];
+                }
+            }
+        }*/
 
         if (is_dir($path) && ($handle = opendir($path)) !== false) {
             while (($file = readdir($handle)) !== false) {
-                if ($file[0] === '.') continue;
+                if ($file === '.' || $file === '..') continue;
+
                 $fullPath = $path . DIRECTORY_SEPARATOR . $file;
-                if(!is_dir($fullPath)) {
-                    $data = $this->_fileGetContent($fullPath);
-                    if($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-                        $keyList[basename($file, $this->suffix)] = $data['contents'];
-                    }
+                $data = $this->_fileGetContent($fullPath);
+                if($data && ($data['expire'] == 0 || time() < $data['expire'])) {
+                    $keyList[basename($file, $this->suffix)] = $data['contents'];
                 }
             }
             closedir($handle);
@@ -215,13 +225,14 @@ class CacheFile extends CacheAbstract{
         $name = $this->buildKey($name);
         $len = 0;
         $path = $this->options['path'].DIRECTORY_SEPARATOR.$name;
+/*
+        $files = glob($path.DIRECTORY_SEPARATOR.'*'.$this->suffix);
+        if($files) $len = count($files);*/
+
         if (($handle = opendir($path)) !== false) {
             while (($file = readdir($handle)) !== false) {
-                if ($file[0] === '.') {
-                    continue;
-                }
-                $fullPath = $path . DIRECTORY_SEPARATOR . $file;
-                if(!is_dir($fullPath)) $len++;
+                if ($file === '.' || $file === '..') continue;
+                $len++;
             }
             closedir($handle);
         }
@@ -243,8 +254,7 @@ class CacheFile extends CacheAbstract{
         }
 
         $key = $this->buildKey($key);
-        $name = DIRECTORY_SEPARATOR . $name .DIRECTORY_SEPARATOR;
-        $file = $this->options['path'] . $name . $key . $this->suffix;
+        $file = $this->options['path'] . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . $key . $this->suffix;
         return $file;
     }
     //多个键值设置
