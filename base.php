@@ -47,12 +47,7 @@ define('ROOT', IS_CLI ? dirname($_SERVER['SCRIPT_FILENAME']) : str_replace($_SER
 defined('RUNTIME') || define('RUNTIME', ROOT.'/runtime');
 //公共目录
 defined('COMMON') || define('COMMON', ROOT.'/common');
-//是否引入第三方扩展 使用composer
-if(defined('VENDOR') && VENDOR){
-    require MY_PATH . '/vendor/autoload.php';
-}else{
-    require MY_PATH . '/myphp.php';
-}
+require MY_PATH . '/myphp.php';
 //初始框架
 myphp::init(isset($cfg) ? $cfg : null);
 
