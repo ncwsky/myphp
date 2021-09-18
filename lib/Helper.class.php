@@ -250,6 +250,27 @@ class Helper{
         if(IS_CLI) return $out_html;
         exit($out_html);
     }
+
+    /**
+     * 是否允许的ip
+     * @param string $ip 验证ip
+     * @param string|array $allowIps
+     * @return bool
+     */
+    public static function allowIp($ip, $allowIps=""){
+        if (is_string($allowIps)) { // "127.0.0.1 10.0.0.2"
+            if (!$allowIps || $allowIps === "0.0.0.0") return true;
+            return strpos($allowIps, $ip) !== false;
+        }
+        if (is_array($allowIps)) {
+            foreach ($allowIps as $allow_ip) { // [10.1.1.2,10.1.,127.0.0.1]
+                if (strpos($ip, $allow_ip) === 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     public static function getSiteUrl(){
         $scheme = 'http';
         if(isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME']=='https'){
