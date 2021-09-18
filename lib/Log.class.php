@@ -33,9 +33,8 @@ class Log{
 	//初始日志目录
 	public static function Init($logDir=null, $level=0, $size=2097152){
 		if(!self::$instance) self::$instance = new self();
-
 		self::$logDir = $logDir ? (substr($logDir,-1)==DS?$logDir:$logDir.DS) : ROOT.ROOT_DIR.DS;
-        !file_exists(self::$logDir) && mkdir(self::$logDir, 0755, true);
+        !is_dir(self::$logDir) && mkdir(self::$logDir, 0755, true);
 		self::$file = self::$logDir.'log.log';
 		self::$instance->handler[self::$dir] = fopen(self::$file,'a');
 		self::$level = $level;
@@ -51,7 +50,7 @@ class Log{
 		}
 		self::$dir = $dir;
 		if(!isset(self::$instance->handler[$dir])){
-            !file_exists(self::$logDir.$dir) && @mkdir(self::$logDir.$dir, 0755, true);
+            !is_dir(self::$logDir.$dir) && @mkdir(self::$logDir.$dir, 0755, true);
 			self::$file = self::$logDir.$dir.'/log.log';
 			self::$instance->handler[$dir] = fopen(self::$file,'a');
 		}
@@ -237,7 +236,7 @@ class Log{
 			clearstatcache(true, $file);
 		}
 		if($level && $level!='_def') $msg = '['.date('Y-m-d H:i:s').']['.$level.'] '.$msg."\r\n";
-		$fp ? @fwrite($fp, $msg, strlen($msg)+1) : file_put_contents($file, $msg, FILE_APPEND);
+		$fp ? @fwrite($fp, $msg, strlen($msg)+1) : file_put_contents($file, $msg, FILE_APPEND | LOCK_EX);
     }
 /*
 
