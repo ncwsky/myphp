@@ -13,31 +13,12 @@ define('DS', '/');
 //定义MY_PATH常量
 define('MY_PATH', __DIR__);
 
-//PATHINFO处理
-if(!isset($_SERVER['PATH_INFO'])) {
-    $types = array('ORIG_PATH_INFO','REDIRECT_PATH_INFO','REDIRECT_URL');
-    foreach ($types as $type){
-        if(isset($_SERVER[$type])) {
-            $_SERVER['PATH_INFO'] = (0 === strpos($_SERVER[$type],$_SERVER['SCRIPT_NAME']))?
-                substr($_SERVER[$type], strlen($_SERVER['SCRIPT_NAME'])) : $_SERVER[$type];
-            break;
-        }
-    }
-    $_SERVER['PATH_INFO'] = isset($_SERVER['PATH_INFO'])?$_SERVER['PATH_INFO']:'';
-}
-//REQUEST_URI 处理
+//REQUEST_URI 处理 ORIG_PATH_INFO REDIRECT_PATH_INFO REDIRECT_URL
 if(!isset($_SERVER['REQUEST_URI'])){
     if (isset($_SERVER['HTTP_X_REWRITE_URL'])) {
         $_SERVER['REQUEST_URI'] = $_SERVER['HTTP_X_REWRITE_URL'];
     } else {
-        if ( $_SERVER['PATH_INFO'] == $_SERVER['SCRIPT_NAME'] )
-            $_SERVER['REQUEST_URI'] = $_SERVER['PATH_INFO'];
-        else
-            $_SERVER['REQUEST_URI'] = $_SERVER['SCRIPT_NAME'] . $_SERVER['PATH_INFO'];
-
-        if (!empty($_SERVER['QUERY_STRING'])) {
-            $_SERVER['REQUEST_URI'] .= '?' . $_SERVER['QUERY_STRING'];
-        }
+        $_SERVER['REQUEST_URI'] = (isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '')) . (isset($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '');
     }
 }
 

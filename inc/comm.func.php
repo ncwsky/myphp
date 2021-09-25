@@ -385,33 +385,19 @@ function GetIP($type=0) {
 }
 
 //获得当前的脚本网址  如/ab.php?b=1
-function getCurUrl() {
-    if(!empty($_SERVER["REQUEST_URI"])) {
-        $scriptName = $_SERVER["REQUEST_URI"];
-        $nowurl = $scriptName;
-    } else {
-        $scriptName = $_SERVER["PHP_SELF"];
-        if(empty($_SERVER["QUERY_STRING"])) {
-            $nowurl = $scriptName;
-        } else {
-            $nowurl = $scriptName."?".$_SERVER["QUERY_STRING"];
-        }
-    }
-    return $nowurl;
+function get_uri() {
+    return Helper::getUri();
 }
 //获取当前页面完整URL地址 如http://xx/a.php?b=1
 function get_url() {
-    $protocol = isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == '443' ? 'https://' : 'http://';
-    $php_self = isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME'])?$_SERVER['SCRIPT_NAME']:'');
-    $path_info = isset($_SERVER['PATH_INFO']) ? $_SERVER['PATH_INFO'] : '';
-    $relate_url = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : $php_self.(isset($_SERVER['QUERY_STRING']) ? '?'.$_SERVER['QUERY_STRING'] : $path_info);
-    return $protocol.(isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : '').$relate_url;
+    return Helper::getUrl();
 }
 
 /**
  * 产生随机字符串
  *
- * @param    int        $len  输出长度
+ * @param int $len 输出长度
+ * @param string $chars
  * @return   string     字符串 0:数字 1:仅字母 01:数字字母混合
  */
 function random($len=6, $chars='0') {
