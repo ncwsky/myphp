@@ -479,7 +479,7 @@ class Db {
         if(isset($this->options['group'])) $sql .= ' GROUP BY '.$this->options['group'];
         if(isset($this->options['having'])) $sql .= ' HAVING '.$this->options['having'];
         if($order!= '') $sql .= ' ORDER BY '.$order;
-
+        $this->options = null; //清除
         return $sql;
     }
     public function select($table='', $where = '', $order='', $fields = '*', $limit=''){
@@ -504,6 +504,7 @@ class Db {
         if(isset($this->options['group'])) $sql .= ' GROUP BY '.$this->options['group'];
         if(isset($this->options['having'])) $sql .= ' HAVING '.$this->options['having'];
         if($order!= '') $sql .= ' ORDER BY '.$order;
+        $this->options = null; //清除
         return $sql;
     }
     public function find($table='', $where='', $order='', $fields = '*'){
@@ -552,6 +553,7 @@ class Db {
         if($table=='' && isset($this->options['table'])) $table=$this->options['table'];
         $this->_table($table, false);
         $sql = 'INSERT INTO '.$table.'('.$field.') VALUES '.$values;
+        $this->options = null; //清除
 		return $sql;//返回执行sql
 	}
 
@@ -583,6 +585,7 @@ class Db {
 		
 		if($where!='') $this->_where($where);
 		if(isset($this->options['where'])) $sql .= ' WHERE '.$this->options['where'];
+        $this->options = null; //清除
 		return $sql;
 	}
 
@@ -602,11 +605,12 @@ class Db {
 
         if($where!='') $this->_where($where);
         if(isset($this->options['where'])) $sql .= ' WHERE '.$this->options['where'];
+        $this->options = null; //清除
         return $sql;
     }
 	//删除记录
     public function del($table='', $where = '') {
-		return $this->execute($this->update_sql($table, $where)); //返回删除记录数
+		return $this->execute($this->del_sql($table, $where)); //返回删除记录数
 	}
 	public function count($table='', $where = '', $field='*'){
         return $this->getCount($table, $where, $field);
