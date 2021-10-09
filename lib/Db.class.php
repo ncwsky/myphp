@@ -527,7 +527,7 @@ class Db {
         return isset($row[$name]) ? $row[$name] : null;
     }
 	//[批量]添加记录
-	function add_sql($post, $table='') {
+    public function add_sql($post, $table='') {
 		$field=''; $value=''; $values = '';
 		if(isset($post[0])){ //批量
             foreach ($post as $n=>$data){
@@ -560,12 +560,12 @@ class Db {
      * @param string $table
      * @return string
      */
-	function add($post, $table='') {
+    public function add($post, $table='') {
 		$this->execute($this->add_sql($post, $table));
 		return $this->getInsertId();
 	}
 	//更新记录 $where[str|arr]
-	function update_sql($post, $table='', $where = '') {
+    public function update_sql($post, $table='', $where = '') {
         $value = '';
         if (is_array($post)) {
             foreach ($post as $k => $v) {
@@ -592,19 +592,21 @@ class Db {
      * @param string $where
      * @return mixed
      */
-	function update($post, $table='', $where = '') {
+    public function update($post, $table='', $where = '') {
 		return $this->execute($this->update_sql($post, $table, $where));
 	}
+    public function del_sql($table='', $where = ''){
+        if($table=='' && isset($this->options['table'])) $table=$this->options['table'];
+        $this->_table($table, false);
+        $sql = 'DELETE FROM '.$table;
+
+        if($where!='') $this->_where($where);
+        if(isset($this->options['where'])) $sql .= ' WHERE '.$this->options['where'];
+        return $sql;
+    }
 	//删除记录
-	function del($table='', $where = '') {
-		if($table=='' && isset($this->options['table'])) $table=$this->options['table'];
-		$this->_table($table, false);
-		$sql = 'DELETE FROM '.$table;
-		
-		if($where!='') $this->_where($where);
-		if(isset($this->options['where'])) $sql .= ' WHERE '.$this->options['where'];
-		
-		return $this->execute($sql); //返回修改记录的行数
+    public function del($table='', $where = '') {
+		return $this->execute($this->update_sql($table, $where)); //返回删除记录数
 	}
 	public function count($table='', $where = '', $field='*'){
         return $this->getCount($table, $where, $field);
