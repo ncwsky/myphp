@@ -65,9 +65,9 @@ final class myphp{
                 Log::Exception($e, false);
             }
         }
-        self::$env = null;
-        self::$lang = null;
-        self::$header = null;
+        self::$env = [];
+        self::$lang = [];
+        self::$header = [];
         self::$req_cache = null;
         self::$statusCode = 200;
     }

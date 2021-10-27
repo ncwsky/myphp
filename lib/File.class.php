@@ -75,17 +75,22 @@ class File {
 	public function lock($name){
 	    $this->lockFile[$name] = $this->path.'/'.$name.'.lock';
         $this->lockHandle[$name] = @fopen($this->lockFile[$name], 'w');
-        if(!$this->lockHandle[$name]) return false;
+        if(!$this->lockHandle[$name]) {
+            unset($this->lockHandle[$name], $this->lockFile[$name]);
+            return false;
+        }
         //LOCK_EX 获取独占锁
         //LOCK_NB 无法建立锁定时，不阻塞
         return @flock($this->lockHandle[$name], LOCK_EX | LOCK_NB);
     }
     public function unlock($name){
-	    if($this->lockHandle[$name]){
-            @flock($this->lockHandle[$name], LOCK_UN);
+        if (!isset($this->lockHandle[$name])) {
+            return;
         }
+        @flock($this->lockHandle[$name], LOCK_UN);
         @fclose($this->lockHandle[$name]);
-	    @unlink($this->lockFile[$name]); //这里会报错
+        @unlink($this->lockFile[$name]); //这里会报错
+        unset($this->lockHandle[$name], $this->lockFile[$name]);
     }
 	//保存文件
 	public function put($name, $data){
