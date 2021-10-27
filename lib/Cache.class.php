@@ -46,9 +46,9 @@ class Cache {
 	}
 	public function __call($method_name, $method_args) {
 		if (method_exists($this, $method_name))
-			return call_user_func_array(array(& $this, $method_name), $method_args);
+			return call_user_func_array(array($this, $method_name), $method_args);
 		elseif (!empty($this->_instance) && method_exists($this->_instance, $method_name)
-		) return call_user_func_array(array(& $this->_instance, $method_name), $method_args); // && ($this->_instance instanceof CacheAbstract)
+		) return call_user_func_array(array($this->_instance, $method_name), $method_args); // && ($this->_instance instanceof CacheAbstract)
 	}
 }
 //缓存抽象类
