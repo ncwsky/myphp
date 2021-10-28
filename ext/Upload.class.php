@@ -141,7 +141,7 @@ class Upload {
         $data['fileSize'] = $clientFile["size"];
 
         //类型格式验证
-        if ($this->fileType != '*') {
+        if ($this->fileType != '') {
             $fileType = ',' . $this->fileType . ',';
             if (strpos($fileType, ',' . $data['fileType'] . ',') === false) {
                 $data['state'] = "不支持的文件类型！";
