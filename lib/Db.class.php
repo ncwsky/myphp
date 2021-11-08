@@ -72,7 +72,7 @@ class Db {
         if ($force || !isset(self::$instance[$key])) {
             $db_type = 'db_' . $this->config['type'];
 
-            $db_file = MY_PATH . '/lib/db/' . $db_type . '.class.php';
+            $db_file = MY_PATH . '/lib/db/' . $db_type . '.php';
             is_file($db_file) && require_once($db_file);//加载数据库类
             if (!class_exists($db_type)) throw new Exception($db_type . '类没有定义');
 
