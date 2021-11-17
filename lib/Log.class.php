@@ -157,7 +157,7 @@ class Log{
 	public static function miniREQ(){
         $postStr = file_get_contents("php://input");
 		$_srv = 'Request: '.$_SERVER['SERVER_PROTOCOL'].' '.$_SERVER['HTTP_HOST'].' '.$_SERVER['REQUEST_METHOD'].' '.$_SERVER['REQUEST_URI'].' '.date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME'])."\n"
-		.(isset($_SERVER['QUERY_STRING'])?'Query_String: '. urldecode($_SERVER['QUERY_STRING']) ."\n":'')
+		.(isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING']!==''?'Query_String: '. urldecode($_SERVER['QUERY_STRING']) ."\n":'')
 		.'Remote: '.$_SERVER['REMOTE_ADDR'].':'.$_SERVER['REMOTE_PORT'].(empty($_SERVER['HTTP_X_REAL_IP'])?'':'('.$_SERVER['HTTP_X_REAL_IP'].')')."\n";
 		$post = isset($_POST)?"POST: ".toJson($_POST):''; //."\n".file_get_contents('php://input')
 
@@ -167,7 +167,7 @@ class Log{
 	public static function REQ(){
 		$postStr = file_get_contents("php://input");
 		$_srv = 'Request: '.$_SERVER['SERVER_PROTOCOL'].' '.$_SERVER['HTTP_HOST'].' '.$_SERVER['REQUEST_METHOD'].' '.$_SERVER['REQUEST_URI'].' '.date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME'])."\n"
-		.(isset($_SERVER['QUERY_STRING'])?'Query_String: '. urldecode($_SERVER['QUERY_STRING']) ."\n":'')
+		.(isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING']!==''?'Query_String: '. urldecode($_SERVER['QUERY_STRING']) ."\n":'')
 		.(isset($_SERVER['HTTP_ACCEPT'])?'Http_Accept: '.$_SERVER['HTTP_ACCEPT']."\n":'')
 		.(isset($_SERVER['HTTP_REFERER'])?'Http_Referer: '.$_SERVER['HTTP_REFERER']."\n":'')
 		.(isset($_SERVER['HTTP_USER_AGENT'])?'Http_User_Agent: '.$_SERVER['HTTP_USER_AGENT']."\n":'')
