@@ -775,6 +775,7 @@ class UrlRoute{
                             }elseif($type=='!'){ //正则
                                 $x = substr($__var,$depr+1,-1);
                                 $regx = isset(Config::$cfg['url_maps_regx'][$x]) ? Config::$cfg['url_maps_regx'][$x] : '([\w=]+)';
+                                $regx = str_replace('.','#dot',$regx);
                             }
                         }
                         $vars[$var]=1;
@@ -785,11 +786,14 @@ class UrlRoute{
                     } while ($pos);
                 }
                 if($reg_match){
-                    $k = str_replace(array('.','/'),array('\.','\/'),$k);
-                    //Log::trace($k.'|||'.$url);
+                    $k = str_replace(array('.','/','#dot'),array('\.','\/','.'),$k);
+                    //Log::trace($k.'|||'.$url);Log::trace($vars);
                     if (preg_match ('/^'.$k.'$/i', $url, $regArr)) {
-                        if(isset($vars)){
-                            $count = count($regArr)-1; $i=1; //var_dump($regArr);
+                        $count = count($regArr);
+                        if(isset($vars) && $count>1){
+                            //var_dump($regArr);
+                            $count -= 1; //排除正则全匹配的第一项
+                            $i = 1;
                             foreach($vars as $_k=>$_v){
                                 if($_v==1) $vars[$_k]=$regArr[$i];
                                 else $vars[$_k]=$regArr[++$i]; //可选 因是双括号匹配 目标索引得加1
