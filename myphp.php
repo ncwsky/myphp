@@ -5,10 +5,10 @@ final class myphp{
     public static $authFun = null; //验证回调方法 Closure
     public static $sendFun = null; //自定义输出处理 Closure($code, $data, $header)
     public static $lang = [];
-    private static $env = []; //Run执行时的环境值 array
-    private static $header = [];
-    private static $req_cache = null;
+    public static $env = []; //Run执行时的环境值 array
+    public static $header = [];
     public static $statusCode = 200;
+    private static $req_cache = null;
 
     private static $db = [];
     private static $container = []; //容器
@@ -68,7 +68,6 @@ final class myphp{
         self::$env = [];
         self::$lang = [];
         self::$header = [];
-        self::$req_cache = null;
         self::$statusCode = 200;
     }
     //闭包
@@ -113,7 +112,7 @@ final class myphp{
         Hook::listen('res_end', $data);
     }
     //请求缓存处理
-    protected static function reqCache($req_cache, $expire = null, $except = []){
+    private static function reqCache($req_cache, $expire = null, $except = []){
         self::$req_cache = null;
         if(!Helper::isGet()) return false;
 
@@ -362,7 +361,7 @@ final class myphp{
         self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
     }
     //网址解析生成
-    protected static function parseUrl($url = ''){
+    private static function parseUrl($url = ''){
         if($url=='' || isset($_GET['c']) || isset($_GET['a'])) return;
         $paths = explode(Config::$cfg['url_para_str'], urldecode($url));	//分离路径
 
