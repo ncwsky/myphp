@@ -55,7 +55,6 @@ final class myphp{
                 $instance = new $control();
                 $data = $instance->_run($action);
                 null!==$data && self::send($data, self::$statusCode, $instance->req_cache);
-                //echo self::runTime();
             }
         } catch (Exception $e) {
             if($e->getCode()==404 || $e->getCode()==200){

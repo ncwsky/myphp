@@ -4,6 +4,7 @@
 	"license": "MIT",
 	"keywords": ["myphp"],
 	"homepage": "https://github.com/ncwsky/myphp",
+    "minimum-stability": "dev",
 	"authors": [
         {
             "name": "路人",

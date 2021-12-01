@@ -604,7 +604,7 @@ function toByte($byte){
     } elseif($byte >= 1024){
         $v = round($byte / 1024, 2) . 'KB';
     } else{
-        $v = $byte . 'Byte';
+        $v = $byte . 'B';
     }
     return $v;
 }
