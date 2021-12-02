@@ -136,7 +136,7 @@ class Control
     }
     //xml类型输出
     final static function xml($data){
-        myphp::conType('text/xml');
+        myphp::conType('application/xml');
         return Helper::toXml($data);
     }
 }

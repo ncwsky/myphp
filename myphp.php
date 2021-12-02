@@ -539,7 +539,7 @@ final class myphp{
         Log::register();
         //日志记录初始
         Log::init(Config::$cfg['log_dir'], Config::$cfg['log_level'], Config::$cfg['log_size']);
-        is_file(COMMON . '/common.php') && require(COMMON . '/common.php');	//引入公共函数
+        is_file(COMMON . '/common.php') && require COMMON . '/common.php';	//引入公共函数
 
         if(!defined('APP_PATH')){
             define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']));
@@ -618,17 +618,7 @@ final class myphp{
         }
         return false;
     }
-    /**
-     * 加载函数库
-     * @param string $func 函数库名
-     * @param string $path 地址
-     * @param string $ext 指定扩展名
-     * @return bool
-     */
-    public static function loadFunc($func, $path = '', $ext='.func.php') {
-        if (''===$path) $path = MY_PATH.'/inc/';
-        return self::loadPHP($func, $path, $ext);
-    }
+
     /**
      * 加载类文件函数
      * @param string $name 类名
@@ -1095,13 +1085,14 @@ trait MyMsg
             self::$myMsg = $msg;
             self::$myCode = $code;
         }
+        return null;
     }
     //错误提示设置或读取
     public static function err($msg=null, $code=1){
         if ($msg === null) {
             return self::$myMsg;
         } else {
-            self::msg($msg, $code);
+            return self::msg($msg, $code);
         }
     }
 }
