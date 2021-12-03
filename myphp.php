@@ -14,6 +14,7 @@ final class myphp{
     private static $container = []; //容器
     public static $classDir = []; //设置可加载的目录
     public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
+    public static $classOldSupport = false; //是否兼容xxx.class.php
 
     // 获取环境变量的值
     public static function env($name, $def = '')
@@ -488,18 +489,17 @@ final class myphp{
             error_reporting(E_ALL);// 报错级别设定,一般在开发环境中用E_ALL,这样能够看到所有错误提示
             ini_set('display_errors', 1);// 有些环境关闭了错误显示
 
-            //引入功能函数文件
-            require MY_PATH . '/inc/comm.func.php';
-            //加载基本类
-            require MY_PATH . '/lib/Control.class.php';    //引入控制器类
-            require MY_PATH . '/lib/View.class.php';    //引入视图类
-            require MY_PATH . '/lib/Db.class.php';    //引入DB类
-            require MY_PATH . '/lib/Model.class.php';
-            require MY_PATH . '/lib/Cache.class.php'; //引入缓存类
-            require MY_PATH . '/lib/Template.class.php';//引入模板类
-            require MY_PATH . '/lib/Log.class.php'; //引入缓存类
-            require MY_PATH . '/lib/Hook.class.php'; //引入构子类
-            require MY_PATH . '/lib/Helper.class.php'; //引入辅助类
+            require MY_PATH . '/inc/comm.func.php'; //功能函数
+            require MY_PATH . '/lib/Cache.php';
+            require MY_PATH . '/lib/CheckValue.php';
+            require MY_PATH . '/lib/Control.php';
+            require MY_PATH . '/lib/Db.php';
+            require MY_PATH . '/lib/Helper.php'; //辅助类
+            require MY_PATH . '/lib/Hook.php';
+            require MY_PATH . '/lib/Log.php';
+            require MY_PATH . '/lib/Model.php';
+            require MY_PATH . '/lib/Template.php';
+            require MY_PATH . '/lib/View.php';
         }
         else {
             error_reporting(E_ALL ^ E_NOTICE); #除了 E_NOTICE，报告其他所有错误
@@ -508,15 +508,16 @@ final class myphp{
             $runFile = ROOT . '/~run.php';
             if (!is_file($runFile)) {
                 $php = self::compile(MY_PATH . '/inc/comm.func.php');
-                $php .= self::compile(MY_PATH . '/lib/Control.class.php');
-                $php .= self::compile(MY_PATH . '/lib/View.class.php');
-                $php .= self::compile(MY_PATH . '/lib/Db.class.php');
-                $php .= self::compile(MY_PATH . '/lib/Model.class.php');
-                $php .= self::compile(MY_PATH . '/lib/Cache.class.php');
-                $php .= self::compile(MY_PATH . '/lib/Template.class.php');
-                $php .= self::compile(MY_PATH . '/lib/Log.class.php');
-                $php .= self::compile(MY_PATH . '/lib/Hook.class.php');
-                $php .= self::compile(MY_PATH . '/lib/Helper.class.php');
+                $php .= self::compile(MY_PATH . '/lib/Cache.php');
+                $php .= self::compile(MY_PATH . '/lib/CheckValue.php');
+                $php .= self::compile(MY_PATH . '/lib/Control.php');
+                $php .= self::compile(MY_PATH . '/lib/Db.php');
+                $php .= self::compile(MY_PATH . '/lib/Helper.php');
+                $php .= self::compile(MY_PATH . '/lib/Hook.php');
+                $php .= self::compile(MY_PATH . '/lib/Log.php');
+                $php .= self::compile(MY_PATH . '/lib/Model.php');
+                $php .= self::compile(MY_PATH . '/lib/Template.php');
+                $php .= self::compile(MY_PATH . '/lib/View.php');
                 file_put_contents($runFile, '<?php ' . $php);
                 unset($php);
             }
@@ -525,7 +526,7 @@ final class myphp{
         //设置本地时差
         date_default_timezone_set(Config::$cfg['timezone']);
         //初始类的可加载目录
-        self::class_dir([MY_PATH . '/lib', MY_PATH . '/ext', COMMON, COMMON . '/model']); //基础类 扩展类 公共模型
+        self::class_dir([COMMON, COMMON . '/model']); //基础类 扩展类 公共模型
         if(Config::$cfg['class_dir']){
             $classDir = is_array(Config::$cfg['class_dir']) ? Config::$cfg['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, Config::$cfg['class_dir']));
             self::class_dir($classDir);
@@ -583,9 +584,15 @@ final class myphp{
             if (self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.php')) {
                 return true;
             }
-            if (self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
+            if (self::$classOldSupport && self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
                 return true;
             }
+        }
+        if (self::loadPHP(MY_PATH . '/lib' . DIRECTORY_SEPARATOR . $name . '.php')) {
+            return true;
+        }
+        if (self::loadPHP(MY_PATH . '/ext' . DIRECTORY_SEPARATOR . $name . '.php')) {
+            return true;
         }
         return false;
     }

@@ -8,6 +8,7 @@ class MyLoader
     public static $classDir = []; //设置可加载的目录 ['dir'=>1,....]
     public static $namespaceMap = []; // ['namespace\\'=>'src/']
     public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
+    public static $classOldSupport = false; //是否兼容xxx.class.php
 
     //读取或设置类加载路径
     public static function class_dir($dir)
@@ -57,18 +58,21 @@ class MyLoader
             if (self::load($path . DIRECTORY_SEPARATOR . $name . '.php')) {
                 return true;
             }
-            if (self::load($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
+            if (self::$classOldSupport && self::load($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
                 return true;
             }
         }
         return false;
     }
 
-    public static function load($path)
+    public static function load($path, $class_name = null)
     {
         if (is_file($path)) {
             include $path;
             return true;
+            if ($class_name === null || \class_exists($class_name, false)) {
+                return true;
+            }
         }
         return false;
     }
