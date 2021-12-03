@@ -36,37 +36,31 @@ class MyLoader
             return self::load(self::$classMap[$class_name]);
         }
 
-        $class_path = strtr($class_name, '\\', '/');
-        $pos = strpos($class_name, '\\'); //strstr($class_name, '\\', true);
-        if ($pos) {
+        $name = $class_name;
+        if ($pos = strpos($class_name, '\\')) { //命名空间类加载
+            $class_path = strtr($class_name, '\\', DIRECTORY_SEPARATOR);
             $namespace = substr($class_name, 0, $pos + 1);
-            if (isset(self::$namespaceMap[$namespace])) { //优先加载类映射
+            if (isset(self::$namespaceMap[$namespace])) { //优先加载命名空间映射
                 return self::load(self::$rootPath . DIRECTORY_SEPARATOR . self::$namespaceMap[$namespace] . substr($class_path, strlen($namespace)) . '.php');
             }
-        }
 
-        $separator = $class_path[0] == '/' ? '' : '/';
-        $path = self::$rootPath . $separator . $class_path;
-        //命名空间类加载
-        if ($pos = strrpos($class_path, '/')) {
-            if (self::load($path . '.php')) {
+            if (self::load(self::$rootPath . DIRECTORY_SEPARATOR . $class_path . '.php')) {
                 return true;
             }
-            if (self::load($path . '.class.php')) {  //兼容处理
-                return true;
-            }
-        } else {
-            //循环判断
-            foreach (self::$classDir as $path => $v) {
-                if (self::load($path . '.php')) {
-                    return true;
-                }
-                if (self::load($path . '.class.php')) { //兼容处理
-                    return true;
-                }
-            }
+            //未匹配-取类名
+            $pos = strrpos($class_path, DIRECTORY_SEPARATOR);
+            $name = substr($class_path, $pos + 1);
         }
 
+        //循环可存在类的目录
+        foreach (self::$classDir as $path => $i) {
+            if (self::load($path . DIRECTORY_SEPARATOR . $name . '.php')) {
+                return true;
+            }
+            if (self::load($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
+                return true;
+            }
+        }
         return false;
     }
 

@@ -13,8 +13,6 @@ final class myphp{
     private static $db = [];
     private static $container = []; //容器
     public static $classDir = []; //设置可加载的目录
-    public static $classList = []; //已加载的类
-    public static $phpList = []; //已加载的php
     public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
 
     // 获取环境变量的值
@@ -564,32 +562,28 @@ final class myphp{
     }
     //自动加载对象
     public static function autoload($class_name) {
-        $class_name = strtr($class_name, '\\', '/');
-        if (isset(self::$classList[$class_name])) return true;
         if (isset(static::$classMap[$class_name])) { //优先加载类映射
-            return self::loadPHP(static::$classMap[$class_name], '', '');
+            return self::loadPHP(static::$classMap[$class_name]);
         }
+
+        $name = $class_name;
         //命名空间类加载 仿psr4
-        if ($pos = strrpos($class_name, '/')) {
-            $path = ROOT . ROOT_DIR . ($class_name[0] == '/' ? '' : '/') . substr($class_name, 0, $pos);
-            $name = substr($class_name, $pos + 1);
-            if (self::loadPHP($name, $path, '.php')) {
-                self::$classList[$class_name] = true;
+        if ($pos = strpos($class_name, '\\')) {
+            $class_path = strtr($class_name, '\\', DIRECTORY_SEPARATOR);
+
+            if (self::loadPHP(ROOT . DIRECTORY_SEPARATOR . $class_path . '.php')) {
                 return true;
             }
-            if (self::loadPHP($name, $path, '.class.php')) {  //兼容处理
-                self::$classList[$class_name] = true;
-                return true;
-            }
+            //未匹配-取类名
+            $pos = strrpos($class_path, DIRECTORY_SEPARATOR);
+            $name = substr($class_path, $pos + 1);
         }
         //循环判断
-        foreach (self::$classDir as $path=>$v) {
-            if (self::loadPHP($class_name, $path, '.class.php')) { //兼容处理
-                self::$classList[$class_name] = true;
+        foreach (self::$classDir as $path => $v) {
+            if (self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.php')) {
                 return true;
             }
-            if (self::loadPHP($class_name, $path, '.php')) {
-                self::$classList[$class_name] = true;
+            if (self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
                 return true;
             }
         }
@@ -597,39 +591,17 @@ final class myphp{
     }
 
     /** 载入php文件
-     * @param string $name         文件名
      * @param string $path  路径
-     * @param string $ext   后缀
      * @return bool
      */
-    public static function loadPHP($name, $path='', $ext='.php') {
-        //尾部无“/”追加
-        if ($path != '') {
-            $path .= (substr($path, -1, 1) == '/' ? '' : '/');
-        }
-        $path .= $name . $ext;
-        if (isset(self::$phpList[$path])) {
-            return true;
-        }
+    public static function loadPHP($path) {
         if (is_file($path)) {
             include $path;
-            self::$phpList[$path] = true;
             return true;
         }
         return false;
     }
 
-    /**
-     * 加载类文件函数
-     * @param string $name 类名
-     * @param string $path 扩展地址
-     * @param string $ext 指定扩展名
-     * @return bool|mixed
-     */
-    public static function loadClass($name, $path = '', $ext='.class.php') {
-        if (''===$path) $path = MY_PATH.'/lib/';
-        return self::loadPHP($name, $path, $ext);
-    }
     //语言
     public static function loadLang($file){
         self::$lang = array_merge(self::$lang, is_array($file) ? $file : include $file);
@@ -651,11 +623,7 @@ final class myphp{
         $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
         return isset(self::$lang[$name1][$name2]) ? self::$lang[$name1][$name2] : null;
     }
-/*    //错误提示设置或读取
-    public static function err($msg=null){
-        if ($msg === null) return isset(Config::$cfg['__err']) ? Config::$cfg['__err'] : $msg;
-        else Config::$cfg['__err'] = $msg;
-    }*/
+
     /** 组件使用
      * @param string $name 组件名称 唯一
      * @param null $option 自定义载入'aa'+['class'=>'ab\aa', param1,....]||'ab\aa'+[param1,....]
@@ -683,11 +651,13 @@ final class myphp{
         self::$container[$name] = $appConf ? new $class($appConf) : new $class();
         return self::$container[$name];
     }
+
     /**
      * db实例化
      * @param string $name 数据库配置名
      * @param bool $force 是否强制生成新实例
      * @return Db
+     * @throws Exception
      */
     public static function db($name = 'db', $force=false)
     {
