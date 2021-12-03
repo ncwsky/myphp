@@ -209,7 +209,7 @@ class Upload {
 </form>
 
 <?php
-require('Upload.class.php');
+require('Upload.php');
 if($_POST['dofile']=='1'){
 	echo $_POST['des'].'<br>';
 	//上传框中的描述表单名称，描述内容

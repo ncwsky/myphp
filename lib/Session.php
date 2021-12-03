@@ -28,7 +28,7 @@ class Session {
 		if(isset(self::$instance[$type])) return true;
 		
 		if($type!='file'){ //linux因权限原因自定义file操作类会出现无权限的情况
-			require(MY_PATH.'/lib/session/'.$type.'.class.php');
+            require_once(MY_PATH.'/lib/session/'.$type.'.php');
 			$session_class = 'session_'.$type;
 			if(!class_exists($session_class)) throw new Exception($session_class.' not found');
 

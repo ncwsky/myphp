@@ -26,7 +26,7 @@ class Cache {
      */
     public static function newInstance($type='file',$options=array()){
         $cacheClass = 'Cache'.ucfirst($type);
-        require_once(MY_PATH.'/lib/cache/'.$cacheClass.'.class.php');
+        require_once(MY_PATH.'/lib/cache/'.$cacheClass.'.php');
         if(!class_exists($cacheClass)) throw new Exception($cacheClass.' not found');
 
         return new $cacheClass($options);

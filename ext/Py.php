@@ -14,7 +14,7 @@
 *
 * @example
 //引用汉字转拼音文件
-require_once("Py.class.php");
+require_once("Py.php");
 //生成商品名称的拼音缩写
 $py=new Py();
 $py->isch('中文判断'); // return bool
