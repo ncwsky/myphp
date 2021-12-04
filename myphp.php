@@ -437,17 +437,11 @@ final class myphp{
             }
             file_put_contents(self::$env['CACHE_PATH'].'/.gitignore', "*\r\n!.gitignore");
             // 写入测试Action
-            if(!is_file($cPath.'/IndexAct.class.php')){
+            if(!is_file($cPath.'/IndexAct.php')){
                 file_put_contents($path.'/index.htm', 'dir');
-
-                $content = file_get_contents(MY_PATH.'/Base.class.tpl');
-                file_put_contents($cPath.'/Base.class.php',$content);
-
-                $content = file_get_contents(MY_PATH.'/IndexAct.class.tpl');
-                file_put_contents($cPath.'/IndexAct.class.php',$content);
-
-                $content = file_get_contents(MY_PATH.'/index.tpl');
-                file_put_contents(self::$env['VIEW_PATH'].'/index.html',$content);
+                file_put_contents($cPath.'/Base.php', file_get_contents(MY_PATH.'/Base.class.tpl'));
+                file_put_contents($cPath.'/IndexAct.php', file_get_contents(MY_PATH.'/IndexAct.class.tpl'));
+                file_put_contents(self::$env['VIEW_PATH'].'/index.html', file_get_contents(MY_PATH.'/index.tpl'));
             }
             // 生成项目配置
             $runconfig = $path .'/config.php';
@@ -523,6 +517,11 @@ final class myphp{
             }
             require $runFile;
         }
+        //类映射
+        self::$classMap['File'] = MY_PATH . '/lib/File.php';
+        self::$classMap['MyRedis'] = MY_PATH . '/lib/MyRedis.php';
+        self::$classMap['Session'] = MY_PATH . '/lib/Session.php';
+
         //设置本地时差
         date_default_timezone_set(Config::$cfg['timezone']);
         //初始类的可加载目录
@@ -587,9 +586,6 @@ final class myphp{
             if (self::$classOldSupport && self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
                 return true;
             }
-        }
-        if (self::loadPHP(MY_PATH . '/lib' . DIRECTORY_SEPARATOR . $name . '.php')) {
-            return true;
         }
         if (self::loadPHP(MY_PATH . '/ext' . DIRECTORY_SEPARATOR . $name . '.php')) {
             return true;
