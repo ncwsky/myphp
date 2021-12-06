@@ -224,6 +224,9 @@ class Db {
         $pattern = '/^\s*(SELECT|SHOW|DESCRIBE)\b/i';
         return preg_match($pattern, $sql) > 0;
     }
+    public function init(){
+        $this->options = null;
+    }
     //对sql部分语句进行转换
     final public function chkSql(&$sql, $curd=false) {
         $isMysql = $this->config['dbms'] == 'mysql';
@@ -479,7 +482,7 @@ class Db {
         if(isset($this->options['group'])) $sql .= ' GROUP BY '.$this->options['group'];
         if(isset($this->options['having'])) $sql .= ' HAVING '.$this->options['having'];
         if($order!= '') $sql .= ' ORDER BY '.$order;
-        $this->options = null; //清除
+
         return $sql;
     }
     public function select($table='', $where = '', $order='', $fields = '*', $limit=''){
@@ -504,7 +507,6 @@ class Db {
         if(isset($this->options['group'])) $sql .= ' GROUP BY '.$this->options['group'];
         if(isset($this->options['having'])) $sql .= ' HAVING '.$this->options['having'];
         if($order!= '') $sql .= ' ORDER BY '.$order;
-        $this->options = null; //清除
         return $sql;
     }
     public function find($table='', $where='', $order='', $fields = '*'){
@@ -553,7 +555,6 @@ class Db {
         if($table=='' && isset($this->options['table'])) $table=$this->options['table'];
         $this->_table($table, false);
         $sql = 'INSERT INTO '.$table.'('.$field.') VALUES '.$values;
-        $this->options = null; //清除
 		return $sql;//返回执行sql
 	}
 
@@ -585,7 +586,6 @@ class Db {
 		
 		if($where!='') $this->_where($where);
 		if(isset($this->options['where'])) $sql .= ' WHERE '.$this->options['where'];
-        $this->options = null; //清除
 		return $sql;
 	}
 
@@ -605,7 +605,7 @@ class Db {
 
         if($where!='') $this->_where($where);
         if(isset($this->options['where'])) $sql .= ' WHERE '.$this->options['where'];
-        $this->options = null; //清除
+
         return $sql;
     }
 	//删除记录
