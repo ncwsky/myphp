@@ -178,7 +178,7 @@ class Upload {
             $realFile = $this->realPath . $f_name;
 
             if (strpos($this->imgType, ',' . $data['fileType'] . ',') !== false && $this->width > 0 && $this->height > 0) { //指定图片大小处理 使用第三方 Image类 方式一
-                $result = Image::thumb($clientFile["tmp_name"], $realFile, '', $this->width, $this->height);
+                $result = Image::thumb($clientFile["tmp_name"], $realFile, $this->width, $this->height);
                 if ($result === 0) {
                     $result = move_uploaded_file($clientFile["tmp_name"], $realFile);
                 }

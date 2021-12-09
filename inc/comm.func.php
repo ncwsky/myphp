@@ -650,7 +650,7 @@ function make_thumb($image,$multi=true){
     foreach($thumbs_wh as $thumb_wh){
         $thumbname =  $base.$thumb_wh.$ext;
         $wh = explode('_', $thumb_wh);
-        $thumbname = Image::thumb($image,$thumbname,'',$wh[0],$wh[1]);//生成图片缩略图
+        $thumbname = Image::thumb($image,$thumbname,$wh[0],$wh[1]);//生成图片缩略图
         if($thumbname){
             $thumb[$thumb_wh] = $thumbname;
         }

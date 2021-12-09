@@ -14,7 +14,7 @@ final class myphp{
     private static $container = []; //容器
     public static $classDir = []; //设置可加载的目录
     public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
-    public static $classOldSupport = false; //是否兼容xxx.class.php
+    public static $classOldSupport = true; //是否兼容xxx.class.php
 
     // 获取环境变量的值
     public static function env($name, $def = '')
