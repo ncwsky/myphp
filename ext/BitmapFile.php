@@ -5,16 +5,19 @@
  * */  
 class BitmapFile   
 {  
-    private $handler = NULL;  
+    private $handler = null;
     private $max = 0;  
     public function __construct($file)   
-    {  
-        clearstatcache(true, $file);      
-        if(file_exists($file))  
-            $this->handler = @fopen($file , 'r+') OR die('open bitmap file failed');  
-        else  
-            $this->handler = @fopen($file , 'w+') OR die('open bitmap file failed');  
-  
+    {
+        if (file_exists($file))
+            $this->handler = @fopen($file, 'r+');
+        else
+            $this->handler = @fopen($file, 'w+');
+
+        if (!$this->handler) {
+            throw new Exception('open bitmap file failed');
+        }
+
         $this->max = file_exists($file) ? (filesize($file) * 8 - 1) : 0;  
     }  
     public function __destruct()   
@@ -27,14 +30,19 @@ class BitmapFile
         return sprintf('%08d',decbin(hexdec(bin2hex($binary_data))));
     }
 
+    /**
+     *  -1 < $num < 4294967296
+     * @param $num
+     * @throws Exception
+     */
     private function num_check($num)  
-    {  
-        ($num > -1) OR die('number must be greater than -1');  
-        ($num < 4294967296) or die('number must be less than 4294967296'); // 2^32  
-        if ($this->max < $num) {  
-            fseek($this->handler, 0, SEEK_END);  
-            fwrite($this->handler , str_repeat("\x00",ceil(($num - $this->max)/8))); // fill with 0  
-            $this->max = ceil($num/8)*8 - 1;  
+    {
+        if ($num < 0) throw new Exception('number must be greater than -1');
+        if ($num >= 4294967296) throw new Exception('number must be less than 4294967296'); // 2^32
+        if ($this->max < $num) {
+            fseek($this->handler, 0, SEEK_END);
+            fwrite($this->handler, str_repeat("\x00", ceil(($num - $this->max) / 8))); // fill with 0
+            $this->max = ceil($num / 8) * 8 - 1;
         }         
     }  
       
@@ -70,16 +78,17 @@ class BitmapFile
       
     public function find($num)  
     {  
-        if (fseek($this->handler, floor($num/8), SEEK_SET) == -1) return FALSE;  
+        if (fseek($this->handler, floor($num/8), SEEK_SET) == -1) return false;
         $bin = fread($this->handler , 1);  
-        if ($bin === FALSE || strlen($bin) == 0) return FALSE;  
+        if ($bin === false || strlen($bin) == 0) return false;
   
         $bin = $bin & pack('C',0x100 >> fmod($num,8)+1);  
-        if($bin === "\x00") return FALSE;  
-        return TRUE;  
+        if($bin === "\x00") return false;
+        return true;
     }  
 }  
-  
+/*
+
 $b = new BitmapFile('./bitmapdata'); # /dev/shm/bitmapdata 把文件，放在内存里，增加读写速度
   
 // 设置白名单  
@@ -90,4 +99,5 @@ $uid = 501;
 var_dump($b->find($uid)); // 查找白名单  
   
 $b->del($uid); // 删除白名单  
-var_dump($b->find($uid)); // 查找白名单  
+var_dump($b->find($uid)); // 查找白名单
+*/

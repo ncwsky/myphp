@@ -521,6 +521,23 @@ final class myphp{
         self::$classMap['File'] = MY_PATH . '/lib/File.php';
         self::$classMap['MyRedis'] = MY_PATH . '/lib/MyRedis.php';
         self::$classMap['Session'] = MY_PATH . '/lib/Session.php';
+        self::$classMap['AES'] = MY_PATH . '/ext/AES.php';
+        self::$classMap['BitMap'] = MY_PATH . '/ext/BitMap.php';
+        self::$classMap['BitmapFile'] = MY_PATH . '/ext/BitmapFile.php';
+        self::$classMap['DecConvert'] = MY_PATH . '/ext/DecConvert.php';
+        self::$classMap['DesSecurity'] = MY_PATH . '/ext/DesSecurity.php';
+        self::$classMap['Endian'] = MY_PATH . '/ext/Endian.php';
+        self::$classMap['Http'] = MY_PATH . '/ext/Http.php';
+        self::$classMap['HttpAuth'] = MY_PATH . '/ext/HttpAuth.php';
+        self::$classMap['HttpCode'] = MY_PATH . '/ext/HttpCode.php';
+        self::$classMap['HttpReqInfo'] = MY_PATH . '/ext/HttpReqInfo.php';
+        self::$classMap['Image'] = MY_PATH . '/ext/Image.php';
+        self::$classMap['lib_redis'] = MY_PATH . '/ext/lib_redis.php';
+        self::$classMap['Py'] = MY_PATH . '/ext/Py.php';
+        self::$classMap['ReplyAck'] = MY_PATH . '/ext/ReplyAck.php';
+        self::$classMap['RotateLog'] = MY_PATH . '/ext/RotateLog.php';
+        self::$classMap['Upload'] = MY_PATH . '/ext/Upload.php';
+        self::$classMap['Zip'] = MY_PATH . '/ext/Zip.php';
 
         //设置本地时差
         date_default_timezone_set(Config::$cfg['timezone']);
@@ -586,9 +603,6 @@ final class myphp{
             if (self::$classOldSupport && self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
                 return true;
             }
-        }
-        if (self::loadPHP(MY_PATH . '/ext' . DIRECTORY_SEPARATOR . $name . '.php')) {
-            return true;
         }
         return false;
     }
