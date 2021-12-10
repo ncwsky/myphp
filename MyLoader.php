@@ -34,7 +34,8 @@ class MyLoader
     public static function autoload($class_name)
     {
         if (isset(self::$classMap[$class_name])) { //优先加载类映射
-            return self::load(self::$classMap[$class_name]);
+            include self::$classMap[$class_name];
+            return;
         }
 
         $name = $class_name;
@@ -42,11 +43,12 @@ class MyLoader
             $class_path = strtr($class_name, '\\', DIRECTORY_SEPARATOR);
             $namespace = substr($class_name, 0, $pos + 1);
             if (isset(self::$namespaceMap[$namespace])) { //优先加载命名空间映射
-                return self::load(self::$rootPath . DIRECTORY_SEPARATOR . self::$namespaceMap[$namespace] . substr($class_path, strlen($namespace)) . '.php');
+                include self::$rootPath . DIRECTORY_SEPARATOR . self::$namespaceMap[$namespace] . substr($class_path, strlen($namespace)) . '.php';
+                return;
             }
 
             if (self::load(self::$rootPath . DIRECTORY_SEPARATOR . $class_path . '.php')) {
-                return true;
+                return;
             }
             //未匹配-取类名
             $pos = strrpos($class_path, DIRECTORY_SEPARATOR);
@@ -56,15 +58,19 @@ class MyLoader
         //循环可存在类的目录
         foreach (self::$classDir as $path => $i) {
             if (self::load($path . DIRECTORY_SEPARATOR . $name . '.php')) {
-                return true;
+                return;
             }
             if (self::$classOldSupport && self::load($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
-                return true;
+                return;
             }
         }
-        return false;
     }
 
+    /**
+     * @param string $path
+     * @param null $class_name
+     * @return bool
+     */
     public static function load($path, $class_name = null)
     {
         if (is_file($path)) {

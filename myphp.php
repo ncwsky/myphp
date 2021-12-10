@@ -13,7 +13,11 @@ final class myphp{
     private static $db = [];
     private static $container = []; //容器
     public static $classDir = []; //设置可加载的目录
-    public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
+    /**
+     * @var array ['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
+     * @see autoload()
+     */
+    public static $classMap = [];
     public static $classOldSupport = true; //是否兼容xxx.class.php
 
     // 获取环境变量的值
@@ -482,23 +486,10 @@ final class myphp{
         if (Config::$cfg['debug']) { //开启错误提示
             error_reporting(E_ALL);// 报错级别设定,一般在开发环境中用E_ALL,这样能够看到所有错误提示
             ini_set('display_errors', 1);// 有些环境关闭了错误显示
-
-            require MY_PATH . '/inc/comm.func.php'; //功能函数
-            require MY_PATH . '/lib/Cache.php';
-            require MY_PATH . '/lib/CheckValue.php';
-            require MY_PATH . '/lib/Control.php';
-            require MY_PATH . '/lib/Db.php';
-            require MY_PATH . '/lib/Helper.php'; //辅助类
-            require MY_PATH . '/lib/Hook.php';
-            require MY_PATH . '/lib/Log.php';
-            require MY_PATH . '/lib/Model.php';
-            require MY_PATH . '/lib/Template.php';
-            require MY_PATH . '/lib/View.php';
-        }
-        else {
+        } else {
             error_reporting(E_ALL ^ E_NOTICE); #除了 E_NOTICE，报告其他所有错误
             ini_set('display_errors', 0);
-
+/*
             $runFile = ROOT . '/~run.php';
             if (!is_file($runFile)) {
                 $php = self::compile(MY_PATH . '/inc/comm.func.php');
@@ -515,7 +506,7 @@ final class myphp{
                 file_put_contents($runFile, '<?php ' . $php);
                 unset($php);
             }
-            require $runFile;
+            require $runFile;*/
         }
 
         //设置本地时差
@@ -556,10 +547,14 @@ final class myphp{
         if(is_array($dir)) self::$classDir = array_merge(self::$classDir, array_fill_keys($dir, 1));
         else self::$classDir[$dir] = 1;
     }
-    //自动加载对象
+
+    /**
+     * @param $class_name
+     */
     public static function autoload($class_name) {
-        if (isset(static::$classMap[$class_name])) { //优先加载类映射
-            return self::loadPHP(static::$classMap[$class_name]);
+        if (isset(self::$classMap[$class_name])) { //优先加载类映射
+            include self::$classMap[$class_name];
+            return;
         }
 
         $name = $class_name;
@@ -568,7 +563,7 @@ final class myphp{
             $class_path = strtr($class_name, '\\', DIRECTORY_SEPARATOR);
 
             if (self::loadPHP(ROOT . DIRECTORY_SEPARATOR . $class_path . '.php')) {
-                return true;
+                return;
             }
             //未匹配-取类名
             $pos = strrpos($class_path, DIRECTORY_SEPARATOR);
@@ -577,16 +572,16 @@ final class myphp{
         //循环判断
         foreach (self::$classDir as $path => $v) {
             if (self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.php')) {
-                return true;
+                return;
             }
             if (self::$classOldSupport && self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
-                return true;
+                return;
             }
         }
-        return false;
     }
 
-    /** 载入php文件
+    /**
+     * 载入php文件
      * @param string $path  路径
      * @return bool
      */

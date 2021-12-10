@@ -29,11 +29,22 @@ defined('RUNTIME') || define('RUNTIME', ROOT.'/runtime');
 //公共目录
 defined('COMMON') || define('COMMON', ROOT.'/common');
 require MY_PATH . '/myphp.php';
+require MY_PATH . '/inc/comm.func.php';
 //类映射
 myphp::$classMap = [
+    'Cache' => MY_PATH . '/lib/Cache.php',
+    'CheckValue' => MY_PATH . '/lib/CheckValue.php',
+    'Control' => MY_PATH . '/lib/Control.php',
+    'Db' => MY_PATH . '/lib/Db.php',
     'File' => MY_PATH . '/lib/File.php',
+    'Helper' => MY_PATH . '/lib/Helper.php',
+    'Hook' => MY_PATH . '/lib/Hook.php',
+    'Log' => MY_PATH . '/lib/Log.php',
+    'Model' => MY_PATH . '/lib/Model.php',
     'MyRedis' => MY_PATH . '/lib/MyRedis.php',
     'Session' => MY_PATH . '/lib/Session.php',
+    'Template' => MY_PATH . '/lib/Template.php',
+    'View' => MY_PATH . '/lib/View.php',
     'AES' => MY_PATH . '/ext/AES.php',
     'BitMap' => MY_PATH . '/ext/BitMap.php',
     'BitmapFile' => MY_PATH . '/ext/BitmapFile.php',

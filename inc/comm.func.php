@@ -566,9 +566,9 @@ function createPath( $folderPath, $mode=0777 ) {
     if ( !is_dir($sParent)) createPath( $sParent, $mode );
     if ( !is_dir($folderPath)) mkdir($folderPath, $mode) or ShowMsg('创建目录（'. $folderPath .'）失败！');
 }
-//取得文件扩展 $filename 文件名
-function FileExt($filename) {
-    return strtolower(trim(substr(strrchr($filename, '.'), 1, 10)));
+//取得文件扩展 $file 文件名
+function FileExt($file) {
+    return strtolower(strrchr($file, '.'));
 }
 
 /**
