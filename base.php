@@ -30,13 +30,14 @@ defined('RUNTIME') || define('RUNTIME', ROOT.'/runtime');
 defined('COMMON') || define('COMMON', ROOT.'/common');
 require MY_PATH . '/myphp.php';
 require MY_PATH . '/inc/comm.func.php';
+require MY_PATH . '/lib/Db.php';
 //类映射
 myphp::$classMap = [
     'Cache' => MY_PATH . '/lib/Cache.php',
     'CacheAbstract' => MY_PATH . '/lib/Cache.php',
     'CheckValue' => MY_PATH . '/lib/CheckValue.php',
     'Control' => MY_PATH . '/lib/Control.php',
-    'Db' => MY_PATH . '/lib/Db.php',
+    //'Db' => MY_PATH . '/lib/Db.php',
     'File' => MY_PATH . '/lib/File.php',
     'Helper' => MY_PATH . '/lib/Helper.php',
     'Hook' => MY_PATH . '/lib/Hook.php',
