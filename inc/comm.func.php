@@ -397,14 +397,15 @@ function get_url() {
  * 产生随机字符串
  *
  * @param int $len 输出长度
- * @param string $chars
- * @return   string     字符串 0:数字 1:仅字母 01:数字字母混合
+ * @param string $chars 字符串 0:数字 1:字母 01:数字字母 11:特殊、数字字母 xxx:自定义
+ * @return string
  */
 function random($len=6, $chars='0') {
     if($chars=='0') $chars = '0123456789';
     elseif($chars=='1') $chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHIJKLMNPRSTUVWXYZ';
     elseif($chars=='01') $chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHIJKLMNPRSTUVWXYZ0123456789';
-    return substr(str_shuffle($chars.$chars), 0, $len);
+    elseif($chars=='11') $chars = '~!@#$%^&*_-abcdefghijkmnpqrstuvwxyzABCDEFGHIJKLMNPRSTUVWXYZ0123456789';
+    return substr(str_shuffle($chars.$chars.$chars), 0, $len);
 }
 //生成流水号
 function create_sn(){ //20位
@@ -569,10 +570,12 @@ function createPath( $folderPath, $mode=0777 ) {
 function FileExt($filename) {
     return strtolower(trim(substr(strrchr($filename, '.'), 1, 10)));
 }
+
 /**
  * 文件下载
- * @param $filepath 文件路径
- * @param $filename 文件名称
+ * @param string $filepath 文件路径
+ * @param string $filename 文件名称
+ * @return false|int
  */
 function FileDown($filepath, $filename = '') {
     if(!$filename) $filename = basename($filepath);
@@ -589,8 +592,7 @@ function FileDown($filepath, $filename = '') {
     header('Content-type: '.$filetype);
     header('Content-Disposition: attachment; filename="'.$filename.'"');
     header('Content-length: '.$filesize);
-    readfile($filepath);
-    exit;
+    return readfile($filepath);
 }
 //转换字节数为其他单位 $byte:字节
 function toByte($byte){
@@ -610,7 +612,6 @@ function toByte($byte){
 }
 //获取图片
 function get_image($image, $nopic='/pub/images/nopic.gif'){
-    static $root_dir_len;
     $root_dir_len=strlen(ROOT_DIR);
     if($image=='') $image = ROOT_DIR.$nopic;
     if(substr($image,0,4)=='http' || substr($image,0,$root_dir_len)==ROOT_DIR){
@@ -636,7 +637,7 @@ function get_thumb($image,$thumb_wh='',$nopic='/pub/images/itemi.png'){
     }
 }
 //生成缩略图  return array 缩略图列表
-function make_thumb($image,$multi=true){
+function make_thumb($image){
     $thumb = array();
     $image = ROOT.ROOT_DIR.$image;
     if(!is_file($image)) return false;
@@ -650,8 +651,8 @@ function make_thumb($image,$multi=true){
     foreach($thumbs_wh as $thumb_wh){
         $thumbname =  $base.$thumb_wh.$ext;
         $wh = explode('_', $thumb_wh);
-        $thumbname = Image::thumb($image,$thumbname,$wh[0],$wh[1]);//生成图片缩略图
-        if($thumbname){
+        //生成图片缩略图
+        if(Image::thumb($image,$thumbname,$wh[0],$wh[1])){
             $thumb[$thumb_wh] = $thumbname;
         }
     }

@@ -34,7 +34,7 @@ class Image
      * @param boolean $fixed 固定缩略图大小
      * @param boolean $interlace 启用隔行扫描
      * @param int $quality jpg质量1-100
-     * @return false|int|string
+     * @return false|int|string false失败 0原图未缩放 string原图类型
      */
     public static function thumb($image, $thumbName, $maxWidth = 200, $maxHeight = 50, $fixed = false, $interlace = false, $quality = 80)
     {
@@ -121,7 +121,7 @@ class Image
 
         imagedestroy($thumbImg);
         imagedestroy($srcImg);
-        return $thumbName;
+        return $type;
     }
 
     /**
