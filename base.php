@@ -29,9 +29,31 @@ defined('RUNTIME') || define('RUNTIME', ROOT.'/runtime');
 //公共目录
 defined('COMMON') || define('COMMON', ROOT.'/common');
 require MY_PATH . '/myphp.php';
+//类映射
+myphp::$classMap = [
+    'File' => MY_PATH . '/lib/File.php',
+    'MyRedis' => MY_PATH . '/lib/MyRedis.php',
+    'Session' => MY_PATH . '/lib/Session.php',
+    'AES' => MY_PATH . '/ext/AES.php',
+    'BitMap' => MY_PATH . '/ext/BitMap.php',
+    'BitmapFile' => MY_PATH . '/ext/BitmapFile.php',
+    'DecConvert' => MY_PATH . '/ext/DecConvert.php',
+    'DesSecurity' => MY_PATH . '/ext/DesSecurity.php',
+    'Endian' => MY_PATH . '/ext/Endian.php',
+    'Http' => MY_PATH . '/ext/Http.php',
+    'HttpAuth' => MY_PATH . '/ext/HttpAuth.php',
+    'HttpCode' => MY_PATH . '/ext/HttpCode.php',
+    'HttpReqInfo' => MY_PATH . '/ext/HttpReqInfo.php',
+    'Image' => MY_PATH . '/ext/Image.php',
+    'lib_redis' => MY_PATH . '/ext/lib_redis.php',
+    'Py' => MY_PATH . '/ext/Py.php',
+    'ReplyAck' => MY_PATH . '/ext/ReplyAck.php',
+    'RotateLog' => MY_PATH . '/ext/RotateLog.php',
+    'Upload' => MY_PATH . '/ext/Upload.php',
+    'Zip' => MY_PATH . '/ext/Zip.php'
+];
 //初始框架
 myphp::init(isset($cfg) ? $cfg : null);
-
 /*---------- 辅助方法 ----------*/
 //获取终端发送的HTTP请求头
 if (!function_exists('getallheaders')) {
