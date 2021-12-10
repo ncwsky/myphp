@@ -33,6 +33,7 @@ require MY_PATH . '/inc/comm.func.php';
 //类映射
 myphp::$classMap = [
     'Cache' => MY_PATH . '/lib/Cache.php',
+    'CacheAbstract' => MY_PATH . '/lib/Cache.php',
     'CheckValue' => MY_PATH . '/lib/CheckValue.php',
     'Control' => MY_PATH . '/lib/Control.php',
     'Db' => MY_PATH . '/lib/Db.php',
@@ -43,6 +44,7 @@ myphp::$classMap = [
     'Model' => MY_PATH . '/lib/Model.php',
     'MyRedis' => MY_PATH . '/lib/MyRedis.php',
     'Session' => MY_PATH . '/lib/Session.php',
+    'session_abstract' => MY_PATH . '/lib/Session.php',
     'Template' => MY_PATH . '/lib/Template.php',
     'View' => MY_PATH . '/lib/View.php',
     'AES' => MY_PATH . '/ext/AES.php',
