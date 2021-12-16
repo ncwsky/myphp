@@ -67,14 +67,9 @@ class Model implements ArrayAccess
     public function __construct($tbName = null, $dbName = null)
     {
         if(!$this->tbName){
-            /*
-            if(is_subclass_of($this, 'Model')){
-                $this->tbName = strtolower(get_class($this));
-            }*/
-            $this->tbName = $tbName===null ? strtolower(get_class($this)) : $tbName; //get_called_class()
+            $this->tbName = $tbName===null ? strtolower(get_class($this)) : $tbName;
         }
 
-        $this->init();
         if($dbName===null){
             $this->db = new Db($this->dbName);
         }else{
@@ -84,17 +79,11 @@ class Model implements ArrayAccess
                 $this->db = new Db($dbName);
             }
         }
-
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
             //$this->fields = implode(',', array_keys($this->fieldRule));
             //print_r($this->fields);
         }
-    }
-    //初始操作处理
-    protected function init()
-    {
-
     }
     //设置字段规则  [id'=>array('rule'=>'%d{1,10}','def'=>0)]|id,array('rule'=>'%d{1,10}','def'=>0)
     public function setRule($name, $rule=null){
@@ -118,7 +107,6 @@ class Model implements ArrayAccess
             throw new Exception('data not is array');
         }
     }
-
     //设置字段旧数据
     public function setOldData($data, $isRest = true)
     {
@@ -327,21 +315,15 @@ class Model implements ArrayAccess
     public function count($fields='*'){
         return $this->db->getCount($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''), '', $fields=='*' && $this->prikey?$this->prikey:$fields);
     }
-    protected static function runCall(Model $model, $method, &$args){
+    protected static function runCall(Model $model, $method, $args){
         if (method_exists($model, $method)) {
             call_user_func_array([$model, $method], $args);
             return $model;
         } else { //调用db方法
-            //try{
-                $model->_preDbMethod($method);
-                $result = call_user_func_array([$model->db, $method], $args);
-                $model->_sufDbMethod($method, $result);
-                return $result instanceof Db ? $model : $result;
-/*            }catch (Exception $e){
-                myphp::err($e->getMessage());
-                Log::WARN($e->getFile().', '.$e->getLine().', '.$e->getMessage(). PHP_EOL. $e->getTraceAsString());
-                return false;
-            }*/
+            $model->_preDbMethod($method);
+            $result = call_user_func_array([$model->db, $method], $args);
+            $model->_sufDbMethod($method, $result);
+            return $result instanceof Db ? $model : $result;
         }
     }
     //连贯操作
