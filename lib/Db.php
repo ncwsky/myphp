@@ -423,11 +423,32 @@ class Db {
 		if(self::$log_type==2 || (self::$log_type==1 && $curd)) Log::write($sql,'SQL');
 		self::$times++;
 	}
+
+    /**
+     * todo:有主从时 默认都走主库
+     * 返回预处理对象 $stmt -> 调用 $stmt->execute($params=null) 处理sql数据
+     * @param $sql
+     * @param array $options
+     * @return false|mysqli_stmt|PDOStatement
+     */
+    public function prepare($sql, $options = [])
+    {
+        $this->_run_init($sql);
+        return $this->db->conn->prepare($sql, $options);
+    }
+
     /**
      * @var Closure function($db, $sql){}
      */
     public static $execCustom = null;
-	//执行查询
+
+    /**
+     * 执行sql  todo:有主从时 默认都走主库
+     * @param $sql
+     * @param null $bind
+     * @return bool|int|mixed|mysqli_result
+     * @throws Exception
+     */
 	public function execute($sql, $bind=null) {
 		$this->_run_init($sql, $bind, true);
 		if(self::$execCustom instanceof Closure) { //自定义exec处理
@@ -677,10 +698,13 @@ class Db {
 		$row = $this->db->fetch_array($result, $type);//无记录返回false
 		return $row;
 	}
-	//返回当前的一条记录并把游标移向下一记录
+    //返回当前的一条记录并把游标移向下一记录
+    public function fetch($rs=null, $type = 'assoc') {
+        if($rs===null) $rs=$this->db->rs;
+        return $this->db->fetch_array($rs, $type);
+    }
 	public function fetch_array($rs=null, $type = 'assoc') {
-		if($rs===null) $rs=$this->db->rs;
-		return $this->db->fetch_array($rs, $type);
+        return $this->fetch($rs, $type);
 	}
 	public function isTrans(){
         return $this->db->inTrans();
