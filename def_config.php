@@ -31,7 +31,7 @@ return array(
 		'pwd' => '',	//数据库密码
 		'port' => 3306,     // 端口
 		'char' => 'utf8',	//数据库编码
-		'prefix' => 'my_',	//数据库表前缀
+		'prefix' => '',	//数据库表前缀
         'options'=>array() //辅助配置
 	),
 	'cache' => null, // 'file'
