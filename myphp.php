@@ -1,5 +1,7 @@
 <?php
-
+if (!class_exists('Error')) { //兼容7.0
+    class Error extends Exception{}
+}
 final class myphp{
     use MyMsg;
     public static $authFun = null; //验证回调方法 Closure
@@ -66,6 +68,9 @@ final class myphp{
                 self::send($e->getMessage()."\n".'line:'.$e->getLine().', file:'.$e->getFile()."\n".$e->getTraceAsString(), 500);
                 Log::Exception($e, false);
             }
+        } catch (Error $e) {
+            self::send($e->getMessage()."\n".'line:'.$e->getLine().', file:'.$e->getFile()."\n".$e->getTraceAsString(), 500);
+            Log::Exception($e, false);
         }
         self::$env = [];
         self::$lang = [];
