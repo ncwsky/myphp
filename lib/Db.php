@@ -42,6 +42,7 @@ class Db {
 	);
 	// 链操作方法信息 被保存在此
     public $options = null;
+    public $prefix = '';
 	// 链操作方法列表
     protected $methods = ',order,group,having,limit,table,idx,lock,';
     //表字段信息
@@ -66,6 +67,7 @@ class Db {
         } else {
             $this->config = array_merge($this->config, $conf);
         }
+        $this->prefix = $this->config['prefix'];
 
         if ($key === '') $key = $this->config['type'] . $this->config['dbms'] . $this->config['server'] . $this->config['name'] . $this->config['port'];
 
@@ -462,7 +464,7 @@ class Db {
         !is_array($bind) && $isArr = $bind;
         $idx = $isArr && isset($this->options['idx']) ? $this->options['idx'] : null; //指定键名
         // 替换前缀
-        !isset($this->options['table']) && $sql = str_replace('{prefix}', $this->config['prefix'], $sql);
+        !isset($this->options['table']) && $sql = str_replace('{prefix}', $this->prefix, $sql);
 
         $this->_run_init($sql, $bind);
         if(!$isArr) return $this->db->query($sql);
@@ -774,7 +776,7 @@ class Db {
             }
         }
         if(strpos($tb,'{prefix}')!==false){ //表名前缀处理
-            $tb = str_replace('{prefix}', $this->config['prefix'], $tb);
+            $tb = str_replace('{prefix}', $this->prefix, $tb);
         }
         $tb = $this->startSpec . $tb . $this->endSpec;
         return $tb;

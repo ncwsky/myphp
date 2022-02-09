@@ -66,18 +66,18 @@ class Model implements ArrayAccess
      */
     public function __construct($tbName = null, $dbName = null)
     {
-        if(!$this->tbName){
-            $this->tbName = $tbName===null ? strtolower(get_class($this)) : $tbName;
-        }
-
-        if($dbName===null){
+        if ($dbName === null) {
             $this->db = new Db($this->dbName);
-        }else{
-            if($dbName instanceof Db){
+        } else {
+            if ($dbName instanceof Db) {
                 $this->db = $dbName;
-            }else{
+            } else {
                 $this->db = new Db($dbName);
             }
+        }
+
+        if (!$this->tbName) { //未指定表名或未传递表名时 自动获取【前缀+表名】
+            $this->tbName = $this->db->prefix . ($tbName === null ? strtolower(get_class($this)) : $tbName);
         }
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
