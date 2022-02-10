@@ -2,7 +2,7 @@
 //日志类
 class Log{
 	private $handler = null;
-	private static $level = 0; //日志级别
+	private static $level = 0; //日志级别 0-5
 	private static $size = 2097152; //日志大小 2M 
 	private static $instance = null;
 	private static $file = null;
@@ -179,25 +179,25 @@ class Log{
 	}
 	//日志记录等级判断
 	private static function _level($level){
-		$lVal = 2; //日志记录等级值
+		$val = 2; //日志记录等级值
 		switch(strtolower($level)){
 			case 'trace':
-				$lVal = 0;break; //追踪
+				$val = 0;break; //追踪
 			case 'debug':
-				$lVal = 1;break; //调试
+				$val = 1;break; //调试
 			case 'info':
-				$lVal = 2;break; //信息
+				$val = 2;break; //信息
 			case 'notice':
-				$lVal = 3;break; //通知
+				$val = 3;break; //通知
 			case 'warn':
-				$lVal = 4;break; //警告
+				$val = 4;break; //警告
             case '_def':
 			case 'error':
-				$lVal = 5;break; //错误
+				$val = 5;break; //错误
 			case 'sql':
-				$lVal = 10;break; //sql语句
+				$val = 10;break; //sql语句
 		}
-		return self::$level > $lVal ? false : true;
+		return self::$level > $val ? false : true;
 	}
 	//记录日志 建议优先使用
 	public static function trace($msg,$level='trace'){
@@ -210,7 +210,7 @@ class Log{
 		}
 	}
 	//写入日志
-	public static function write($msg,$level='trace',$file=null){
+	public static function write($msg,$level='info',$file=null){
 		if(!self::_level($level)) return false;
         if(!is_scalar($msg)) $msg = toJson($msg);
 		$fp = null;

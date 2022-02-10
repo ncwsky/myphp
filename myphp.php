@@ -658,7 +658,7 @@ final class myphp{
     public static function db($name = 'db', $force=false)
     {
         if ($force || !isset(self::$db[$name])) {
-            self::$db[$name] = new Db($name, $force);    //实例化模型类
+            self::$db[$name] = new Db($name, $force);
         }
         return self::$db[$name]; //返回实例
     }
@@ -666,6 +666,7 @@ final class myphp{
     /**
      * 默认缓存实例
      * @return CacheFile|CacheRedis
+     * @throws Exception
      */
     public static function cache(){
         $type = isset(Config::$cfg['cache']) ? Config::$cfg['cache'] : 'file';
