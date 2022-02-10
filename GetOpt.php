@@ -14,7 +14,7 @@ echo 'Usage: php Client.php OPTION [restart|stop]
 or: Client.php OPTION [restart|stop]
 
 -h --help
--n --num     进程数据
+-n --num     进程数
 -p --port    端口
 -s --swoole     swolle运行',PHP_EOL;
 exit(0);
