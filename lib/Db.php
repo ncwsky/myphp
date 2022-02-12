@@ -66,24 +66,21 @@ class Db {
             $this->config = array_merge($this->config, Config::$cfg[$conf]);
         } else {
             $this->config = array_merge($this->config, $conf);
+            $key = $this->config['dbms'] . $this->config['server'] . $this->config['name'] . $this->config['port'];
         }
         $this->prefix = $this->config['prefix'];
-
-        if ($key === '') $key = $this->config['type'] . $this->config['dbms'] . $this->config['server'] . $this->config['name'] . $this->config['port'];
 
         if ($force || !isset(self::$instance[$key])) {
             $db_type = 'db_' . $this->config['type'];
 
             $db_file = MY_PATH . '/lib/db/' . $db_type . '.php';
-            is_file($db_file) && require_once($db_file);//加载数据库类
-            if (!class_exists($db_type)) throw new Exception($db_type . '类没有定义');
-
             $tb_file = MY_PATH . '/lib/db/tb_' . $this->config['dbms'] . '.php';
+            is_file($db_file) && require_once($db_file);//加载数据库类
             is_file($tb_file) && require_once($tb_file);//加载数据库类
 
             $this->db = new $db_type($this->config);//连接数据库
 
-            if (false === $force) self::$instance[$key] = $this->db;
+            self::$instance[$key] = $this->db;//if (false === $force)
         } else {
             $this->db = self::$instance[$key];
         }
@@ -171,6 +168,7 @@ class Db {
     }
 	//安全转义
 	public function quote($val){
+        //if (is_null($this->db->conn)) $this->db->connect(); //连接被主动断开 需要重新连接
 		return $this->db->quote($val);
 	}
     final public function parseValue($val) {
@@ -419,6 +417,7 @@ class Db {
 	}
 	//sql处理 记数
 	private function _run_init(&$sql, $bind=null, $curd=false){
+        //if (is_null($this->db->conn)) $this->db->connect(); //连接被主动断开 需要重新连接
         $this->chkSql($sql, $curd);
         self::$sql = $sql = $this->get_real_sql($sql, $bind); //解析绑定参数
 		$this->options = null; //清除
