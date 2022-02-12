@@ -4,8 +4,8 @@ class IndexAct extends Base{
 	//创建一个方法
 	public function index(){
 /*
-		$res = $this->db->query("select * from test");	//查询数据库
-		$row = $this->db->fetch_array($res);	//获得查询结果
+		$res = db()->query("select * from test");	//查询数据库
+		$row = db()->fetch_array($res);	//获得查询结果
 		return $row;	//输出结果
 */
 		$title = '欢迎信息';
