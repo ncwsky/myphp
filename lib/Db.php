@@ -95,6 +95,11 @@ class Db {
                 break;
         }
 	}
+	//释放资源
+	public static function free($name='db'){
+        unset(self::$instance[$name]);
+        myphp::free('__db_'.$name);
+    }
 	//启用或关闭SQL记录 依赖Log类 0不记录 1仅execute的sql 2全部sql
 	public static function log_on($bool=2){
 		self::$log_type=$bool;
@@ -168,7 +173,6 @@ class Db {
     }
 	//安全转义
 	public function quote($val){
-        //if (is_null($this->db->conn)) $this->db->connect(); //连接被主动断开 需要重新连接
 		return $this->db->quote($val);
 	}
     final public function parseValue($val) {
@@ -417,7 +421,6 @@ class Db {
 	}
 	//sql处理 记数
 	private function _run_init(&$sql, $bind=null, $curd=false){
-        //if (is_null($this->db->conn)) $this->db->connect(); //连接被主动断开 需要重新连接
         $this->chkSql($sql, $curd);
         self::$sql = $sql = $this->get_real_sql($sql, $bind); //解析绑定参数
 		$this->options = null; //清除
@@ -883,10 +886,6 @@ abstract class DbBase{
 	public function __construct($config) {
         $this->config = $config;
         $this->connect();
-	}
-	//关闭数据库连接
-	public function close() {
-		$this->conn = null;
 	}
 	//释放结果集
 	public function free() {
