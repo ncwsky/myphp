@@ -11,8 +11,7 @@ final class myphp{
     public static $header = [];
     public static $statusCode = 200;
     private static $req_cache = null;
-
-    private static $db = [];
+    //private static $db = [];
     private static $container = []; //容器
     public static $classDir = []; //设置可加载的目录
     /**
@@ -657,15 +656,26 @@ final class myphp{
      */
     public static function db($name = 'db', $force=false)
     {
-        if ($force || !isset(self::$db[$name])) {
-            self::$db[$name] = new Db($name, $force);    //实例化模型类
+        $k = '__db_' . $name;
+        if ($force || !isset(self::$container[$k])) {
+            self::$container[$k] = new Db($name, $force);
         }
-        return self::$db[$name]; //返回实例
+        return self::$container[$k];
+    }
+
+    /**
+     * 释放容器资源
+     * @param $name
+     */
+    public static function free($name)
+    {
+        unset(self::$container[$name]);
     }
 
     /**
      * 默认缓存实例
      * @return CacheFile|CacheRedis
+     * @throws Exception
      */
     public static function cache(){
         $type = isset(Config::$cfg['cache']) ? Config::$cfg['cache'] : 'file';

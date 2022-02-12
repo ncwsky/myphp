@@ -2,9 +2,7 @@
 //控制器基类，所有的控制器需要继承此类
 class Control
 {
-    protected $view = NULL; //模板实例
-    protected $cache = NULL; //缓存实例
-    protected $db = NULL; //数据库实例
+    protected $view = null; //模板实例
     public $req_cache = null; //输出缓存配置 见myphp->req_cache
 
     const CODE_OK = 0; //成功
@@ -45,8 +43,6 @@ class Control
     public function __construct()
     {
         $this->view = View::getInstance(myphp::env('VIEW_PATH'), myphp::env('CACHE_PATH'));
-        if (GetC('db.name') != '') $this->db = myphp::db(); //数据库;
-        if (GetC('cache') != '') $this->cache = myphp::cache();
         $this->_init();
     }
 
