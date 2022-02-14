@@ -3,7 +3,7 @@
 class lib_redis{
     private static $instance = array();
     protected $handler;
-    private $isExRedis = false;
+    public $isExRedis = false;
     //配置
     protected $options = array(
         //'name'=>'', //创建对象名
@@ -22,7 +22,7 @@ class lib_redis{
      */
     public static function getInstance($options = array()){
         $name = isset($options['name']) ? $options['name'] : 'redis';
-        if (!isset(self::$instance[$name])) { //|| (PHP_SAPI=='cli' && self::$instance[$name]->handler->ping() === false)
+        if (!isset(self::$instance[$name])) {
             self::$instance[$name] = new self($options);
         } else {
             if (isset($options['pconnect']) && $options['pconnect'] && isset($options['select'])) { //持久连接处理
@@ -36,8 +36,18 @@ class lib_redis{
         }
         return self::$instance[$name];
     }
-    public static function free(){
-        #self::$instance = null; #取消
+
+    /**
+     * 释放资源及连接
+     * @param string $name
+     */
+    public static function free($name = 'redis')
+    {
+        unset(self::$instance[$name]);
+/*        if (isset(self::$instance[$name])) {
+            self::$instance[$name]->close();
+            unset(self::$instance[$name]);
+        }*/
     }
     //构造函数
     public function __construct($options = array()){
@@ -50,11 +60,14 @@ class lib_redis{
             $func = $this->options['pconnect'] ? 'pconnect' : 'connect';
             $this->handler = new Redis();
             $this->options['timeout'] == 0 ? $this->handler->$func($this->options['host'], $this->options['port']) : $this->handler->$func($this->options['host'], $this->options['port'], $this->options['timeout']);
-            if ('' != $this->options['password']) {
+            if ($this->options['password']) {
                 $this->handler->auth($this->options['password']);
             }
             $this->handler->select($this->options['select']);
         }else{
+            if ($this->options['pconnect'] && empty($this->options['retries'])) {
+                $this->options['retries'] = 1;
+            }
             $this->options['database'] = $this->options['select'];
             $this->handler = new MyRedis($this->options);
         }
