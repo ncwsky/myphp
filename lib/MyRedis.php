@@ -489,6 +489,18 @@ class MyRedis
     private $_socket = false;
     private $_is_mb = false;
     private $_lastCmd = null;
+    /**
+     * @var SplQueue
+     */
+    private $_commands;
+    private $_mode = 0;
+    /**
+     * Multi
+     */
+    const ATOMIC                = 0;
+    const MULTI                 = 1;
+    const PIPELINE              = 2;
+
     public function len($str){
         return $this->_is_mb ? mb_strlen($str, '8bit') : strlen($str);
     }
@@ -536,8 +548,7 @@ class MyRedis
         if ($this->_socket !== false) {
             return;
         }
-        $connection = ($this->unixSocket ?: $this->host . ':' . $this->port) . ', database=' . $this->database;
-        //Log::trace('Opening redis DB connection: ' . $connection, __METHOD__);
+        set_error_handler(function(){});
         $this->_socket = @stream_socket_client(
             $this->unixSocket ? 'unix://' . $this->unixSocket : 'tcp://' . $this->host . ':' . $this->port,
             $errorNumber,
@@ -545,6 +556,7 @@ class MyRedis
             $this->timeout ? $this->timeout : ini_get('default_socket_timeout'),
             $this->socketClientFlags
         );
+        restore_error_handler();
         if ($this->_socket) {
             if ($this->dataTimeout !== null) {
                 stream_set_timeout($this->_socket, $timeout = (int) $this->dataTimeout, (int) (($this->dataTimeout - $timeout) * 1000000));
@@ -634,37 +646,100 @@ class MyRedis
     {
         $this->open();
 
+        if ($this->_lastCmd == 'MULTI') {
+            if (isset($params[0]) && $params[0] == self::PIPELINE) { //管道兼容redis扩展
+                $this->_mode = self::PIPELINE;
+                if (!$this->_commands) $this->_commands = new SplQueue();
+                return null;
+            }
+            $this->_mode = self::MULTI;
+        } elseif ($this->_lastCmd == 'EXEC') {
+            if ($this->_mode == self::PIPELINE) {//提交管道
+                $command = '';
+                $srcCommand = 'exec pipe';
+                $this->_mode = self::ATOMIC;
+                $count = 0;
+                $total = $this->_commands->count();
+                while (!$this->_commands->isEmpty()) {
+                    $command .= $this->_commands->dequeue();
+                    $count++;
+                    if ($count > 100) {
+                        $this->retryOnceSendCommand($command, $srcCommand, false);
+                        $count = 0;
+                        $command = '';
+                    }
+                }
+                $count > 0 && $this->retryOnceSendCommand($command, $srcCommand, false);
+                $ret = [];
+                for ($i = 0; $i < $total; $i++) {
+                    $ret[] = $this->parseResponse($srcCommand);
+                }
+                return $ret;
+            }
+            $this->_mode = self::ATOMIC;
+        }
+        $command = '';
+        $srcCommand = '';
         $params = array_merge(explode(' ', $name), $params);
-        $command = '*' . count($params) . "\r\n";
+        $count = count($params);
         foreach ($params as $arg) {
+            if (is_array($arg)) { //兼容数组参数
+                $count += count($arg) - 1;
+                foreach ($arg as $item) {
+                    $command .= '$' . $this->len($item) . "\r\n" . $item . "\r\n";
+                    $srcCommand .= $item . ' ';
+                }
+                continue;
+            }
             $command .= '$' . $this->len($arg) . "\r\n" . $arg . "\r\n";
+            $srcCommand .= $arg . ' ';
+        }
+        $command = '*' . $count . "\r\n" . $command;
+
+        if ($this->_mode == self::PIPELINE) {
+            $this->_commands->enqueue($command);
+            return null;
         }
 
-        //Log::trace("Executing Redis Command: {$name}", __METHOD__);
-        if ($this->retries > 0) {
+        if ($this->retries > 0 && $this->_mode == self::ATOMIC) {
             $tries = $this->retries;
             while ($tries-- > 0) {
                 try {
-                    return $this->sendCommandInternal($command, $params);
+                    return $this->sendCommandInternal($command, $srcCommand);
                 } catch (Exception $e) {
-                    Log::trace('retries'.$tries.':'.$e->getMessage(), 'MyRedis');
+                    Log::trace('retries' . $tries . ', ' . $srcCommand . ', ' . $e->getMessage(), 'MyRedis');
                     // backup retries, fail on commands that fail inside here
                     $retries = $this->retries;
-                    $this->retries = 0;
+                    $this->retries = 0; //close方法有调用executeCommand 不设置0会有死循环
                     $this->close();
                     $this->open();
                     $this->retries = $retries;
                 }
             }
         }
-        return $this->sendCommandInternal($command, $params);
+        return $this->sendCommandInternal($command, $srcCommand);
+    }
+
+    private function retryOnceSendCommand($command, $srcCommand, $response=true){
+        try {
+            return $this->sendCommandInternal($command, $srcCommand, $response);
+        } catch (Exception $e) {
+            Log::trace('retries:' . $e->getMessage(), 'MyRedis');
+            $this->close();
+            $this->open();
+        }
+        return $this->sendCommandInternal($command, $srcCommand, $response);
     }
 
     /**
      * Sends RAW command string to the server.
-     * @throws Exception on connection error.
+     * @param $command
+     * @param $srcCommand
+     * @param bool $response
+     * @return array|bool|mixed|null
+     * @throws Exception
      */
-    private function sendCommandInternal($command, $params)
+    private function sendCommandInternal($command, $srcCommand, $response=true)
     {
         $written = @fwrite($this->_socket, $command);
         if ($written === false) {
@@ -673,7 +748,7 @@ class MyRedis
         if ($written !== ($len = $this->len($command))) {
             throw new Exception("Failed to write to socket. $written of $len bytes written.\nRedis command was: " . $command);
         }
-        return $this->parseResponse(implode(' ', $params));
+        return $response ? $this->parseResponse($srcCommand) : true;
     }
 
     /**
@@ -716,7 +791,10 @@ class MyRedis
 
                 return $this->substr($data, 0, -2);
             case '*': // Multi-bulk replies
-                $count = (int) $line;
+                if ($line == '-1') {
+                    return null;
+                }
+                $count = (int)$line;
                 $data = [];
                 if($this->_lastCmd=='HGETALL'){ //美化hgetall
                     for ($i = 0; $i < $count; $i++) {
@@ -724,8 +802,9 @@ class MyRedis
                         $i++;
                     }
                 }else{
+                    $data = new SplFixedArray($count);
                     for ($i = 0; $i < $count; $i++) {
-                        $data[] = $this->parseResponse($command);
+                        $data[$i] = $this->parseResponse($command);
                     }
                 }
                 return $data;

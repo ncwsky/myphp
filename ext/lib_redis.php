@@ -1,13 +1,12 @@
 <?php
 // lib_redis类
 class lib_redis{
-    private static $instance = array();
+    protected static $instance = array();
     protected $handler;
-    public $isExRedis = false;
+    public static $isExRedis = null;
     //配置
     protected $options = array(
-        //'name'=>'', //创建对象名
-        'prefix' => '',
+        //'name'=>'redis', //创建对象名
         'host' => '127.0.0.1',
         'port' => 6379,
         'password' => '',
@@ -25,14 +24,19 @@ class lib_redis{
         if (!isset(self::$instance[$name])) {
             self::$instance[$name] = new self($options);
         } else {
-            if (isset($options['pconnect']) && $options['pconnect'] && isset($options['select'])) { //持久连接处理
+            if (!self::$isExRedis) {
+                if (!empty($options['pconnect']) && !isset($options['retries'])) {
+                    self::$instance[$name]->handler->retries = 1;
+                }
+            }
+/*            if (!empty($options['pconnect']) && isset($options['select'])) { //持久连接处理
                 try{
                     self::$instance[$name]->handler->select($options['select']);
                 }catch (\Exception $e){ #重新初始一次
                     Log::write($e->getMessage(), 'redis-warn');
                     self::$instance[$name] = new self($options);
                 }
-            }
+            }*/
         }
         return self::$instance[$name];
     }
@@ -54,9 +58,8 @@ class lib_redis{
 		if (!empty($options)) {
 			$this->options = array_merge($this->options, $options);
 		}
-        if ( extension_loaded('redis') ) {
-            $this->isExRedis = true;
-           
+        if (self::$isExRedis === null) self::$isExRedis = extension_loaded('redis');
+        if (self::$isExRedis) {
             $func = $this->options['pconnect'] ? 'pconnect' : 'connect';
             $this->handler = new Redis();
             $this->options['timeout'] == 0 ? $this->handler->$func($this->options['host'], $this->options['port']) : $this->handler->$func($this->options['host'], $this->options['port'], $this->options['timeout']);
@@ -64,14 +67,24 @@ class lib_redis{
                 $this->handler->auth($this->options['password']);
             }
             $this->handler->select($this->options['select']);
-        }else{
-            if ($this->options['pconnect'] && empty($this->options['retries'])) {
-                $this->options['retries'] = 1;
-            }
+        } else {
             $this->options['database'] = $this->options['select'];
             $this->handler = new MyRedis($this->options);
         }
     }
+
+    public function __set($name, $value)
+    {
+        if (isset($this->handler->$name)) {
+            $this->handler->$name = $value;
+        }
+    }
+
+    public function __get($name)
+    {
+        return isset($this->handler->$name) ? $this->handler->$name : null;
+    }
+
     public function __call($method_name, $method_args){
         return call_user_func_array(array($this->handler, $method_name), $method_args);
     }
@@ -83,7 +96,7 @@ class lib_redis{
      * @return mixed
      */
     public function get($name, $json=true){
-        $val = $this->handler->get($this->options['prefix'] . $name);
+        $val = $this->handler->get($name);
         if(!$json) return $val;
         $jsonData = json_decode($val, true);
         return ($jsonData === null) ? $val : $jsonData;    //检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
@@ -97,10 +110,8 @@ class lib_redis{
      * @return boolean
      */
     public function set($name, $data, $expire = 0){
-        $name = $this->options['prefix'] . $name;
         if(func_num_args()>3){ //直接走原生操作
-            $args = func_get_args(); $args[0] = $name;
-            return call_user_func_array(array($this->handler, 'set'), $args);
+            return call_user_func_array(array($this->handler, 'set'), func_get_args());
         }
         //对数组/对象数据进行缓存处理，保证数据完整性
         $option = defined('JSON_UNESCAPED_UNICODE') ? JSON_UNESCAPED_UNICODE : 0;
@@ -114,9 +125,13 @@ class lib_redis{
     }
     //删除缓存
     public function del($name){
-        return $this->handler->del($this->options['prefix'] . $name);
-        # redis扩展的delete已弃用
-        #return $this->isExRedis ? $this->handler->del($this->options['prefix'] . $name) : $this->handler->del($this->options['prefix'] . $name);
+        if(func_num_args()>1){ //多个参数
+            return call_user_func_array(array($this->handler, 'del'), func_get_args());
+        }
+        if (is_array($name)) {
+            return call_user_func_array(array($this->handler, 'del'), $name);
+        }
+        return $this->handler->del($name);
     }
     //清除缓存
     public function clear(){

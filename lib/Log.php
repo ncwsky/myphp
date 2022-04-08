@@ -102,8 +102,13 @@ class Log{
 		$level = 'info'; $debug=true; $stack = '';
 		switch ($errno){
             case E_ERROR:
+            case E_PARSE:
+            case E_CORE_ERROR:
+            case E_CORE_WARNING:
+            case E_COMPILE_ERROR:
+            case E_COMPILE_WARNING:
             case E_USER_ERROR:
-                $level = 'error';
+                $level = 'error'; //Fatal Error
                 break;
             case E_WARNING:
             case E_USER_WARNING:
@@ -117,22 +122,24 @@ class Log{
                 $debug = false;
         }
         if($debug){
-            //throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
-            $debugInfo = debug_backtrace();
-            $stack = "\n[\n";
-            foreach($debugInfo as $key => $val){
-                if(array_key_exists("function", $val)){
-                    $stack .= "function:" . $val["function"];
+            $debugInfo = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+            if(count($debugInfo)>1){
+                array_pop($debugInfo); // 删除最后一个跟踪: Log::UserErr
+                $stack = "\n[\n";
+                foreach($debugInfo as $key => $val){
+                    if(array_key_exists("file", $val)){
+                        $stack .= ",file:" . $val["file"];
+                    }
+                    if(array_key_exists("line", $val)){
+                        $stack .= ",line:" . $val["line"];
+                    }
+                    if(array_key_exists("function", $val)){
+                        $stack .= "function:" . $val["function"];
+                    }
+                    $stack .= "\n";
                 }
-                if(array_key_exists("file", $val)){
-                    $stack .= ",file:" . $val["file"];
-                }
-                if(array_key_exists("line", $val)){
-                    $stack .= ",line:" . $val["line"];
-                }
-                $stack .= "\n";
+                $stack .= "]";
             }
-            $stack .= "]";
         }
         self::write('errno:'.$errno.', line:'.$errline.', file:'.$errfile.', message:'.$errstr .$stack, $level);
 	}
@@ -149,9 +156,7 @@ class Log{
         }
         self::$errflag=true;
         self::$errs[] = date('[Y-m-d H:i:s]').'[error] '.$err."\n";
-        // 发送404信息
-        //header('HTTP/1.1 404 Not Found');
-        //header('Status:404 Not Found');
+        //restore_error_handler(); restore_exception_handler(); //避免递归错误
 		if(GetC('debug')) echo '<pre>'.$err.'</pre>';
 	}
 	public static function miniREQ(){
@@ -180,7 +185,7 @@ class Log{
 	//日志记录等级判断
 	private static function _level($level){
 		$val = 2; //日志记录等级值
-		switch(strtolower($level)){
+		switch($level){ //strtolower($level)
 			case 'trace':
 				$val = 0;break; //追踪
 			case 'debug':

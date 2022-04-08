@@ -437,6 +437,7 @@ class Db {
      */
     public function prepare($sql, $options = [])
     {
+        $this->specTransfer($sql);
         $this->_run_init($sql);
         return $this->db->conn->prepare($sql, $options);
     }
