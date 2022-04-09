@@ -489,10 +489,10 @@ final class myphp{
 
         if (Config::$cfg['debug']) { //开启错误提示
             error_reporting(E_ALL);// 报错级别设定,一般在开发环境中用E_ALL,这样能够看到所有错误提示
-            ini_set('display_errors', 1);// 有些环境关闭了错误显示
+            ini_set('display_errors', 'On');// 有些环境关闭了错误显示
         } else {
             error_reporting(E_ALL ^ E_NOTICE); #除了 E_NOTICE，报告其他所有错误
-            ini_set('display_errors', 0);
+            ini_set('display_errors', 'Off');
 /*
             $runFile = ROOT . '/~run.php';
             if (!is_file($runFile)) {
