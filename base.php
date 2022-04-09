@@ -23,7 +23,7 @@ if(!isset($_SERVER['REQUEST_URI'])){
 }
 
 //绝对根目录
-define('ROOT', IS_CLI ? dirname($_SERVER['SCRIPT_FILENAME']) : str_replace($_SERVER['SCRIPT_NAME'], '', IS_WIN ? strtr($_SERVER['SCRIPT_FILENAME'], '\\', DS) : $_SERVER['SCRIPT_FILENAME']));
+define('ROOT', IS_CLI ? realpath(dirname($_SERVER['SCRIPT_FILENAME'])) : str_replace($_SERVER['SCRIPT_NAME'], '', IS_WIN ? strtr($_SERVER['SCRIPT_FILENAME'], '\\', DS) : $_SERVER['SCRIPT_FILENAME']));
 //运行临时目录
 defined('RUNTIME') || define('RUNTIME', ROOT.'/runtime');
 //公共目录

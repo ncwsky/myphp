@@ -531,7 +531,7 @@ final class myphp{
         is_file(COMMON . '/common.php') && require COMMON . '/common.php';	//引入公共函数
 
         if(!defined('APP_PATH')){
-            define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']));
+            define('APP_PATH', realpath(dirname($_SERVER['SCRIPT_FILENAME'])));
             if (!IS_CLI) {
                 self::conType(Helper::isAjax() ? 'application/json' : 'text/html'); //默认输出类型设置
                 self::sendHeader();
