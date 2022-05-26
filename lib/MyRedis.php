@@ -538,6 +538,12 @@ class MyRedis
         return $this->_socket !== false;
     }
 
+    public function getSocket()
+    {
+        $this->open();
+        return $this->_socket;
+    }
+
     /**
      * Establishes a DB connection.
      * It does nothing if a DB connection has already been established.
@@ -756,7 +762,7 @@ class MyRedis
      * @return mixed
      * @throws Exception on error
      */
-    private function parseResponse($command)
+    public function parseResponse($command='read')
     {
         if (($line = fgets($this->_socket)) === false) {
             throw new Exception("Failed to read from socket.\nRedis command was: " . $command);
