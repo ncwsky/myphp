@@ -771,11 +771,18 @@ class Db {
 
 	//是否给表名增加关键字冲突处理符号
 	private function _table(&$tb, $more=true){
+        if ($tb instanceof Expr) { //表达式
+            return $tb;
+        }
+        if (strpos($tb, '.')) { //指定库名
+            $tb = str_replace('.', $this->endSpec . '.' . $this->startSpec, $tb);
+        }
         if($more){
-            $tb = trim($tb);
-            if($tb[0]=='(' || strpos($tb,'.') || strpos($tb,',')) return $tb; //子查询|指定库名|联合查询
-            if(strpos($tb,' ')){ //有别名
-                $tb = str_replace(' ',$this->endSpec.' '.$this->startSpec, str_replace('`','',$tb));
+            //$tb = trim($tb);
+            if ($tb[0] == '(' || strpos($tb, ',')) return $tb; //子查询|联合查询
+            if (strpos($tb, ' ')) { //有别名
+                $tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, $tb);
+                //$tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, str_replace('`', '', $tb));
             }
         }
         if(strpos($tb,'{prefix}')!==false){ //表名前缀处理
