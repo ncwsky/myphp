@@ -18,7 +18,7 @@ class Zip
             if (count($filelist) > 0) {
                 foreach ($filelist as $file) {
                     if (is_file($file)) {
-                        $fd = fopen($file, "r");
+                        $fd = fopen($file, "rb");
                         $content = fread($fd, filesize($file));
                         fclose($fd);
                         // 1.删除$dir的字符(./folder/file.txt删除./folder/)
@@ -31,7 +31,7 @@ class Zip
                     }
                 }
                 $out = $this->file();
-                $fp = fopen($zip_filename, "w");
+                $fp = fopen($zip_filename, "wb");
                 fwrite($fp, $out, strlen($out));
                 fclose($fp);
                 return true;

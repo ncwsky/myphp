@@ -74,7 +74,7 @@ class File {
 	private $lockFile, $lockHandle;
 	public function lock($name){
 	    $this->lockFile[$name] = $this->path.'/'.$name.'.lock';
-        $this->lockHandle[$name] = @fopen($this->lockFile[$name], 'w');
+        $this->lockHandle[$name] = @fopen($this->lockFile[$name], 'r');
         if(!$this->lockHandle[$name]) {
             unset($this->lockHandle[$name], $this->lockFile[$name]);
             return false;
@@ -89,14 +89,14 @@ class File {
         }
         @flock($this->lockHandle[$name], LOCK_UN);
         @fclose($this->lockHandle[$name]);
-        @unlink($this->lockFile[$name]); //这里会报错
+        @unlink($this->lockFile[$name]);
         unset($this->lockHandle[$name], $this->lockFile[$name]);
     }
-	//保存文件
-	public function put($name, $data){
-		$file = $this->_file($name);
-		return file_put_contents($file, $data, LOCK_EX);
-	}
+    //保存文件
+    public function put($name, $data, $append = false){
+        $file = $this->_file($name);
+        return file_put_contents($file, $data, $append ? FILE_APPEND | LOCK_EX : LOCK_EX);
+    }
     /** 获取文件
      * @param $name
      * @return bool|string
@@ -104,16 +104,7 @@ class File {
 	public function get($name){
 		$file = $this->_file($name);
 		if(!is_file($file)) return false;
-        $fp = @fopen($file, 'r');
-        if ($fp === false) return false;
-
-        @flock($fp, LOCK_SH);
-        $content = @stream_get_contents($fp);
-        @flock($fp, LOCK_UN);
-        @fclose($fp);
-        //$content = file_get_contents($file);
-		//substr($content,17);
-		return $content;
+        return file_get_contents($file);
 	}
 	/**
 	 * 判断文件是否存在

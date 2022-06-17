@@ -400,18 +400,11 @@ class CacheFile extends CacheAbstract{
         if(!is_file($file)) return false; // || ($mTime=@filemtime($file)) && $mTime < time())
 
         if($this->options['mode'] == 1) {
-            $fp = @fopen($file, 'r');
-            if ($fp !== false) {
-                @flock($fp, LOCK_SH);
-                $content = @stream_get_contents($fp, -1, 13);
-                @flock($fp, LOCK_UN);
-                @fclose($fp);
-                return unserialize($content);
-            }
+            $content = file_get_contents($file, false, null, 13);
+            return unserialize($content);
         } else {
             return include $file;
         }
-        return false;
 	}
 }
 

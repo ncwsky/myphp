@@ -904,7 +904,7 @@ abstract class DbBase{
         if($this->config['type']=='pdo'){
             return $this->conn->inTransaction();
         }else{
-            return $this->transCounter ? true : false;
+            return $this->transCounter > 0;
         }
     }
 	//开始一个事务，关闭自动提交
@@ -950,7 +950,7 @@ abstract class DbBase{
             }
             return;
 		}
-        if($force && $this->transCounter) $this->commit($force);
+        if($force && $this->transCounter>0) $this->commit($force);
 	}
 	// 连接数据库 $cfg_db array数据库配置
 	abstract public function connect();
