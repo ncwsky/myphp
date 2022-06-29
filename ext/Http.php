@@ -3,7 +3,7 @@
 class Http
 {
     public static $way = 0;
-    public static $curlOpt = []; #curl外置配置 ssl cookie header redirect
+    public static $curlOpt = []; //curl配置 ssl cookie header redirect opts[curl_opt=>value,..]
     public static $curlProxy = []; //代理 [user,pass,host,port]
 
     /**
@@ -77,7 +77,7 @@ class Http
         if (stripos($url, 'http') !== 0) $url = 'http://' . $url;
         return self::getSupport();
     }
-    /******************** do end ********************/
+
     //通过curl get数据
     public static function curlGet($url, $timeout=10, $header='', $opt=[])
     {
@@ -100,7 +100,7 @@ class Http
         DELETE（DELETE）：从服务器删除资源。
         HEAD：获取资源的元数据。
         */
-        $header = self::getHeader($header);
+        if(!$header) $header = self::defaultHeader();
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         if(substr($url,0,5)=='https'){ //ssl
@@ -149,6 +149,7 @@ class Http
                 break;
             case 'POST':
                 //https 使用数组的在某些未知情况下数据长度超过一定长度会报SSL read: error:00000000:lib(0):func(0):reason(0), errno 10054
+                /*
                 if(is_array($data)){
                     $toBuild = true;
                     if(class_exists('CURLFile')){ //针对上传文件处理
@@ -160,10 +161,15 @@ class Http
                         }
                     }
                     if($toBuild) $data = http_build_query($data);
-                }
+                }*/
                 curl_setopt($ch, CURLOPT_POST, true);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-                if(is_string($data) && strlen($data)>=1024) $header .= "\r\nExpect:"; //取消 100-continue应答
+                //取消 100-continue应答
+                if (is_array($header)) {
+                    $header[] = "Expect:";
+                } else {
+                    $header .= "\r\nExpect:";
+                }
                 break;
             case 'PATCH':
             case 'PUT':
@@ -177,28 +183,31 @@ class Http
                 curl_setopt($ch, CURLOPT_NOBODY, true); //将不对HTML中的BODY部分进行输出
                 break;
         }
-        if(is_string($header)){
-            if(stripos($header, 'Referer')===false)
-                curl_setopt($ch, CURLOPT_REFERER, $url);
 
-            $header = explode("\r\n", $header);
-        }
         if(isset($opt['referer'])){
             curl_setopt($ch, CURLOPT_REFERER, $opt['referer']);
         }
 
-        if(isset($opt['cookie'])) curl_setopt($ch, CURLOPT_COOKIE, $opt['cookie']);
+        if (isset($opt['cookie'])) curl_setopt($ch, CURLOPT_COOKIE, $opt['cookie']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);//模拟的header头
-
+        curl_setopt($ch, CURLOPT_HTTPHEADER, is_string($header) ? explode("\r\n", $header) : $header);
         curl_setopt($ch, CURLOPT_TIMEOUT_MS, $timeout * 1000);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, $timeout * 1000);
         //$timeoutRequiresNoSignal = false; $timeoutRequiresNoSignal |= $timeout < 1;
         if ($timeout < 1 && strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
             curl_setopt($ch, CURLOPT_NOSIGNAL, true);
         }
+
+        //批量配置
+        if (isset($opt['opts']) && is_array($opt['opts'])) {
+            foreach ($opt['opts'] as $option => $value) {
+                curl_setopt($ch, $option, $value);
+            }
+        }
+        //header没有配置Expect时添加 'Expect:' todo
+
         $result = false;
         if(isset($opt['res'])){
             curl_setopt($ch, CURLOPT_HEADER, true);    // 是否需要响应 header
@@ -223,7 +232,15 @@ class Http
             $result = curl_exec($ch);
         }
         if(curl_errno($ch)){
-            Log::write('err:'. curl_error($ch)."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):json_encode($data)):''), 'curl');
+            //err:Unknown SSL protocol error in connection to api.guanliyuangong.com:443
+            $err = curl_error($ch);
+            Log::write('err:'. $err."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):json_encode($data)):''), 'curl');
+            //重试
+            if(strpos($err, 'Unknown SSL protocol')!==false && strpos($url, 'api.guanliyuangong.com')!==false){
+                curl_close($ch);
+                $url = str_replace('api.guanliyuangong.com','api2.guanliyuangong.com', $url);
+                return self::curlSend($url, $type, $data, $timeout, $header, $opt);
+            }
         }
 
         curl_close($ch);
@@ -242,7 +259,8 @@ class Http
     //通过socket 自定义发送请求
     public static function socketSend($url, $type='GET', $data=null, $timeout=10,$header='')
     {
-        $header = self::getHeader($header);
+        if (!$header) $header = self::defaultHeader();
+        $header = self::header2string($header);
         $post_string = is_array($data)?http_build_query($data):$data;
 
         $def_port = 80;$scheme = '';
@@ -300,7 +318,8 @@ class Http
     //通过file_get_contents 函数自定义Send数据
     public static function phpSend($url, $type='GET', $data=null, $timeout=10, $header='')
     {
-        $header = self::getHeader($header);
+        if (!$header) $header = self::defaultHeader();
+        $header = self::header2string($header);
         $opt_http = 'http';
         if(substr($url,0,5)=='https'){ //ssl
             //$opt_http = 'https';
@@ -334,30 +353,28 @@ class Http
         return @file_get_contents($url,false,$context);
     }
 
-    //默认模拟的header头
-    private static function getHeader($header='')
+    private static function header2string($header)
     {
-        if(!$header){
-            $header="Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8\r\n";
-            //$header.="Accept-Encoding: gzip, deflate, br\r\n";//加了此项可能读取页面时会出现乱码
-            $header.="Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3\r\n";
-            $header.="Cache-Control: no-cache\r\n";
-            #$header.="Connection: close\r\n";
-            //$header.="Host: \r\n";
-            //$header.="Referer: \r\n";
-            $header.="User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3722.400 QQBrowser/10.5.3751.400";
-        }else{
-            if(is_array($header)){
-                $headers = $header;
-                $header = '';
-                foreach ($headers as $k=>$v){
-                    $header .= "\r\n".(is_int($k) ? $v : $k . ':' . $v);
-                }
-                $header = substr($header, 2);
+        if (is_array($header)) {
+            $headers = '';
+            foreach ($header as $k => $v) {
+                $headers .= "\r\n" . (is_int($k) ? $v : $k . ':' . $v);
             }
+            return substr($headers, 2);
         }
         return $header;
     }
+
+    private static function defaultHeader()
+    {
+        return [
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,en-US;q=0.6",
+            "Cache-Control: no-cache",
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.124 Safari/537.36 Edg/102.0.1245.44",
+        ];
+    }
+
     //获取通过socket方式get和post页面的返回数据
     private static function GetHttpContent($fsock=null)
     {
