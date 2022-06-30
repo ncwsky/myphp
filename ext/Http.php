@@ -149,9 +149,10 @@ class Http
                 break;
             case 'POST':
                 //https 使用数组的在某些未知情况下数据长度超过一定长度会报SSL read: error:00000000:lib(0):func(0):reason(0), errno 10054
-                /*
-                if(is_array($data)){
-                    $toBuild = true;
+                if(is_array($data) && (!isset($opt['post_encode']) || $opt['post_encode'])){
+                    //针对 CURLFile 上传文件不要编码
+                    $data = http_build_query($data);
+                    /*$toBuild = true;
                     if(class_exists('CURLFile')){ //针对上传文件处理
                         foreach ($data as $v){
                             if($v instanceof CURLFile){
@@ -160,8 +161,8 @@ class Http
                             }
                         }
                     }
-                    if($toBuild) $data = http_build_query($data);
-                }*/
+                    if($toBuild) $data = http_build_query($data);*/
+                }
                 curl_setopt($ch, CURLOPT_POST, true);
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
                 //取消 100-continue应答
