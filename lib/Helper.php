@@ -331,19 +331,7 @@ class Helper{
      */
     public static function getMethod()
     {
-        static $_method;
-        if (IS_CLI || !isset($_method)) {
-            // 如果指定 $_POST['_method'] ，表示使用POST请求来模拟其他方法的请求。
-            // 此时 $_POST['_method'] 即为所模拟的请求类型。
-            if (isset($_POST['_method'])) {
-                $_method = strtoupper($_POST['_method']);
-            } elseif (isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'])) {
-                $_method = strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']);
-            } else {
-                $_method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
-            }
-        }
-        return $_method;
+        return isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) ? strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) : (isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET');
     }
     public static function isPost(){
         return self::getMethod() == 'POST';

@@ -3,10 +3,22 @@
 class HttpReqInfo
 {
     public static $req_header = null;
+    public static $isProxy = false;
 
     public static function getMethod()
     {
         return isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) ? strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) : (isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET');
+    }
+    public static function isPost(){
+        return self::getMethod() == 'POST';
+    }
+    public static function isGet(){
+        return self::getMethod() == 'GET';
+    }
+    // 当前是否Ajax请求
+    public static function isAjax()
+    {
+        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
     }
 
     public static function getSiteUrl(){
@@ -82,5 +94,28 @@ class HttpReqInfo
         }
         $rawBody = file_get_contents("php://input");
         return $rawBody;
+    }
+    //获取用户真实地址 返回用户ip  type:0 返回IP地址 1 返回IPV4地址数字
+    public static function getIp($type=0){
+        $realIP = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
+        if(self::$isProxy){
+            if (isset($_SERVER['HTTP_X_REAL_IP'])) {
+                $realIP = $_SERVER['HTTP_X_REAL_IP'];
+            } elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) { //有可能被伪装
+                $arr = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+                foreach ($arr as $ip) { //取X-Forwarded-For中第x个非unknown的有效IP字符?
+                    $ip = trim($ip);
+                    if ($ip != 'unknown') {
+                        $realIP = $ip;
+                        break;
+                    }
+                }
+            }
+        }
+        return $type ? sprintf("%u", ip2long($realIP)) : $realIP;
+    }
+    //来源获取
+    public static function getReferer(){
+        return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
     }
 }
