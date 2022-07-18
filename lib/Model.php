@@ -279,7 +279,7 @@ class Model implements ArrayAccess
             $this->data = $this->oldData = null;
         }
         if ($this->tbName && strpos($this->db->table,$this->tbName)!==0) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
-        if ($method == 'find' || $method == 'select') {
+        if ($method == 'find' || $method == 'select' || $method=='all') {
             if(!$this->tbName && $this->db->table){ //未取得表名及字段时
                 $this->tbName = $this->db->table;
                 $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
@@ -292,7 +292,7 @@ class Model implements ArrayAccess
     }
     //执行db方法的后置处理
     private function _sufDbMethod($method, &$result){
-        if ($method == 'getOne' || $method == 'find') { //单条记录   || $method == 'select'
+        if ($method == 'find' || $method=='one' || $method == 'getOne') { //单条记录   || $method == 'select'
             $this->_formatData($result);
             $this->data = $this->oldData = $result;
         }/*
