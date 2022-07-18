@@ -219,8 +219,8 @@ class Model implements ArrayAccess
         } else {
             $result = $this->db->add($this->data); //返回新增id
             if ($this->prikey && $this->prikey==$this->autoIncrement) $this->data[$this->prikey] = $result;
-            $this->oldData = $this->data;
         }
+        $this->oldData = $this->data;
         return $result;
     }
 
