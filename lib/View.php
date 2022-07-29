@@ -3,8 +3,10 @@
 class View
 {
     public $vars = array();    //板变量数组
-    public $view_path = './view';
-    private $template = null;    //模板引擎实例
+    /**
+     * @var Template
+     */
+    private $template;    //模板引擎实例
     /**
      * @var View $instance
      */
@@ -13,10 +15,11 @@ class View
     //构造方法，实例化视图
     public function __construct($path='', $cachePath='')
     {
-        if($path) $this->view_path = $path;
-        if(!$cachePath) $cachePath = './cache';
+        if ($path=='') $path = './view';;
+        if ($cachePath=='') $cachePath = './cache';
 
         $this->template = new Template();
+        $this->template->view_path = $path;
         $this->template->cache = true;    //设置是否开启缓存
         $this->template->cachePath = $cachePath;    //缓存路径
         $this->template->suffix = isset(Config::$cfg['tmp_suffix']) ? Config::$cfg['tmp_suffix'] : '.html';    //模板后缀名
@@ -30,33 +33,16 @@ class View
         if (!self::$instance) {
             self::$instance = new self($path, $cachePath);
         }else{
-            if($path) self::$instance->view_path = $path;
+            if($path) self::$instance->template->view_path = $path;
             if($cachePath) self::$instance->template->cachePath = $cachePath;
         }
         return self::$instance;
     }
 
-    //初始模板
-    private function init($file)
-    {
-        if($file[0]=="/") { //模板路径
-            $this->template->path = ROOT.ROOT_DIR;
-        }else{
-            $this->template->path = $this->view_path;
-        }
-        $templateFile = $this->template->path . DS . $file;    //定义模板文件路径 .'.html'
-        //判断模板文件是否存在
-        if (!is_file($templateFile)) {
-            throw new Exception('模板文件' . $file . '不存在');
-        }
-    }
-
     //取得页面内容
     public function fetch($file = '', $var = null)
     {
-        if ($file == '')
-            $file = myphp::env('ACTION') . $this->template->suffix;
-        $this->init($file);
+        if ($file == '') $file = myphp::env('ACTION') . $this->template->suffix;
         if (is_array($var)) {    //如果是数组，那么将它合并到属性$vars中
             $this->vars = array_merge($this->vars, $var);
         }
@@ -88,9 +74,7 @@ class View
         if(!self::$instance){
             self::$instance = new self(myphp::env('VIEW_PATH'), myphp::env('CACHE_PATH'));
         }
-        if ($file == '')
-            $file = myphp::env('ACTION') . self::$instance->template->suffix;
-        self::$instance->init($file);
+        if ($file == '') $file = myphp::env('ACTION') . self::$instance->template->suffix;
 
         return self::$instance->template->cacheFile($file);
     }

@@ -1,9 +1,9 @@
 <?php
 //模板解析基类 解析模板文件并判断是否需要在缓存目录生成缓存文件
 class Template{
-	public $path = '';	//模板文件路径
+    public $view_path = './view';
 	public $cachePath = '';	//缓存文件存入路径
-	public $cache = false;	//是否开户缓存
+	public $cache = false;	//是否缓存
 	public $cacheLifeTime = 0;	//缓存文件更新时间
 	public $suffix = '.html';	//模板文件后缀名
 	public $leftTag = '{';	//模板左边界符号
@@ -16,14 +16,30 @@ class Template{
 	//私有的构造函数，不允许直接创建对象
 	public function __construct(){}
 	//初始化模板文件夹以及缓存文件完整路径
-	private function InitFilePath($file){
-		$this->templateFile = $this->path . DS . $file;
-		$this->cacheFile = $this->cachePath . DS . str_replace(array('/','.'), '_',$file) . '.php';//md5($file)
+	private function initFile($file){
+        //判断模板文件是否存在
+        $templateFile = ($file[0] == '/' ? ROOT . ROOT_DIR : $this->view_path . DS) . $file;
+        if (!is_file($templateFile)) {
+            throw new Exception('模板文件' . $file . '不存在');
+        }
+
+		$this->templateFile = $templateFile;
+		$this->cacheFile = $this->cachePath . DS . str_replace(array('/','.'), '_',$file) . '.php';
 
 		//$this->level = 0; $this->maxLevel = 0;
 		$this->dir['level'] = array();
 		$this->dir['file'] = array();
 	}
+    //模板处理
+    private function tmp_process($file){
+        $this->cacheLifeTime *= 60;
+        $this->initFile($file);
+        //验证是否需要更新缓存
+        if(!$this->cache || !$this->checkCache()){
+            $this->analyze();
+            $this->build();
+        }
+    }
 	//返回模板处理后的缓存文件
 	public function cachefile($file){
 		$this->tmp_process($file);
@@ -40,16 +56,6 @@ class Template{
 		//if(!$display){
 			return ob_get_clean();
 		//}
-	}
-	//模板处理
-	private function tmp_process($file){
-		$this->cacheLifeTime *= 60;
-		$this->InitFilePath($file);
-		//验证是否需要更新缓存
-		if(!$this->cache || !$this->checkCache()){
-			$this->analyze();
-			$this->build();
-		}
 	}
 	//模板样式 图片路径替换 可设指定路径
 	private function resetPath(&$content){
@@ -125,9 +131,9 @@ class Template{
 			
 			//'当前模板包含页面
 			if($includeVal != '') {
-				$arrfile = explode(',', $includeVal);
+				$arrFile = explode(',', $includeVal);
 				//遍历包含页面	
-				foreach($arrfile as $file) {
+				foreach($arrFile as $file) {
 					$this->analyze($fatherPath, $file); //'递归模板分析
 				}
 				$fatherPath = ''; //' 重置
@@ -143,7 +149,7 @@ class Template{
 		$replace = array('<?php echo PUB; ?>','<?php echo myphp::env("URL"); ?>','<?php echo myphp::env("APP"); ?>');
 		$content = str_replace($patt, $replace, $content);
 		$patt = preg_quote($this->leftTag) .'(\S.+?)'. preg_quote($this->rightTag);
-		$content = preg_replace_callback("/{$patt}/", array($this,'ParseTag'), $content); //i 不区分大小写 s .匹配所有的字符，包括换行符 e PHP代码求值并替换
+		$content = preg_replace_callback("/{$patt}/", array($this,'parseTag'), $content); //i 不区分大小写 s .匹配所有的字符，包括换行符 e PHP代码求值并替换
 
 		return $content;
 	}
@@ -153,10 +159,8 @@ class Template{
 		/*兼容 {include:file} 模式*/
 		preg_match_all('/{include:(\.\.\/)*(.+?)}/', $data, $arr);
 		if(!empty($arr[0])) {
-		//if (count($arr[0])>0){
 			foreach($arr[0] as $k => $v) {
 				$file = $this->transPath($arr[1][$k] . $arr[2][$k]);
-
 				$data = str_replace($v , '{include:'. $file .'}', $data);
 				$files = $files == '' ? $file : $files .','. $file;
 			}
@@ -166,7 +170,6 @@ class Template{
 		if(!empty($arr[0])) {
 			foreach($arr[0] as $k => $v) {
 				$file = $this->transPath($arr[1][$k] . $arr[2][$k]);
-
 				$data = str_replace($v , '{include:'. $file .'}', $data);
 				$files = $files == '' ? $file : $files .','. $file;
 			}
@@ -175,35 +178,35 @@ class Template{
 		return $files;
 	}
 	//模板地址转换
-	public function transPath($tagfile) {
-		//此处需要判断是否需要默认目录
-		if (substr($tagfile, 0, 1) =='/') // '表示根目录 其他非默认模板目录的页面
-			$tofile = $tagfile;
-		else
-			$tofile = $this->path . DS . $tagfile;
-		return $tofile;
+    private function transPath($tagFile) {
+        // 此处需要判断是否需要默认目录 '/'开头表示根目录
+		return substr($tagFile, 0, 1) =='/' ? ROOT . ROOT_DIR. $tagFile : $this->view_path . DS . $tagFile;
 	}
 	//验证缓存是否有效
 	private function checkCache(){
 		if(!is_file($this->cacheFile)) return false;
 
+        $max_mtime = 0;
 		//获取模板缓存嵌套记录数组 可考虑include模式 但cli下会被缓存
-		$content = file_get_contents(str_replace('.php', '_.php', $this->cacheFile));
-		$dirLevel = unserialize(substr($content,13));
-		$max_mtime = 0;
-		if(!empty($dirLevel)) {
-            //'读取当前层次的页面最大修改时间
-			foreach($dirLevel as $val) {
-				$fileArr = explode(',', $val);
-				foreach($fileArr as $filelist) {
-					$files = explode('->', $filelist);
-					$mtime = filemtime($files[1]); //获取各页面的修改时间
-                    if($mtime>$max_mtime) $max_mtime = $mtime;
-				}	
-			}
-			unset($dirLevel);
-		}
-		$cacheFileMtime = filemtime($this->cacheFile) ;
+		$content = substr(file_get_contents(str_replace('.php', '_.php', $this->cacheFile)), 13);
+        if ($content[2] == '1') { //仅一个模板文件时
+            $max_mtime = filemtime($this->templateFile);
+        } else {
+            $dirLevel = unserialize($content);
+            if (!empty($dirLevel)) {
+                //'读取当前层次的页面最大修改时间
+                foreach ($dirLevel as $val) {
+                    $fileArr = explode(',', $val);
+                    foreach ($fileArr as $filelist) {
+                        $files = explode('->', $filelist);
+                        $mtime = filemtime($files[1]); //获取各页面的修改时间
+                        if ($mtime > $max_mtime) $max_mtime = $mtime;
+                    }
+                }
+                unset($dirLevel);
+            }
+        }
+		$cacheFileMtime = filemtime($this->cacheFile);
 		if($cacheFileMtime < $max_mtime) {
 			return false;
 		}
@@ -215,7 +218,7 @@ class Template{
 	private $n_level = -1; //循环统计标识名层级
 	private $n_tag = []; //循环统计标识名
 	//解析{}中的内容，根据第一个字符决定使用什么函数进行解析
-	private function ParseTag($matches){ //$label
+	private function parseTag($matches){ //$label
 		if(!isset($matches[1]) || $matches[1]=='') return '';
 		$label = $matches[1];
 		$flag = substr($label, 0, 1);
@@ -241,7 +244,7 @@ class Template{
 		}
 		//普通变量
 		if($flag == $flags['var']){
-			return !empty($name) ? $this->ParseVar($name) : NULL;
+			return !empty($name) ? $this->parseVar($name) : NULL;
 		}
 		//输出语言
 		if($flag == $flags['language']){
@@ -308,7 +311,7 @@ class Template{
 			foreach($arr as $v){
 				if(strpos($v, '.') > 0){
 					$args = explode('.', $v);
-					$p = $this->ArrayHandler($args, 1);
+					$p = $this->arrayHandler($args, 1);
 					$param[] = $args[0] . $p;
 				}else{
 					$param[] = $v;
@@ -325,7 +328,7 @@ class Template{
 		return $this->leftTag . $label . $this->rightTag;
 	}
 	//解析变量
-	private function ParseVar($varStr){
+	private function parseVar($varStr){
 		static $tVars = array();
 		if(isset($tVars[$varStr])) return $tVars[$varStr]; //存在相同的变量将直接返回
 		//以=分割，数组第一位是变量名，之后的都是函数及参数  示例：row = getfolder($id)
@@ -333,7 +336,7 @@ class Template{
 		$var = array_shift($varArray);//弹出第一个元素，也就是变量名
 		/*  变量处理 start */
 		if(substr($varStr, 0, 2) == 'T.'){//系统变量
-			$name = $this->ParseT($var);
+			$name = $this->parseT($var);
 		}elseif(strpos($var, '.')){	//$var.xxx方式访问数组或属性
 			$var = explode('.', $var);
 			$first = '$'.array_shift ($var);
@@ -353,7 +356,7 @@ class Template{
 		/*  变量处理 end  */
 		if(count($varArray) > 0){//如果有使用函数
 			//传入变量名，和函数参数继续解析，这里的变量名是上面的判断设置的值
-			$name = $this->ParseFunction($name, $varArray); //多分函数支持 = 分隔 从左到右
+			$name = $this->parseFunction($name, $varArray); //多分函数支持 = 分隔 从左到右
 			$code = !empty($name) ? '<?php '. $name .' ?>' : '';
 		}else{
 			$code = !empty($name) ? '<?php echo '. $name .'; ?>' : '';
@@ -365,14 +368,14 @@ class Template{
 	 * 解析系统变量$T开头的
 	 * 示例：$T.version 、$T.config.db.type 、 $T.lang.ab 、$T.GET
 	 */
-	private function ParseT($var){
+	private function parseT($var){
 		$vars = explode('.', $var);
 		$vars[1] = strtoupper(trim($vars[1]));
 		$len = count($vars);
 		if($len >= 3){
 			if(strpos(',COOKIE,SESSION,GET,POST,SERVER,', ','.$vars[1].',')!==false ){
-				//替换调名称，并将使用ArrayHandler函数获取下标，支持多维
-				$code = '$_'. $vars[1] . $this->ArrayHandler($vars);
+				//替换调名称，并将使用arrayHandler函数获取下标，支持多维
+				$code = '$_'. $vars[1] . $this->arrayHandler($vars);
 			}elseif($vars[1] == 'CONFIG' || $vars[1] == 'LANG'){//这里替换为函数
 				if($len==4) $vars[2] = $vars[2].'.'.$vars[3];//支持二维
 				$key = substr($vars[1], 0, 1);
@@ -393,7 +396,7 @@ class Template{
 		return $code;
 	}
 	//解析函数
-	private function ParseFunction($name, $varArray){
+	private function parseFunction($name, $varArray){
 		$code = '';
 		$len = count($varArray);
 		// 获取不允许使用的函数
@@ -423,7 +426,7 @@ class Template{
 		return $code;
 	}
 	//构造数组下标
-	private function ArrayHandler(&$arr, $go = 2){
+	private function arrayHandler(&$arr, $go = 2){
 		$len = count($arr);
 		$param = '';
 		for($i = $go; $i < $len; $i++){
