@@ -98,6 +98,4 @@ return array(
 	'log_dir' => ROOT.'/log', //日志记录主目录名称
     'log_size' => 2097152,// 日志文件大小限制
 	'log_level' => 0,// 日志记录等级
-	//请求
-	//'var_method' => '_method', // 模拟的请求类型变量名
 );
