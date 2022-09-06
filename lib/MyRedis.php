@@ -484,11 +484,17 @@ class MyRedis
     ];
 
     /**
+     * @var bool 美化HGETALL ZRANGE 输出
+     */
+    public $beautify = true;
+
+    /**
      * @var resource redis socket connection
      */
     private $_socket = false;
     private $_is_mb = false;
     private $_lastCmd = null;
+    private $_lastArgs = null;
     /**
      * @var SplQueue
      */
@@ -615,6 +621,7 @@ class MyRedis
     {
         $this->_lastCmd = $redisCommand = strtoupper($name);
         if (in_array($redisCommand, $this->redisCommands)) {
+            $this->_lastArgs = $params;
             return $this->executeCommand($redisCommand, $params);
         } else {
             throw new Exception('Calling unknown method: ' . get_class($this) . "::$name()");
@@ -785,7 +792,7 @@ class MyRedis
                 if ($line == '-1') {
                     return null;
                 }
-                $length = (int)$line + 2;
+                $length = (int)$line;// + 2;
                 $data = '';
                 while ($length > 0) {
                     if (($block = fread($this->_socket, $length)) === false) {
@@ -794,24 +801,27 @@ class MyRedis
                     $data .= $block;
                     $length -= $this->len($block);
                 }
-
-                return $this->substr($data, 0, -2);
+                fread($this->_socket, 2);
+                return $data;//$this->substr($data, 0, -2);
             case '*': // Multi-bulk replies
                 if ($line == '-1') {
                     return null;
                 }
                 $count = (int)$line;
                 $data = [];
-                if($this->_lastCmd=='HGETALL'){ //美化hgetall
-                    for ($i = 0; $i < $count; $i++) {
-                        $data[$this->parseResponse($command)] = $this->parseResponse($command);
-                        $i++;
+                //美化HGETALL ZRANGE
+                if($this->beautify){
+                    if($this->_lastCmd=='HGETALL' || ($this->_lastCmd=='ZRANGE' && !empty($this->_lastArgs[3]))){
+                        for ($i = 0; $i < $count; $i++) {
+                            $data[$this->parseResponse($command)] = $this->parseResponse($command);
+                            $i++;
+                        }
+                        return $data;
                     }
-                }else{
-                    $data = new SplFixedArray($count);
-                    for ($i = 0; $i < $count; $i++) {
-                        $data[$i] = $this->parseResponse($command);
-                    }
+                }
+                $data = new SplFixedArray($count);
+                for ($i = 0; $i < $count; $i++) {
+                    $data[$i] = $this->parseResponse($command);
                 }
                 return $data;
             default:

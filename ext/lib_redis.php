@@ -84,6 +84,18 @@ class lib_redis{
     {
         return isset($this->handler->$name) ? $this->handler->$name : null;
     }
+    //兼容redis扩展处理
+    public function zrange($name, $start, $end, $opt=null){
+        $args = [$name, $start, $end];
+        if($opt!==null){
+            if (false === self::$isExRedis && $opt===true) { //兼容处理 'WITHSCORES'
+                $opt = 'WITHSCORES';
+            }
+            $args[] = $opt;
+        }
+
+        return call_user_func_array(array($this->handler, 'zrange'), $args);
+    }
 
     public function __call($method_name, $method_args){
         return call_user_func_array(array($this->handler, $method_name), $method_args);
