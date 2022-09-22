@@ -5,6 +5,7 @@ class Http
     public static $way = 0;
     public static $curlOpt = []; //curl配置 ssl cookie header redirect opts[curl_opt=>value,..]
     public static $curlProxy = []; //代理 [user,pass,host,port]
+    public static $curlBeforeCall = null; //curl前置处理 ($url, $type, $data, $timeout, $header, $opt);
 
     /**
      * @param $proxy `proxy://user:pass@hostname:port`
@@ -34,7 +35,7 @@ class Http
             return 0;
     }
     //通过get方式获取数据 $header string|array
-    public static function doGet($url, $timeout=10, $header='', $curl_ssl=[])
+    public static function doGet($url, $timeout=30, $header='', $curl_ssl=[])
     {
         $code = self::doInit($url, $timeout);
         if(!$code) return false;
@@ -47,7 +48,7 @@ class Http
         return false;
     }
     //通过POST方式发送数据 $header string|array
-    public static function doPost($url, $data=null, $timeout=10, $header='', $curl_ssl=[])
+    public static function doPost($url, $data=null, $timeout=30, $header='', $curl_ssl=[])
     {
         $code = self::doInit($url, $timeout);
         if(!$code) return false;
@@ -60,7 +61,7 @@ class Http
         return false;
     }
     //通过Send自定义方式发送数据 $header string|array
-    public static function doSend($url, $type='GET', $data=null, $timeout=10, $header='', $curl_ssl=[])
+    public static function doSend($url, $type='GET', $data=null, $timeout=30, $header='', $curl_ssl=[])
     {
         $code = self::doInit($url, $timeout);
         if(!$code) return false;
@@ -79,19 +80,24 @@ class Http
     }
 
     //通过curl get数据
-    public static function curlGet($url, $timeout=10, $header='', $opt=[])
+    public static function curlGet($url, $timeout=30, $header='', $opt=[])
     {
         return self::curlSend($url, 'GET', null, $timeout, $header, $opt);
     }
     //通过curl post数据 支持post string
-    public static function curlPost($url, $data=null, $timeout=10, $header='', $opt=[])
+    public static function curlPost($url, $data=null, $timeout=30, $header='', $opt=[])
     {
         return self::curlSend($url, 'POST', $data, $timeout, $header, $opt);
     }
     //通过curl 自定义发送请求
-    public static function curlSend($url, $type='GET', $data=null, $timeout=10, $header='', $opt=[])
+    public static function curlSend($url, $type='GET', $data=null, $timeout=30, $header='', $opt=[])
     {
         if(!$opt) $opt = self::$curlOpt;
+        if(!$header) $header = self::defaultHeader();
+        if(self::$curlBeforeCall){
+            //call_user_func不支持引用传值
+            call_user_func_array(self::$curlBeforeCall, [&$url, &$type, &$data, &$timeout, &$header, &$opt]);
+        }
         /*
         GET（SELECT）：从服务器取出资源（一项或多项）。
         POST（CREATE）：在服务器新建一个资源。
@@ -100,7 +106,6 @@ class Http
         DELETE（DELETE）：从服务器删除资源。
         HEAD：获取资源的元数据。
         */
-        if(!$header) $header = self::defaultHeader();
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         if(substr($url,0,5)=='https'){ //ssl
@@ -248,17 +253,17 @@ class Http
         return $result;
     }
     //通过socket get数据
-    public static function socketGet($url,$timeout=10,$header='')
+    public static function socketGet($url,$timeout=30,$header='')
     {
         return self::socketSend($url, 'GET', null, $timeout, $header);
     }
     //通过socket post数据
-    public static function socketPost($url, $data=null, $timeout=10,$header='')
+    public static function socketPost($url, $data=null, $timeout=30,$header='')
     {
         return self::socketSend($url, 'POST', $data, $timeout, $header);
     }
     //通过socket 自定义发送请求
-    public static function socketSend($url, $type='GET', $data=null, $timeout=10,$header='')
+    public static function socketSend($url, $type='GET', $data=null, $timeout=30,$header='')
     {
         if (!$header) $header = self::defaultHeader();
         $header = self::header2string($header);
@@ -307,17 +312,17 @@ class Http
     }
 
     //通过file_get_contents函数get数据
-    public static function phpGet($url,$timeout=10, $header='')
+    public static function phpGet($url,$timeout=30, $header='')
     {
         return self::phpSend($url, 'GET', null, $timeout, $header);
     }
     //通过file_get_contents 函数post数据
-    public static function phpPost($url, $data=null, $timeout=10, $header='')
+    public static function phpPost($url, $data=null, $timeout=30, $header='')
     {
         return self::phpSend($url, 'POST', $data, $timeout, $header);
     }
     //通过file_get_contents 函数自定义Send数据
-    public static function phpSend($url, $type='GET', $data=null, $timeout=10, $header='')
+    public static function phpSend($url, $type='GET', $data=null, $timeout=30, $header='')
     {
         if (!$header) $header = self::defaultHeader();
         $header = self::header2string($header);
