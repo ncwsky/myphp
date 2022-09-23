@@ -234,9 +234,6 @@ class Db {
     //对sql部分语句进行转换
     final public function chkSql(&$sql, $curd=false) {
         $isMysql = $this->config['dbms'] == 'mysql';
-
-        #$this->specTransfer($sql);
-
         $sql = trim($sql);
         if(!$curd){ #非execute
             //([0-9]+(,[0-9]+)?) | ([0-9]+)
@@ -437,7 +434,7 @@ class Db {
      */
     public function prepare($sql, $options = [])
     {
-        $this->specTransfer($sql);
+        //$this->specTransfer($sql);
         $this->_run_init($sql);
         return $this->db->conn->prepare($sql, $options);
     }
@@ -776,7 +773,7 @@ class Db {
         }
         if($more){
             //$tb = trim($tb);
-            if ($tb[0] == '(' || strpos($tb, '.') || strpos($tb, ',')) return $tb; //子查询|联合查询
+            if ($tb[0] == '(' || strpos($tb, ',')) return $tb; //子查询|联合查询
             if (strpos($tb, ' ')) { //有别名
                 $tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, $tb);
                 //$tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, str_replace('`', '', $tb));
