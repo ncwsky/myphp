@@ -612,11 +612,13 @@ class Db {
 		return $sql;
 	}
 
-    /** 返回更新成功修改记录的行数
-     * @param array|string $post
+    /**
+     * 返回更新成功修改记录的行数
+     * @param $post
      * @param string $table
      * @param string $where
-     * @return mixed
+     * @return bool|int|mixed
+     * @throws Exception
      */
     public function update($post, $table='', $where = '') {
 		return $this->execute($this->update_sql($post, $table, $where));
@@ -649,7 +651,7 @@ class Db {
 	public function getCount($table='', $where = '', $field='*') {
         $join = '';
         if (isset($this->options['join'])) { //联合统计时处理
-            $field = strpos($field, '.') ? $field : '*';
+            $field = '*'; //strpos($field, '.') ? $field :
             $join = $this->options['join'];
         }elseif ($field != '*') { //非联合统计
             if (strpos($field, '.')) {
@@ -771,30 +773,26 @@ class Db {
         if ($tb instanceof Expr) { //表达式
             return $tb;
         }
-        if($more){
-            //$tb = trim($tb);
-            if ($tb[0] == '(' || strpos($tb, ',')) return $tb; //子查询|联合查询
-            if (strpos($tb, ' ')) { //有别名
-                $tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, $tb);
-                //$tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, str_replace('`', '', $tb));
-            }
-        }
-        if (strpos($tb, '.')) { //指定库名
-            $tb = str_replace('.', $this->endSpec . '.' . $this->startSpec, $tb);
-        }
+
         if(strpos($tb,'{prefix}')!==false){ //表名前缀处理
             $tb = str_replace('{prefix}', $this->prefix, $tb);
         }
+
+        if($more){
+            $tb = trim($tb);
+            if ($tb[0]=='(' || strpos($tb, '.') || strpos($tb, ',')) return $tb; //子查询|联合查询[.,]
+            if ($pos = strpos($tb, ' ')) { //有别名
+                if(strpos($tb, ' ', $pos)+1){ //多个空格 可能非别名
+                    return $tb;
+                }
+                $tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, $tb); //, str_replace('`', '', $tb)
+            }
+        }elseif (strpos($tb, '.')) { //指定库名
+            $tb = str_replace('.', $this->endSpec . '.' . $this->startSpec, $tb);
+        }
+
         $tb = $this->startSpec . $tb . $this->endSpec;
         return $tb;
-	}
-	//查询缓存 读取
-	private function readCache() {
-		
-	}
-	//查询缓存 写入
-	private function writeCache() {
-		
 	}
 }
 //数据库表

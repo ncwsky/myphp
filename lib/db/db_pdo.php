@@ -70,13 +70,12 @@ class db_pdo extends DbBase{
     /**
      * 执行sql 返回影响的行数
      * @param $sql
-     * @param $run
-     * @return mixed
-     * @throws PDOException
+     * @param int $run
+     * @return false|int
      */
 	public function exec($sql, $run=0){
         $affected = $this->conn->exec($sql);
-        if ($this->conn->errorCode() != '00000') {
+        if (false===$affected) { //$this->conn->errorCode() != '00000'
             $errorInfo = $this->conn->errorInfo();
             $errInfo = implode('|', $errorInfo);
             if ($run == 0 && $this->transCounter==0) { //重连1次处理 非事务时允许重连
@@ -103,13 +102,13 @@ class db_pdo extends DbBase{
 
     /** 执行查询语句
      * @param $sql
-     * @param $run
-     * @return PDOStatement
+     * @param int $run
+     * @return false|PDOStatement
      * @throws PDOException
      */
     public function query($sql, $run = 0){
         $this->rs = $this->conn->query($sql);
-        if ($this->conn->errorCode() != '00000') {
+        if (false===$this->rs) { //$this->conn->errorCode() != '00000'
             $errorInfo = $this->conn->errorInfo();
             $errInfo = implode('|', $errorInfo);
             if ($run == 0 && $this->transCounter==0) { //重连1次处理 非事务时允许重连
@@ -128,7 +127,8 @@ class db_pdo extends DbBase{
     /** 返回所有行的数组
      * @param $sql
      * @param string $type
-     * @return array
+     * @return array|mixed
+     * @throws PDOException
      */
     public function queryAll($sql, $type = 'assoc'){
         $style = PDO::FETCH_BOTH;
