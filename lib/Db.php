@@ -398,7 +398,11 @@ class Db {
                             break;
                         case ' in ':
                         case ' not in ':
-                            $field = $k . $operator . '(' . (is_array($v) ? implode(',', $this->parseValue($v)) : $v) . ')';
+                            if (is_array($v)) {
+                                $field = empty($v) ? '1=0' : $k . $operator . '(' . implode(',', $this->parseValue($v)) . ')';
+                            } else {
+                                $field = $v === '' ? '1=0' : $k . $operator . '(' . $v . ')';
+                            }
                             break;
                         case ' exists ':
                         case ' not exists ':
@@ -713,9 +717,16 @@ class Db {
 	public function isTrans(){
         return $this->db->inTrans();
     }
+    //设置事务隔离等级
+    public function setTransactionLevel($level){
+        $sql = 'transaction isolationLevel '.$level;
+        $this->_run_init($sql, null, true);
+        $this->db->setTransactionLevel($level);
+        return $this;
+    }
 	//开始一个事务，关闭自动提交 todo:有主从时 默认都走主库
 	public function beginTrans(){
-		$sql = 'beginTrans';
+		$sql = 'beginTransaction';
 		$this->_run_init($sql, null, true);
         $this->db->beginTrans();
         return $this;
@@ -878,9 +889,15 @@ abstract class TbBase{
 
 /**
  * Class DbBase
- * @property mysqli|PDO $conn
+ * @property PDO|mysqli $conn
  */
 abstract class DbBase{
+    //隔离级别
+    const READ_UNCOMMITTED = 'READ UNCOMMITTED'; //读未提交：脏读、不可重复读、幻读
+    const READ_COMMITTED = 'READ COMMITTED'; //读已提交：不可重复读、幻读 如:mssql oracle
+    const REPEATABLE_READ = 'REPEATABLE READ'; //可重复读：幻读 如:mysql
+    const SERIALIZABLE = 'SERIALIZABLE'; //串行化
+
 	public $conn = null; //连接实例
 	public $rs = null; //数据集
     public $config = null;
@@ -947,6 +964,23 @@ abstract class DbBase{
 		}
         if($force && $this->transCounter>0) $this->commit($force);
 	}
+    //设置事务隔离等级 isolation
+	public function setTransactionLevel($level){
+        if ($this->config['dbms'] == 'sqlite') {
+            switch ($level) {
+                case self::SERIALIZABLE:
+                    $this->exec('PRAGMA read_uncommitted = False;');
+                    break;
+                case self::READ_UNCOMMITTED:
+                    $this->exec('PRAGMA read_uncommitted = True;');
+                    break;
+                default:
+                    throw new Exception(get_class($this) . ' only supports transaction isolation levels READ UNCOMMITTED and SERIALIZABLE.');
+            }
+        } else {
+            $this->exec("SET TRANSACTION ISOLATION LEVEL $level");
+        }
+    }
 	// 连接数据库 $cfg_db array数据库配置
 	abstract public function connect();
 	//安全过滤 是字符串时在格式后需要使用单引号包括返回
@@ -963,7 +997,7 @@ abstract class DbBase{
 	abstract public function query($sql);
     /**
      * 从结果集中取得一行作为关联数组/数字索引数组
-     * @param mysqli_result|PDOStatement $query 数据集
+     * @param PDOStatement|mysqli_result $query 数据集
      * @param string $type 默认MYSQL_ASSOC 关联，MYSQL_NUM 数字，MYSQL_BOTH 两者
      * @return mixed
      */
