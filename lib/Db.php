@@ -550,7 +550,7 @@ class Db {
     /**
      * 获取指定字段的值
      * @param $name
-     * @return mixed
+     * @return mixed|null
      */
     public function val($name){
 	    $row = $this->find();

@@ -14,15 +14,16 @@
  * @method int update(array $post, string $table='', string|array $where = '')
  * @method int add(array $post, string $table='')
  * @method int del(string $table='', string|array $where = '')
- * @method mixed select(bool|string $table='');
- * @method mixed all(bool|string $table='');
- * @method mixed find();
- * @method mixed one();
- * @method mixed select_sql();
- * @method mixed find_sql();
- * @method mixed val($name);
+ * @method array|self[]|false|PDOStatement select(bool|string $table='');
+ * @method array|self[]|false|PDOStatement all(bool|string $table='');
+ * @method array|self|false find();
+ * @method array|self|false one();
+ * @method string select_sql();
+ * @method string find_sql();
+ * @method mixed|null val($name);
  * @method string get_real_sql($sql, $bind = null);
- * @method bool beginTrans();
+ * @method self setTransactionLevel($level)
+ * @method self beginTrans();
  * @method bool commit($force=false);
  * @method bool rollBack($force=false);
  * @property Db $db
@@ -36,8 +37,10 @@ class Model implements ArrayAccess
     protected $db = null; //db操作类
     protected $dbName = 'db'; //db配置名
     // 表数据信息
-    protected $data = null;
-    protected $oldData = null; //单条查询记录数据
+    private $_data = null;
+    private $_oldData = null; //单条查询记录数据
+    // 是否model实例
+    public $asModel = false;
     //字段扩展过滤规则
     public $extRule = array();
     /* 示例
@@ -94,47 +97,50 @@ class Model implements ArrayAccess
         }
     }
     //设置字段数据
-    public function setData($data, $isRest = true)
+    public function setData($data, $reset = true)
     {
-        if (is_array($data) || is_null($data)) {
-            if($isRest){
-                $this->data = $data;
-            }else{
-                $this->data = $this->data ? array_merge($this->data, $data) : $data;
+        if (is_array($data)) {
+            if ($reset) {
+                $this->_data = $data;
+            } else {
+                $this->_data = $this->_data ? array_merge($this->_data, $data) : $data;
             }
-        }
-        else {
-            throw new Exception('data not is array');
+        } elseif ($data === null) {
+            $this->_data = null;
         }
     }
     //设置字段旧数据
-    public function setOldData($data, $isRest = true)
+    public function setOldData($data, $reset = true)
     {
-        if (is_array($data) || is_null($data)) {
-            if($isRest){
-                $this->oldData = $data;
-            }else{
-                $this->oldData = $this->oldData ? array_merge($this->oldData, $data) : $data;
+        if (is_array($data)) {
+            if ($reset) {
+                $this->_oldData = $data;
+            } else {
+                $this->_oldData = $this->_oldData ? array_merge($this->_oldData, $data) : $data;
             }
-            if(!$this->data) $this->data = $this->oldData;
-        }
-        else {
-            throw new Exception('old data not is array');
+            if (!$this->_data) {
+                $this->formatData($this->_oldData);
+                $this->_data = $this->_oldData;
+            }
+        } elseif ($data === null) {
+            $this->_oldData = null;
         }
     }
+
     //获取字段数据
     public function getData()
     {
-        return $this->data ? $this->data : array();
+        return $this->_data === null ? [] : $this->_data;
     }
-    //获取字段数据
+
+    //获取字段旧数据
     public function getOldData()
     {
-        return $this->oldData ? $this->oldData : array();
+        return $this->_oldData === null ? [] : $this->_oldData;
     }
     //格式数据
-    private function _formatData(&$data){
-        if(!is_array($data)) return;
+    public function formatData(&$data){
+        if(!is_array($data) || empty($this->fieldRule)) return;
         foreach ($data as $k=>$val){
             if(isset($this->fieldRule[$k])) { //转换到指定类型
                 $type = $this->fieldRule[$k]['type'];
@@ -146,109 +152,123 @@ class Model implements ArrayAccess
             }
         }
     }
-    /** 保存数据
+
+    public function beforeSave($insert)
+    {
+        return true;
+    }
+
+    /**
+     * @param bool $insert
+     * @param array $changed 变动的数据
+     */
+    public function afterSave($insert, $changed = []) {}
+
+    /**
+     * 保存数据
      * $def:0 禁用默认值处理 用于添加或更新部分数据,不对未设置字段验证及默认值处理
      * $def:false 对未设置字段not null验证(不为空验证)
      * $def:true 对未设置字段not null验证,同时有默认值时设默认值
      * @param null $data
      * @param null $where
-     * @param int|bool $def
-     * @return bool|int
+     * @param null $def
+     * @return bool|int|mixed|string
+     * @throws Exception
      */
     public function save($data = null, $where = null, $def=null)
     {
         $fieldRule = $this->extRule ? array_merge($this->fieldRule, $this->extRule) : $this->fieldRule;
         if (is_array($data)) {
-            $this->data = is_array($this->data) ? array_merge($this->data, $data) : $data;
+            $this->_data = is_array($this->_data) ? array_merge($this->_data, $data) : $data;
         }
         if ($where) $this->db->where($where);
         //有单条查询且数据有主键 则识别为更新
-        $isWhere = $this->db->where ? true : false;
-        /*if($this->prikey){ //有主键
-            if (!empty($this->data[$this->prikey]) && $this->oldData) { //有单条查询且主键非null 0 空
-                $this->db->where(array($this->prikey => $this->data[$this->prikey]));
-                $isWhere = true;
-            }
-            $hasPriKey = isset($this->data[$this->prikey]);
-            //禁止更新主键 或 新增主键值为0或未指定时删除主键值及规则
-            if($isWhere || !$hasPriKey || ($hasPriKey && $this->data[$this->prikey]===0)){
-                unset($this->data[$this->prikey]);
-                unset($fieldRule[$this->prikey]);
-            }
-        }*/
+        $isUpdate = $this->db->where ? true : false;
         //主键值为[null 0 空]时可insert记录
-        if($this->prikey && $this->oldData && !empty($this->data[$this->prikey])){ //有主键[非null 0 空] 有单条查询
-            if(isset($this->oldData[$this->prikey])){
-                $this->db->where([$this->prikey => $this->oldData[$this->prikey]]);
+        if($this->prikey && $this->_oldData && !empty($this->_data[$this->prikey])){ //有主键[非null 0 空] 有单条查询
+            if(isset($this->_oldData[$this->prikey])){
+                $this->db->where([$this->prikey => $this->_oldData[$this->prikey]]);
             }else{
                 $this->db->where('1=0'); //没有主键值
             }
-            $isWhere = true;
+            $isUpdate = true;
         }
-        if($this->autoIncrement && empty($this->data[$this->autoIncrement])){ //自增键[null 0 空]时排除验证规则
-            unset($this->data[$this->autoIncrement], $fieldRule[$this->autoIncrement]);
+        if($this->autoIncrement && empty($this->_data[$this->autoIncrement])){ //自增键[null 0 空]时排除验证规则
+            unset($this->_data[$this->autoIncrement], $fieldRule[$this->autoIncrement]);
         }
         //验证数据
-        if (!Helper::validAll($this->data, $fieldRule, true, $def === null ? $this->setDef : $def)) {
+        if (!Helper::validAll($this->_data, $fieldRule, true, $def === null ? $this->setDef : $def)) {
             //throw new RuntimeException('验证失败');
             $this->db->options = null;
             return false;
         }
         //未指定表名时指定表名
         if(!$this->db->table) $this->db->table($this->tbName);
+
+        if(!$this->beforeSave(!$isUpdate)){
+            return false;
+        }
         //指定了条件时必定是更新
-        if ($isWhere) {
+        if ($isUpdate) {
+            $changed = [];
             //未变动的数据不更新
-            if ($this->oldData) {
-                foreach ($this->oldData as $k => $v) {
-                    if ((isset($this->data[$k]) || array_key_exists($k, $this->data))
-                        && ((is_numeric($this->data[$k]) && $this->data[$k] == $v) || $this->data[$k] === $v)) {
-                        unset($this->data[$k]);
+            if ($this->_oldData) {
+                foreach ($this->_oldData as $k => $v) {
+                    if ((isset($this->_data[$k]) || array_key_exists($k, $this->_data))
+                        && ((is_numeric($this->_data[$k]) && $this->_data[$k] == $v) || $this->_data[$k] === $v)) {
+                        unset($this->_data[$k]);
+                    } else {
+                        $changed[$k] = $v;
                     }
                 }
-                if (empty($this->data)) {
-                    $this->data = $this->oldData;
+                if (empty($this->_data)) {
+                    $this->_data = $this->_oldData;
                     $this->db->options = null; //清除未执行的条件 防条件被附加到下次执行的条件中
+                    $this->afterSave(false, []);
                     return 0;
                 }
+            } else {
+                $changed = $this->_data;
             }
-            $result = $this->db->update($this->data);  //返回影响行数
-            if($this->oldData){
-                $this->data = array_merge($this->oldData,$this->data);
+            $result = $this->db->update($this->_data);  //返回影响行数
+            if($this->_oldData){
+                $this->_data = array_merge($this->_oldData,$this->_data);
             }
+            $this->afterSave(false, $changed);
         } else {
-            $result = $this->db->add($this->data); //返回新增id
-            if ($this->prikey && $this->prikey==$this->autoIncrement) $this->data[$this->prikey] = $result;
+            $result = $this->db->add($this->_data); //返回新增id
+            if ($this->prikey && $this->prikey==$this->autoIncrement) $this->_data[$this->prikey] = $result;
+            $this->afterSave(true, $this->_data);
         }
-        $this->oldData = $this->data;
+        $this->_oldData = $this->_data;
         return $result;
     }
 
     // 设置数据对象属性
     public function __set($name, $value)
     {
-        if($name==$this->prikey && $value!==0 && isset($this->oldData[$name])){ //有单条且主键有值时 不能指定主键值
+        if($name==$this->prikey && $value!==0 && isset($this->_oldData[$name])){ //有单条且主键有值时 不能指定主键值
             return;
         }
-        $this->data[$name] = $value;
+        $this->_data[$name] = $value;
     }
 
     // 获取数据对象的值
     public function __get($name)
     {
-        return isset($this->data[$name]) ? $this->data[$name] : null;
+        return isset($this->_data[$name]) ? $this->_data[$name] : null;
     }
 
     //检测数据对象的值
     public function __isset($name)
     {
-        return isset($this->data[$name]);
+        return isset($this->_data[$name]);
     }
 
     //销毁数据对象的值
     public function __unset($name)
     {
-        unset($this->data[$name]);
+        unset($this->_data[$name]);
     }
     // ArrayAccess
     public function offsetSet($name, $value)
@@ -269,14 +289,14 @@ class Model implements ArrayAccess
     }
 
     //执行db方法的前置处理
-    private function _preDbMethod($method){
+    protected function _beforeDbMethod($method){
         //$methods = 'find,select,getCount,add,update,del';
         //if (strpos($methods, $method) === false) return;
         if ($method == 'del') {
             if(!$this->db->where){
                 throw new Exception("请指定删除条件");
             }
-            $this->data = $this->oldData = null;
+            $this->_data = $this->_oldData = null;
         }
         if ($this->tbName && strpos($this->db->table,$this->tbName)!==0) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
         if ($method == 'find' || $method == 'select' || $method=='all') {
@@ -291,15 +311,21 @@ class Model implements ArrayAccess
         }
     }
     //执行db方法的后置处理
-    private function _sufDbMethod($method, &$result){
-        if ($method == 'find' || $method=='one' || $method == 'getOne') { //单条记录   || $method == 'select'
-            $this->_formatData($result);
-            $this->data = $this->oldData = $result;
-        }/*
-        if($method == 'select'){
-            $this->_formatData($result);
-            $this->data = $this->oldData = null;
-        }*/
+    protected function _afterDbMethod($method, &$result){
+        if ($method == 'find' || $method=='one') { //单条记录   || $method == 'getOne'
+            $this->formatData($result);
+            $this->_data = $this->_oldData = $result;
+            if ($this->asModel) {
+                $result = $this;
+            }
+        }
+        if ($this->asModel) {
+            if($method == 'select' || $method == 'all'){
+                foreach ($result as $k=>$row){
+                    $result[$k] = self::create($row);
+                }
+            }
+        }
     }
     //表别名 一般用于联合查询
     public function alias($name){
@@ -320,10 +346,13 @@ class Model implements ArrayAccess
             call_user_func_array([$model, $method], $args);
             return $model;
         } else { //调用db方法
-            $model->_preDbMethod($method);
+            $model->_beforeDbMethod($method);
             $result = call_user_func_array([$model->db, $method], $args);
-            $model->_sufDbMethod($method, $result);
-            return $result instanceof Db ? $model : $result;
+            if($result instanceof Db){
+                return $model;
+            }
+            $model->_afterDbMethod($method, $result);
+            return $result;
         }
     }
     //连贯操作
@@ -335,5 +364,18 @@ class Model implements ArrayAccess
     public static function __callStatic($method, $args)
     {
         return self::runCall(new static(), $method, $args);
+    }
+
+    /**
+     * @param null $data
+     * @return static
+     */
+    public static function create($data=null){
+        $model = new static();
+        $model->asModel = true;
+        if ($data) {
+            $model->setOldData($data);
+        }
+        return $model;
     }
 }
