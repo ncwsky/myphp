@@ -72,16 +72,26 @@ class File {
 	}
     //文件锁
 	private $lockFile, $lockHandle;
-	public function lock($name){
+
+    /**
+     * @param $name
+     * @param bool $block 默认阻塞
+     * @return bool
+     */
+	public function lock($name, $block=true){
 	    $this->lockFile[$name] = $this->path.'/'.$name.'.lock';
-        $this->lockHandle[$name] = @fopen($this->lockFile[$name], 'r');
+        $this->lockHandle[$name] = @fopen($this->lockFile[$name], 'w');
         if(!$this->lockHandle[$name]) {
             unset($this->lockHandle[$name], $this->lockFile[$name]);
             return false;
         }
         //LOCK_EX 获取独占锁
         //LOCK_NB 无法建立锁定时，不阻塞
-        return @flock($this->lockHandle[$name], LOCK_EX | LOCK_NB);
+        if(@flock($this->lockHandle[$name], $block ? LOCK_EX : LOCK_EX | LOCK_NB)){
+            return true;
+        }
+        unset($this->lockHandle[$name], $this->lockFile[$name]);
+        return false;
     }
     public function unlock($name){
         if (!isset($this->lockHandle[$name])) {
