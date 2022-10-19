@@ -4,6 +4,7 @@ if (!class_exists('Error')) { //兼容7.0
 }
 final class myphp{
     use MyMsg;
+    public static $beforeFun = null; //Control_run之前的前置处理回调 Closure()
     public static $authFun = null; //验证回调方法 Closure
     public static $sendFun = null; //自定义输出处理 Closure($code, $data, $header)
     public static $lang = [];
@@ -43,6 +44,10 @@ final class myphp{
         self::init_app();
         self::$sendFun = $sendFun;
         try {
+            if(self::$beforeFun instanceof Closure){ //前置处理
+                call_user_func(self::$beforeFun);
+            }
+
             if(self::$authFun instanceof Closure){ //权限验证处理
                 call_user_func(self::$authFun);
             }else{
