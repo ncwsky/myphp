@@ -48,7 +48,7 @@ class HttpReqInfo
         return isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : (isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '')) . (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING']!=='' ? '?' . $_SERVER['QUERY_STRING'] : '');
     }
 
-    public static function getReqHeader($name = null, $default = null)
+    public static function getReqHeader($header_name = null, $default = null)
     {
         if (self::$req_header === null) {
             if (function_exists('getallheaders')) {
@@ -75,15 +75,15 @@ class HttpReqInfo
             }
         }
 
-        if ($name === null) return self::$req_header;
-        if (is_array($name)) {
+        if ($header_name === null) return self::$req_header;
+        if (is_array($header_name)) {
             $values = [];
-            foreach ($name as $item) {
+            foreach ($header_name as $item) {
                 $values[$item] = isset(self::$req_header[$item]) ? self::$req_header[$item] : $default;
             }
             return $values;
         }
-        return isset(self::$req_header[$name]) ? self::$req_header[$name] : $default;
+        return isset(self::$req_header[$header_name]) ? self::$req_header[$header_name] : $default;
     }
 
     public static function getRawBody()
