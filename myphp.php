@@ -107,9 +107,6 @@ final class myphp{
         }
         if(self::$sendFun===null){
             if (!IS_CLI) {
-                //if (headers_sent($file, $line)) {
-                //    throw new Exception($file, $line); //"Headers already sent in $file on line $line\n"
-                //}
                 // 发送状态码
                 self::httpCode($code); #http_response_code($code); #>=5.4
                 // 发送头部信息
@@ -189,10 +186,17 @@ final class myphp{
         305 => 'Use Proxy',
         400 => 'Bad Request',
         401 => 'Unauthorized',
-        402 => 'Payment Required',
         403 => 'Forbidden',
         404 => 'Not Found',
         405 => 'Method Not Allowed',
+        409 => 'Conflict',
+        410 => 'Gone',
+        412 => 'Precondition Failed',
+        413 => 'Request Entity Too Large',
+        415 => 'Unsupported Media Type',
+        416 => 'Range Not Satisfiable',
+        423 => 'Locked',
+        460 => 'Checksum Mismatch',
         500 => 'Internal Server Error',
         501 => 'Not Implemented',
         502 => 'Bad Gateway',
