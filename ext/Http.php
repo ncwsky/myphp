@@ -5,7 +5,9 @@ class Http
     public static $way = 0;
     public static $curlOpt = []; //curl配置 ssl cookie header redirect opts[curl_opt=>value,..]
     public static $curlProxy = []; //代理 [user,pass,host,port]
-    public static $curlBeforeCall = null; //curl前置处理 ($url, $type, $data, $timeout, $header, $opt);
+    public static $curlBeforeCall = null; //curl前置处理 function($url, $type, $data, $timeout, $header, $opt):void
+    public static $curlRetries = 0;
+    public static $curlRetryCond = null; //curl重试条件，未指定使用的默认 function($url, $err):bool
 
     /**
      * @param $proxy `proxy://user:pass@hostname:port`
@@ -35,39 +37,39 @@ class Http
             return 0;
     }
     //通过get方式获取数据 $header string|array
-    public static function doGet($url, $timeout=30, $header='', $curl_ssl=[])
+    public static function doGet($url, $timeout=30, $header='', $opt=[])
     {
         $code = self::doInit($url, $timeout);
         if(!$code) return false;
         switch($code)
         {
-            case 1:return self::curlGet($url,$timeout,$header,$curl_ssl);
+            case 1:return self::curlGet($url,$timeout,$header,$opt);
             case 2:return self::socketGet($url,$timeout,$header);
             case 3:return self::phpGet($url,$timeout,$header);
         }
         return false;
     }
     //通过POST方式发送数据 $header string|array
-    public static function doPost($url, $data=null, $timeout=30, $header='', $curl_ssl=[])
+    public static function doPost($url, $data=null, $timeout=30, $header='', $opt=[])
     {
         $code = self::doInit($url, $timeout);
         if(!$code) return false;
         switch($code)
         {
-            case 1:return self::curlPost($url,$data,$timeout,$header,$curl_ssl);
+            case 1:return self::curlPost($url,$data,$timeout,$header,$opt);
             case 2:return self::socketPost($url,$data,$timeout,$header);
             case 3:return self::phpPost($url,$data,$timeout,$header);
         }
         return false;
     }
     //通过Send自定义方式发送数据 $header string|array
-    public static function doSend($url, $type='GET', $data=null, $timeout=30, $header='', $curl_ssl=[])
+    public static function doSend($url, $type='GET', $data=null, $timeout=30, $header='', $opt=[])
     {
         $code = self::doInit($url, $timeout);
         if(!$code) return false;
         switch($code)
         {
-            case 1:return self::curlSend($url,$type,$data,$timeout,$header,$curl_ssl);
+            case 1:return self::curlSend($url,$type,$data,$timeout,$header,$opt);
             case 2:return self::socketSend($url,$type,$data,$timeout,$header);
             case 3:return self::phpSend($url,$type,$data,$timeout,$header);
         }
@@ -106,6 +108,7 @@ class Http
         DELETE（DELETE）：从服务器删除资源。
         HEAD：获取资源的元数据。
         */
+        $connect_timeout = isset($opt['connect_timeout']) ? $opt['connect_timeout'] : $timeout;
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         if(substr($url,0,5)=='https'){ //ssl
@@ -196,11 +199,11 @@ class Http
 
         if (isset($opt['cookie'])) curl_setopt($ch, CURLOPT_COOKIE, $opt['cookie']);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connect_timeout);
         curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
         curl_setopt($ch, CURLOPT_HTTPHEADER, is_string($header) ? explode("\r\n", $header) : $header);
         curl_setopt($ch, CURLOPT_TIMEOUT_MS, $timeout * 1000);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, $timeout * 1000);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, $connect_timeout * 1000);
         //$timeoutRequiresNoSignal = false; $timeoutRequiresNoSignal |= $timeout < 1;
         if ($timeout < 1 && strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
             curl_setopt($ch, CURLOPT_NOSIGNAL, true);
@@ -238,19 +241,42 @@ class Http
             $result = curl_exec($ch);
         }
         if(curl_errno($ch)){
-            //err:Unknown SSL protocol error in connection to api.guanliyuangong.com:443
             $err = curl_error($ch);
             Log::write('err:'. $err."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):json_encode($data)):''), 'curl');
-            //重试
-            if(strpos($err, 'Unknown SSL protocol')!==false && strpos($url, 'api.guanliyuangong.com')!==false){
-                curl_close($ch);
-                $url = str_replace('api.guanliyuangong.com','api2.guanliyuangong.com', $url);
-                return self::curlSend($url, $type, $data, $timeout, $header, $opt);
+            if (self::_curlIsRetry($url, $err)) {
+                $runRetry = true;
+                if (preg_match('/_retry=(\d)/', $url, $retryMatch)) {
+                    $retry = (int)$retryMatch[1];
+                    if ($retry >= self::$curlRetries) {
+                        $runRetry = false;
+                    }
+                    $url = str_replace($retryMatch[0], '_retry=' . ($retry + 1), $url);
+                } else {
+                    if (strpos($url, '?')) {
+                        $url .= '&_retry=1';
+                    } else {
+                        $url .= '?_retry=1';
+                    }
+                }
+                if ($runRetry) {
+                    curl_close($ch);
+                    return self::curlSend($url, $type, $data, $timeout, $header, $opt);
+                }
             }
         }
 
         curl_close($ch);
         return $result;
+    }
+    //重试条件
+    private static function _curlIsRetry($url, $err)
+    {
+        if (self::$curlRetries <= 0) return false;
+        //有指定重试判断
+        if (self::$curlRetryCond) {
+            return call_user_func(self::$curlRetryCond, $url, $err);
+        }
+        return strpos($err, 'Failed to connect') !== false || strpos($err, 'Unknown SSL protocol') !== false;
     }
     //通过socket get数据
     public static function socketGet($url,$timeout=30,$header='')
@@ -308,7 +334,7 @@ class Http
             @fclose($fsock);
             return false;
         }
-        return self::GetHttpContent($fsock);
+        return self::_getHttpContent($fsock);
     }
 
     //通过file_get_contents函数get数据
@@ -382,7 +408,7 @@ class Http
     }
 
     //获取通过socket方式get和post页面的返回数据
-    private static function GetHttpContent($fsock=null)
+    private static function _getHttpContent($fsock=null)
     {
         $out = null;
         while($buff = @fgets($fsock, 2048)){
@@ -654,33 +680,5 @@ if( !function_exists ('mime_content_type')) {
             $mime = 'application/octet-stream';
         }
         return $mime;
-    }
-}
-
-if(!function_exists('image_type_to_extension'))
-{
-    function image_type_to_extension($imagetype)
-    {
-        if(empty($imagetype)) return false;
-        switch($imagetype)
-        {
-            case IMAGETYPE_GIF    : return '.gif';
-            case IMAGETYPE_JPEG    : return '.jpg';
-            case IMAGETYPE_PNG    : return '.png';
-            case IMAGETYPE_SWF    : return '.swf';
-            case IMAGETYPE_PSD    : return '.psd';
-            case IMAGETYPE_BMP    : return '.bmp';
-            case IMAGETYPE_TIFF_II : return '.tiff';
-            case IMAGETYPE_TIFF_MM : return '.tiff';
-            case IMAGETYPE_JPC    : return '.jpc';
-            case IMAGETYPE_JP2    : return '.jp2';
-            case IMAGETYPE_JPX    : return '.jpf';
-            case IMAGETYPE_JB2    : return '.jb2';
-            case IMAGETYPE_SWC    : return '.swc';
-            case IMAGETYPE_IFF    : return '.aiff';
-            case IMAGETYPE_WBMP    : return '.wbmp';
-            case IMAGETYPE_XBM    : return '.xbm';
-            default                : return false;
-        }
     }
 }
