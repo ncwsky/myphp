@@ -745,15 +745,15 @@ class UrlRoute{
                                 $regx='([A-Za-z]+)';
                             }elseif($type=='a'){ //非空白字符
                                 $regx='(\S+)';
-                            }elseif($type=='!'){ //正则
+                            }elseif($type=='!'){ //正则 <all\*!> -> '*'=>'(.*)'
                                 $x = substr($__var,$depr+1,-1);
                                 $regx = isset(Config::$cfg['url_maps_regx'][$x]) ? Config::$cfg['url_maps_regx'][$x] : '([\w=]+)';
                                 $regx = str_replace('.','#dot',$regx);
                             }
                         }
-                        $vars[$var]=1;
+                        $vars[$var]=true;
                         if(substr($k,$end+1,2)==')?')//可选 "]"->")?"
-                            $vars[$var]=0;
+                            $vars[$var]=false;
                         $k = str_replace('<'.$__var.'>',$regx,$k);
                         $pos=strpos($k,'<',$pos);
                     } while ($pos);
@@ -768,7 +768,7 @@ class UrlRoute{
                             $count -= 1; //排除正则全匹配的第一项
                             $i = 1;
                             foreach($vars as $_k=>$_v){
-                                if($_v==1) $vars[$_k]=$regArr[$i];
+                                if($_v) $vars[$_k]=$regArr[$i];
                                 else $vars[$_k]=$regArr[++$i]; //可选 因是双括号匹配 目标索引得加1
                                 if(++$i>$count) break;
                             }
