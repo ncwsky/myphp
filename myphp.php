@@ -776,7 +776,7 @@ class UrlRoute{
                             $_GET = array_merge($_GET, $vars);
                             unset($regArr, $vars);
                         }
-                        //var_dump($_GET);//Log::trace(json_encode($_GET));
+                        //var_dump($_GET);//Log::trace($_GET);
                         $uri = $v;
                         break;
                     }
