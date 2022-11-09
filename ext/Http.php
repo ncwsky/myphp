@@ -8,7 +8,7 @@ class Http
     public static $curlBeforeCall = null; //curl前置处理 function($url, $type, $data, $timeout, $header, $opt):void
     public static $curlRetries = 0;
     public static $curlRetryCond = null; //curl重试条件，未指定使用的默认 function($url, $err):bool
-
+    public static $curlErr = '';
     /**
      * @param $proxy `proxy://user:pass@hostname:port`
      */
@@ -240,10 +240,11 @@ class Http
         }else{
             $result = curl_exec($ch);
         }
+        self::$curlErr = '';
         if(curl_errno($ch)){
-            $err = curl_error($ch);
-            Log::write('err:'. $err."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):json_encode($data)):''), 'curl');
-            if (self::_curlIsRetry($url, $err)) {
+            self::$curlErr = curl_error($ch);
+            Log::write('err:'. self::$curlErr."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):json_encode($data)):''), 'curl');
+            if (self::_curlIsRetry($url, self::$curlErr)) {
                 $runRetry = true;
                 if (preg_match('/_retry=(\d)/', $url, $retryMatch)) {
                     $retry = (int)$retryMatch[1];
@@ -555,8 +556,8 @@ if( !function_exists ('mime_content_type')) {
             'mif'	=> 'application/vnd.mif',
             'mov'	=> 'video/quicktime',
             'movie'	=> 'video/x-sgi-movie',
-            'mp2'	=> 'audio/mpeg',
             'mp3'	=> 'audio/mpeg',
+            'mp4'	=> 'video/mp4',
             'mpe'	=> 'video/mpeg',
             'mpeg'	=> 'video/mpeg',
             'mpg'	=> 'video/mpeg',
