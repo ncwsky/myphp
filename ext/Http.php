@@ -277,7 +277,7 @@ class Http
         if (self::$curlRetryCond) {
             return call_user_func(self::$curlRetryCond, $url, $err);
         }
-        return strpos($err, 'Failed to connect') !== false || strpos($err, 'Unknown SSL protocol') !== false;
+        return strpos($err, 'Connection timed out')!==false || strpos($err, 'Failed to connect') !== false || strpos($err, 'Unknown SSL protocol') !== false;
     }
     //通过socket get数据
     public static function socketGet($url,$timeout=30,$header='')

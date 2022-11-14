@@ -43,7 +43,8 @@ class MyLoader
             $class_path = strtr($class_name, '\\', DIRECTORY_SEPARATOR);
             $namespace = substr($class_name, 0, $pos + 1);
             if (isset(self::$namespaceMap[$namespace])) { //优先加载命名空间映射
-                include self::$rootPath . DIRECTORY_SEPARATOR . self::$namespaceMap[$namespace] . substr($class_path, strlen($namespace)) . '.php';
+                $path = DIRECTORY_SEPARATOR=='\\' ? strtr(self::$namespaceMap[$namespace], '/', DIRECTORY_SEPARATOR) :  strtr(self::$namespaceMap[$namespace], '\\', DIRECTORY_SEPARATOR);
+                include self::$rootPath . DIRECTORY_SEPARATOR . $path . (substr($path,-1)==DIRECTORY_SEPARATOR?'':DIRECTORY_SEPARATOR) . substr($class_path, strlen($namespace)) . '.php';
                 return;
             }
 
