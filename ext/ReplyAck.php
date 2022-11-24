@@ -19,7 +19,7 @@ class ReplyAck{
     }
 
     /**
-     * @return lib_redis|MyRedis|Redis
+     * @return lib_redis|\myphp\MyRedis|\Redis
      */
     public static function redis(){
         return lib_redis::getInstance(myphp::get(self::$redisName));
@@ -56,7 +56,7 @@ class ReplyAck{
                         #echo $message_id.'--->'.$time,PHP_EOL;
                         if(!$message_id) {
                             #print_r($arr);
-                            Log::write($arr, 'xxxxxxx');
+                            \myphp\Log::write($arr, 'xxxxxxx');
                             continue;
                         };
                         if($time>time()) { //未到应答超时时间
@@ -111,7 +111,7 @@ class ReplyAck{
             if (SrvBase::$isConsole) {
                 echo "应答验证、队列定时器创建成功", PHP_EOL;
             }
-            Log::INFO('应答验证、队列定时器创建成功');
+            \myphp\Log::INFO('应答验证、队列定时器创建成功');
             ReplyAck::incrId();
         }
     }
@@ -142,7 +142,7 @@ class ReplyAck{
     }
     #发布确认 消除缓存的消息或队列
     public static function puback($message_id, $retry=false){
-        Log::DEBUG("<- ".($retry?'Retry':'Recv')." PUBACK package, message_id:$message_id");
+        \myphp\Log::DEBUG("<- ".($retry?'Retry':'Recv')." PUBACK package, message_id:$message_id");
         if (SrvBase::$isConsole) {
             echo "<- ".($retry?'Retry':'Recv')." PUBACK package, message_id:$message_id", PHP_EOL;
         }

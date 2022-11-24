@@ -61,7 +61,7 @@ class lib_redis{
         if (self::$isExRedis === null) self::$isExRedis = extension_loaded('redis');
         if (self::$isExRedis) {
             $func = $this->options['pconnect'] ? 'pconnect' : 'connect';
-            $this->handler = new Redis();
+            $this->handler = new \Redis();
             $this->options['timeout'] == 0 ? $this->handler->$func($this->options['host'], $this->options['port']) : $this->handler->$func($this->options['host'], $this->options['port'], $this->options['timeout']);
             if ($this->options['password']) {
                 $this->handler->auth($this->options['password']);
@@ -69,7 +69,7 @@ class lib_redis{
             $this->handler->select($this->options['select']);
         } else {
             $this->options['database'] = $this->options['select'];
-            $this->handler = new MyRedis($this->options);
+            $this->handler = new \myphp\MyRedis($this->options);
         }
     }
 

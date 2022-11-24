@@ -243,7 +243,7 @@ class Http
         self::$curlErr = '';
         if(curl_errno($ch)){
             self::$curlErr = curl_error($ch);
-            Log::write('err:'. self::$curlErr."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):json_encode($data)):''), 'curl');
+            \myphp\Log::write('err:'. self::$curlErr."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):json_encode($data)):''), 'curl');
             if (self::_curlIsRetry($url, self::$curlErr)) {
                 $runRetry = true;
                 if (preg_match('/_retry=(\d)/', $url, $retryMatch)) {

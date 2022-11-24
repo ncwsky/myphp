@@ -22,6 +22,8 @@
       "ext-libxml": "*",
       "ext-simplexml": "*",
       "ext-mcrypt": "*",
-      "ext-openssl": "*"
+      "ext-openssl": "*",
+      "ext-curl": "*",
+      "ext-gd": "*"
     }
 }
