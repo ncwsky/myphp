@@ -1,4 +1,6 @@
 <?php
+namespace myphp;
+
 /**
  * The redis connection class is used to establish a connection to a [redis](http://redis.io/) server.
  *
@@ -496,7 +498,7 @@ class MyRedis
     private $_lastCmd = null;
     private $_lastArgs = null;
     /**
-     * @var SplQueue
+     * @var \SplQueue
      */
     private $_commands;
     private $_mode = 0;
@@ -553,7 +555,7 @@ class MyRedis
     /**
      * Establishes a DB connection.
      * It does nothing if a DB connection has already been established.
-     * @throws Exception if connection fails
+     * @throws \Exception if connection fails
      */
     public function open()
     {
@@ -582,7 +584,7 @@ class MyRedis
         } else {
             //Log::ERROR("Failed to open redis connection ($connection): $errorNumber - $errorDescription");
             $message = 'Failed to open redis connection.';
-            throw new Exception($message, $errorDescription, $errorNumber);
+            throw new \Exception($message, $errorDescription, $errorNumber);
         }
     }
 
@@ -597,7 +599,7 @@ class MyRedis
             Log::trace('Closing DB connection: ' . $connection, __METHOD__);
             try {
                 $this->executeCommand('QUIT');
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 // ignore errors when quitting a closed connection
             }
             fclose($this->_socket);
@@ -615,7 +617,7 @@ class MyRedis
      * @param string $name name of the missing method to execute
      * @param array $params method call arguments
      * @return array|bool|null|string
-     * @throws Exception
+     * @throws \Exception
      */
     public function __call($name, $params)
     {
@@ -624,7 +626,7 @@ class MyRedis
             $this->_lastArgs = $params;
             return $this->executeCommand($redisCommand, $params);
         } else {
-            throw new Exception('Calling unknown method: ' . get_class($this) . "::$name()");
+            throw new \Exception('Calling unknown method: ' . get_class($this) . "::$name()");
         }
     }
 
@@ -653,7 +655,7 @@ class MyRedis
      *
      * See [redis protocol description](http://redis.io/topics/protocol)
      * for details on the mentioned reply types.
-     * @throws Exception for commands that return [error reply](http://redis.io/topics/protocol#error-reply).
+     * @throws \Exception for commands that return [error reply](http://redis.io/topics/protocol#error-reply).
      */
     public function executeCommand($name, $params = [])
     {
@@ -662,7 +664,7 @@ class MyRedis
         if ($this->_lastCmd == 'MULTI') {
             if (isset($params[0]) && $params[0] == self::PIPELINE) { //管道兼容redis扩展
                 $this->_mode = self::PIPELINE;
-                if (!$this->_commands) $this->_commands = new SplQueue();
+                if (!$this->_commands) $this->_commands = new \SplQueue();
                 return null;
             }
             $this->_mode = self::MULTI;
@@ -719,7 +721,7 @@ class MyRedis
             while ($tries-- > 0) {
                 try {
                     return $this->sendCommandInternal($command, $srcCommand);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     Log::trace('retries' . $tries . ', ' . $srcCommand . ', ' . $e->getMessage(), 'MyRedis');
                     // backup retries, fail on commands that fail inside here
                     $retries = $this->retries;
@@ -736,7 +738,7 @@ class MyRedis
     private function retryOnceSendCommand($command, $srcCommand, $response=true){
         try {
             return $this->sendCommandInternal($command, $srcCommand, $response);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             Log::trace('retries:' . $e->getMessage(), 'MyRedis');
             $this->close();
             $this->open();
@@ -750,16 +752,16 @@ class MyRedis
      * @param $srcCommand
      * @param bool $response
      * @return array|bool|mixed|null
-     * @throws Exception
+     * @throws \Exception
      */
     private function sendCommandInternal($command, $srcCommand, $response=true)
     {
         $written = @fwrite($this->_socket, $command);
         if ($written === false) {
-            throw new Exception("Failed to write to socket.\nRedis command was: " . $command);
+            throw new \Exception("Failed to write to socket.\nRedis command was: " . $command);
         }
         if ($written !== ($len = $this->len($command))) {
-            throw new Exception("Failed to write to socket. $written of $len bytes written.\nRedis command was: " . $command);
+            throw new \Exception("Failed to write to socket. $written of $len bytes written.\nRedis command was: " . $command);
         }
         return $response ? $this->parseResponse($srcCommand) : true;
     }
@@ -767,12 +769,12 @@ class MyRedis
     /**
      * @param string $command
      * @return mixed
-     * @throws Exception on error
+     * @throws \Exception on error
      */
     public function parseResponse($command='read')
     {
         if (($line = fgets($this->_socket)) === false) {
-            throw new Exception("Failed to read from socket.\nRedis command was: " . $command);
+            throw new \Exception("Failed to read from socket.\nRedis command was: " . $command);
         }
         $type = $line[0];
         $line = $this->substr($line, 1, -2);
@@ -784,7 +786,7 @@ class MyRedis
                     return $line;
                 }
             case '-': // Error reply
-                throw new Exception("Redis error: " . $line . "\nRedis command was: " . $command);
+                throw new \Exception("Redis error: " . $line . "\nRedis command was: " . $command);
             case ':': // Integer reply
                 // no cast to int as it is in the range of a signed 64 bit integer
                 return $line;
@@ -796,7 +798,7 @@ class MyRedis
                 $data = '';
                 while ($length > 0) {
                     if (($block = fread($this->_socket, $length)) === false) {
-                        throw new Exception("Failed to read from socket.\nRedis command was: " . $command);
+                        throw new \Exception("Failed to read from socket.\nRedis command was: " . $command);
                     }
                     $data .= $block;
                     $length -= $this->len($block);
@@ -819,13 +821,13 @@ class MyRedis
                         return $data;
                     }
                 }
-                $data = new SplFixedArray($count);
+                $data = new \SplFixedArray($count);
                 for ($i = 0; $i < $count; $i++) {
                     $data[$i] = $this->parseResponse($command);
                 }
                 return $data;
             default:
-                throw new Exception('Received illegal data from redis: ' . $line . "\nRedis command was: " . $command);
+                throw new \Exception('Received illegal data from redis: ' . $line . "\nRedis command was: " . $command);
         }
     }
 }

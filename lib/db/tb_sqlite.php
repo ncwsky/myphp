@@ -1,6 +1,8 @@
 <?php
+namespace myphp\db;
+
 //获取表信息
-class tb_sqlite extends TbBase
+class tb_sqlite extends \myphp\TbBase
 {
     //字段类型对应规则
     protected $fieldType = array(

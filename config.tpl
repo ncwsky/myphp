@@ -3,9 +3,9 @@ return array(
 	/*
 	//数据库连接信息
 	'db' => array(
-		'type' => 'mysql',	//数据库驱动类型 仅有mysql、pdo
+		'type' => 'pdo',	//数据库驱动类型 仅有mysqli、pdo
 		'dbms' => 'mysql', //数据库 驱动类型为pdo时使用
-		'server' => 'localhost',	//数据库主机
+		'server' => '127.0.0.1',	//数据库主机
 		'name' => '',	//数据库名称
 		'user' => 'root',	//数据库用户
 		'pwd' => '',	//数据库密码

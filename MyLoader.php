@@ -69,17 +69,13 @@ class MyLoader
 
     /**
      * @param string $path
-     * @param null $class_name
      * @return bool
      */
-    public static function load($path, $class_name = null)
+    public static function load($path)
     {
         if (is_file($path)) {
             include $path;
             return true;
-            if ($class_name === null || \class_exists($class_name, false)) {
-                return true;
-            }
         }
         return false;
     }

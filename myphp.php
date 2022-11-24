@@ -1,12 +1,13 @@
 <?php
-if (!class_exists('Error')) { //兼容7.0
-    class Error extends Exception{}
-}
+
+use myphp\Helper;
+use myphp\Log;
+
 final class myphp{
     use MyMsg;
-    public static $beforeFun = null; //Control_run之前的前置处理回调 Closure()
-    public static $authFun = null; //验证回调方法 Closure
-    public static $sendFun = null; //自定义输出处理 Closure($code, $data, $header)
+    public static $beforeFun = null; //Control_run之前的前置处理回调 \Closure()
+    public static $authFun = null; //验证回调方法 \Closure
+    public static $sendFun = null; //自定义输出处理 \Closure($code, $data, $header)
     public static $lang = [];
     public static $env = []; //Run执行时的环境值 array
     public static $header = [];
@@ -14,13 +15,44 @@ final class myphp{
     private static $req_cache = null;
     //private static $db = [];
     private static $container = []; //容器
-    public static $classDir = []; //设置可加载的目录
-    /**
-     * @var array ['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
-     * @see autoload()
-     */
-    public static $classMap = [];
-    public static $classOldSupport = true; //是否兼容xxx.class.php
+
+    //配置处理
+    public static $cfg = [];
+
+    //载入配置
+    public static function load($file){
+        self::set(include $file);
+    }
+    //获取配置值 支持二维数组
+    public static function get($name, $defVal = null){
+        if ( false === ($pos = strpos($name, '.')) )
+            return isset(self::$cfg[$name]) ? self::$cfg[$name] : $defVal;
+        // 二维数组支持
+        $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
+        return isset(self::$cfg[$name1][$name2]) ? self::$cfg[$name1][$name2] : $defVal;
+    }
+    //动态设置配置值
+    public static function set($name, $val=null){
+        if(is_array($name)) {
+            self::$cfg = array_merge(self::$cfg, $name); return;
+        }
+        if ( false === ($pos = strpos($name, '.')) ){
+            self::$cfg[$name]=$val; return;
+        }
+        // 二维数组支持
+        $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
+        //$name = explode('.', $name);
+        self::$cfg[$name1][$name2]=$val;
+    }
+    //删除配置
+    public static function del($name){
+        if ( false === ($pos = strpos($name, '.')) ){
+            unset(self::$cfg[$name]); return;
+        }
+        // 二维数组支持
+        $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
+        unset(self::$cfg[$name1][$name2]);
+    }
 
     // 获取环境变量的值
     public static function env($name, $def = '')
@@ -38,41 +70,47 @@ final class myphp{
             self::$env[$name] = $val;
         }
     }
-    //运行程序 $isCli 可设置CLI模式下false用于解析数据的参数
+
+    /**
+     * 运行程序 $isCli 可设置CLI模式下false用于解析数据的参数
+     * @param null $sendFun
+     * @param bool $isCli
+     * @throws \Exception
+     */
     public static function Run($sendFun=null, $isCli=IS_CLI){
         self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法
         self::init_app();
         self::$sendFun = $sendFun;
         try {
-            if(self::$beforeFun instanceof Closure){ //前置处理
+            if(self::$beforeFun instanceof \Closure){ //前置处理
                 call_user_func(self::$beforeFun);
             }
 
-            if(self::$authFun instanceof Closure){ //权限验证处理
+            if(self::$authFun instanceof \Closure){ //权限验证处理
                 call_user_func(self::$authFun);
             }else{
                 self::Auth();
             }
             $control = (strpos($_GET['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', $_GET['c']), ' ')) : ucfirst($_GET['c'])) . 'Act'; //转驼峰 控制器的类名
             $action = strpos($_GET['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', $_GET['a']), ' ')) : $_GET['a']; //转驼峰
-            if (!class_exists($control)) throw new Exception('class not exists ' . $control, 404);
+            if (!class_exists($control)) throw new \Exception('class not exists ' . $control, 404);
             // 请求缓存检查
-            if(!self::reqCache(Config::$cfg['req_cache'], Config::$cfg['req_cache_expire'], Config::$cfg['req_cache_except'])){
+            if(!self::reqCache(self::$cfg['req_cache'], self::$cfg['req_cache_expire'], self::$cfg['req_cache_except'])){
                 /**
-                 * @var Control $instance
+                 * @var \myphp\Control $instance
                  */
                 $instance = new $control();
                 $data = $instance->_run($action);
                 null!==$data && self::send($data, self::$statusCode, $instance->req_cache);
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             if($e->getCode()==404 || $e->getCode()==200){
                 self::send($e->getMessage(), $e->getCode());
             }else{
                 self::send($e->getMessage()."\n".'line:'.$e->getLine().', file:'.$e->getFile()."\n".$e->getTraceAsString(), 500);
                 Log::Exception($e, false);
             }
-        } catch (Error $e) {
+        } catch (\Error $e) {
             self::send($e->getMessage()."\n".'line:'.$e->getLine().', file:'.$e->getFile()."\n".$e->getTraceAsString(), 500);
             Log::Exception($e, false);
         }
@@ -92,18 +130,18 @@ final class myphp{
      */
     public static function send($data, $code=200, $req_cache=null){
         // 监听res_send
-        Hook::listen('res_send', $data);
+        \myphp\Hook::listen('res_send', $data);
         if (200 == $code) {
             if($req_cache===null) $req_cache = self::$req_cache;
             if ($req_cache) {
                 self::$header['Cache-Control'] = 'max-age=' . $req_cache[1] . ',must-revalidate';
                 self::$header['Last-Modified'] = gmdate('D, d M Y H:i:s') . ' GMT';
                 self::$header['Expires'] = gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME'] + $req_cache[1]) . ' GMT';
-                Config::$cfg['cache'] && self::cache()->set($req_cache[0], [$data, self::$header], $req_cache[1]); //缓存内容和输出头
+                self::$cfg['cache'] && self::cache()->set($req_cache[0], [$data, self::$header], $req_cache[1]); //缓存内容和输出头
             }
         }
         if(!isset(self::$header['Content-Type'])){
-            myphp::conType(Helper::isAjax() ? 'application/json' : 'text/html'); //默认输出类型设置
+            self::conType(Helper::isAjax() ? 'application/json' : 'text/html'); //默认输出类型设置
         }
         if(self::$sendFun===null){
             if (!IS_CLI) {
@@ -117,7 +155,7 @@ final class myphp{
             call_user_func(self::$sendFun, $code, $data, self::$header);
         }
         // 监听res_end
-        Hook::listen('res_end', $data);
+        \myphp\Hook::listen('res_end', $data);
     }
     //请求缓存处理
     private static function reqCache($req_cache, $expire = null, $except = []){
@@ -129,12 +167,13 @@ final class myphp{
             self::send('',304);
             return true;
         }
-        //有页面缓存
-        if (Config::$cfg['cache']){
+        //有启用缓存
+        if (self::$cfg['cache']){
             $reqKey = 'req';
             foreach ($_GET as $v){
                 $reqKey .= '_'.str_replace(['\\','/',':','*','?','"','<','>','|'],'',$v);
             }
+            //有页面缓存
             if($res = self::cache()->get($reqKey)) {
                 if($res[1]) self::setHeader($res[1]);
                 self::send($res[0],200);
@@ -160,7 +199,7 @@ final class myphp{
                 }
             }
         }
-        elseif ($req_cache instanceof Closure) {
+        elseif ($req_cache instanceof \Closure) {
             $reqKey = call_user_func_array($req_cache, $_GET);
         }
 
@@ -239,7 +278,7 @@ final class myphp{
     //输出类型设置
     public static function conType($conType, $charset = '')
     {
-        self::$header['Content-Type'] = $conType . '; charset=' . ($charset ? $charset : Config::$cfg['charset']);
+        self::$header['Content-Type'] = $conType . '; charset=' . ($charset ? $charset : self::$cfg['charset']);
     }
     /*
     url模式：分隔符 "-"
@@ -252,20 +291,20 @@ final class myphp{
         static $hasAppConfig;
         $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //获取当前执行文件名
         $app_root = IS_CLI ? DS : APP_ROOT . DS; //app_url根路径
-        $url_mode = isset(Config::$cfg['url_mode']) ? Config::$cfg['url_mode'] : -1;
+        $url_mode = isset(self::$cfg['url_mode']) ? self::$cfg['url_mode'] : -1;
         if($isCLI){ //cli模式请求处理
             //cli_url_mode请求模式 默认2 PATH_INFO模式
-            $url_mode = Config::$cfg['url_mode'] = isset(Config::$cfg['cli_url_mode'])?Config::$cfg['cli_url_mode']:2;
+            $url_mode = self::$cfg['url_mode'] = isset(self::$cfg['cli_url_mode'])?self::$cfg['cli_url_mode']:2;
             if($url_mode == 1){
-                $_GET['do'] = implode(Config::$cfg['url_para_str'], array_slice($_SERVER['argv'], 1));
+                $_GET['do'] = implode(self::$cfg['url_para_str'], array_slice($_SERVER['argv'], 1));
             }elseif($url_mode == 2){
-                $_SERVER["REQUEST_URI"] = implode(Config::$cfg['url_para_str'], array_slice($_SERVER['argv'], 1));
+                $_SERVER["REQUEST_URI"] = implode(self::$cfg['url_para_str'], array_slice($_SERVER['argv'], 1));
             }else{
                 parse_str(implode('&', array_slice($_SERVER['argv'], 1)), $_GET);
             }
         }
         // 简单 url 映射  //仅支持映射到普通url模式
-        $uri = UrlRoute::run();
+        $uri = self::parseUrlMap();
 
         $_app = $_url = '';
         if(!$uri) $uri = $app_root . $basename; //当前URL路径
@@ -276,7 +315,7 @@ final class myphp{
             self::parseUrl($do);
         }
         elseif($url_mode == 2){	//如果Url模式为2，那么就是使用PATH_INFO模式
-            $_url = $_app = (Config::$cfg['url_rewrite'] && $uri == Config::$cfg['url_index'] ? '' : $uri) . '/';
+            $_url = $_app = (self::$cfg['url_rewrite'] && $uri == self::$cfg['url_index'] ? '' : $uri) . '/';
             $url = $_SERVER["REQUEST_URI"];//获取完整的路径，包含"?"之后的字
 
             //去除url包含的当前文件的路径信息
@@ -304,14 +343,14 @@ final class myphp{
             $_url = $_app.'?c=';
         }
         //控制器和方法是否为空，为空则使用默认
-        $_GET['c'] = isset($_GET['c']) ? $_GET['c'] : Config::$cfg['default_control'];
-        $_GET['a'] = isset($_GET['a']) ? $_GET['a'] : Config::$cfg['default_action'];
+        $_GET['c'] = isset($_GET['c']) ? $_GET['c'] : self::$cfg['default_control'];
+        $_GET['a'] = isset($_GET['a']) ? $_GET['a'] : self::$cfg['default_action'];
         $module = isset($_GET['m']) ? str_replace(array('\\', DS), '', $_GET['m']) : '';
         //指定项目模块
         $module_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
         if ($module != '') {
-            if (isset(Config::$cfg['module_maps'][$module])) {
-                $module_path = substr(Config::$cfg['module_maps'][$module], 0, 1) == DS ? ROOT . ROOT_DIR . Config::$cfg['module_maps'][$module] : APP_PATH . DS . Config::$cfg['module_maps'][$module];
+            if (isset(self::$cfg['module_maps'][$module])) {
+                $module_path = substr(self::$cfg['module_maps'][$module], 0, 1) == DS ? ROOT . ROOT_DIR . self::$cfg['module_maps'][$module] : APP_PATH . DS . self::$cfg['module_maps'][$module];
             } else {
                 $module_path = APP_PATH . DS . $module;
             }
@@ -326,13 +365,13 @@ final class myphp{
                 self::class_dir($classDir);
                 unset($appConfig['class_dir']);
             }
-            Config::$cfg = array_merge(Config::$cfg, $appConfig);
+            self::$cfg = array_merge(self::$cfg, $appConfig);
         }
 
         //是否开启模板主题
-        $view_path = $module_path . DS . 'view' . (Config::$cfg['tmp_theme'] ? DS . Config::$cfg['site_template'] : '');
+        $view_path = $module_path . DS . 'view' . (self::$cfg['tmp_theme'] ? DS . self::$cfg['site_template'] : '');
         //自定义项目模板目录 用于模板资源路径
-        if(!isset(Config::$cfg['app_res_path'])){
+        if(!isset(self::$cfg['app_res_path'])){
             $path = $view_path;
             if(!IS_CLI){
                 if(strpos($view_path,ROOT)===0){
@@ -341,7 +380,7 @@ final class myphp{
                     $path = APP_ROOT . substr($view_path,1);
                 }
             }
-            Config::$cfg['app_res_path'] = $path;
+            self::$cfg['app_res_path'] = $path;
         }
         if(!IS_CLI){
             define('__APP__', $_app);
@@ -354,13 +393,13 @@ final class myphp{
 
         //运行变量
         self::setEnv([
-            'url_vars'=>Config::$cfg['url_vars'],
+            'url_vars'=>self::$cfg['url_vars'],
             'URI'=> $uri,
             'CONTROL' => $_GET['c'],
             'ACTION' => $_GET['a'],
             'APP' => $_app, //相对当前地址的应用入口
             'URL' => $_url . $_GET['c'], //相对当前地址的url控制
-            'BASE_URL' => $_url . $_GET['c'] . Config::$cfg['url_para_str'] . $_GET['a'],
+            'BASE_URL' => $_url . $_GET['c'] . self::$cfg['url_para_str'] . $_GET['a'],
             'MODULE' => $module,
             'MODULE_PATH' => $module_path,
             //路径 自动生成
@@ -370,7 +409,7 @@ final class myphp{
             'LANG_PATH' => $module_path . DS . 'lang',
             'VIEW_PATH' => $view_path,
             //相对项目的模板目录
-            'APP_VIEW'=>Config::$cfg['app_res_path'],
+            'APP_VIEW'=>self::$cfg['app_res_path'],
         ]);
         self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
         self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
@@ -378,7 +417,7 @@ final class myphp{
     //网址解析生成
     private static function parseUrl($url = ''){
         if($url=='' || isset($_GET['c']) || isset($_GET['a'])) return;
-        $paths = explode(Config::$cfg['url_para_str'], urldecode($url));	//分离路径
+        $paths = explode(self::$cfg['url_para_str'], urldecode($url));	//分离路径
 
         $_GET['c'] = array_shift($paths);	//获得控制器名
         $_GET['a'] = array_shift($paths);	//获得方法名
@@ -397,38 +436,38 @@ final class myphp{
 
     // 权限验证处理 在config.php配置中设置开启
     public static function Auth(){
-        if(!Config::$cfg['auth_on']) return;
-        $auth_class = Config::$cfg['auth_model'];
-        $auth_action = Config::$cfg['auth_action'];
-        $auth_login = Config::$cfg['auth_login'];
+        if(!self::$cfg['auth_on']) return;
+        $auth_class = self::$cfg['auth_model'];
+        $auth_action = self::$cfg['auth_action'];
+        $auth_login = self::$cfg['auth_login'];
         $c = $_GET['c']; $a = $_GET['a'];
         //无需验证模块
-        if(strpos( Config::$cfg['auth_model_not'] , ','.$c.',')!==false){
-            if(Config::$cfg['auth_model_action']=='') return;
+        if(strpos( self::$cfg['auth_model_not'] , ','.$c.',')!==false){
+            if(self::$cfg['auth_model_action']=='') return;
             //验证此模块中需要验证的动作
-            if(strpos( Config::$cfg['auth_model_action'] , ','.$c.'/'.$a.',')===false){
+            if(strpos( self::$cfg['auth_model_action'] , ','.$c.'/'.$a.',')===false){
                 return;
             }
         }
         //无需验证方法
-        if(strpos( Config::$cfg['auth_action_not'] , ','.$c.'/'.$a.',')!==false){
+        if(strpos( self::$cfg['auth_action_not'] , ','.$c.'/'.$a.',')!==false){
             return;
         }
 
-        if (!class_exists($auth_class)) throw new Exception('class not exists ' . $auth_class, 404);
+        if (!class_exists($auth_class)) throw new \Exception('class not exists ' . $auth_class, 404);
 
-        $auth = myphp::app($auth_class);	//引入权限验证类
-        if(!method_exists($auth, $auth_action)) throw new Exception('auth method not found! ' . $auth_action, 404);
+        $auth = self::app($auth_class);	//引入权限验证类
+        if(!method_exists($auth, $auth_action)) throw new \Exception('auth method not found! ' . $auth_action, 404);
 
         //仅登陆验证
-        if(strpos( Config::$cfg['auth_login_model'] , ','.$c.',')!==false || strpos( Config::$cfg['auth_login_action'] , ','.$c.'/'.$a.',')!==false){
+        if(strpos( self::$cfg['auth_login_model'] , ','.$c.',')!==false || strpos( self::$cfg['auth_login_action'] , ','.$c.'/'.$a.',')!==false){
             if(!$auth->$auth_login()) {
-                if($c==Config::$cfg['default_control']) redirect(ROOT_DIR .Config::$cfg['auth_gateway']);
-                else Helper::outMsg('你未登录,请先登录!', ROOT_DIR .Config::$cfg['auth_gateway']);
+                if($c==self::$cfg['default_control']) redirect(ROOT_DIR .self::$cfg['auth_gateway']);
+                else Helper::outMsg('你未登录,请先登录!', ROOT_DIR .self::$cfg['auth_gateway']);
             }
             //验证此模块中需要验证的动作
-            if(Config::$cfg['auth_login_M_A']=='') return;
-            if(strpos( Config::$cfg['auth_login_M_A'] , ','.$c.'/'.$a.',')===false){
+            if(self::$cfg['auth_login_M_A']=='') return;
+            if(strpos( self::$cfg['auth_login_M_A'] , ','.$c.'/'.$a.',')===false){
                 return;
             }
         }
@@ -471,32 +510,32 @@ final class myphp{
         //项目相对根目录
         $appRoot = IS_WIN ? strtr(dirname($_SERVER['SCRIPT_NAME']), '\\', DS) : dirname($_SERVER['SCRIPT_NAME']);
         ($appRoot=='.' || $appRoot==DS) && $appRoot='';
-        #Config::$cfg['APP_ROOT'] = $appRoot;
+        #self::$cfg['APP_ROOT'] = $appRoot;
         define('APP_ROOT', $appRoot);
         //配置组合
-        Config::load(MY_PATH . '/def_config.php'); //引入默认配置文件
+        self::load(MY_PATH . '/def_config.php'); //引入默认配置文件
         if(is_array($cfg)){ //组合参数配置
-            Config::set($cfg);
+            self::set($cfg);
             unset($cfg);
         }
         //引入公共配置文件
-        is_file(COMMON . '/config.php') && Config::load(COMMON . '/config.php');
+        is_file(COMMON . '/config.php') && self::load(COMMON . '/config.php');
 
         //相对根目录
-        if(!isset(Config::$cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
-            Config::$cfg['root_dir'] = '';
+        if(!isset(self::$cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
+            self::$cfg['root_dir'] = '';
             if($appRoot!=''){
-                if($_s_pos=strpos($appRoot,DS,1)) Config::$cfg['root_dir'] = substr($appRoot,0,$_s_pos);
-                else Config::$cfg['root_dir'] = $appRoot;
-                if(Config::$cfg['root_dir']=='.') Config::$cfg['root_dir'] = '';
+                if($_s_pos=strpos($appRoot,DS,1)) self::$cfg['root_dir'] = substr($appRoot,0,$_s_pos);
+                else self::$cfg['root_dir'] = $appRoot;
+                if(self::$cfg['root_dir']=='.') self::$cfg['root_dir'] = '';
             }
         }
         //相对根目录
-        define('ROOT_DIR', Config::$cfg['root_dir']);
+        define('ROOT_DIR', self::$cfg['root_dir']);
         //相对公共目录
         define('PUB', ROOT_DIR . '/pub');
 
-        if (Config::$cfg['debug']) { //开启错误提示
+        if (self::$cfg['debug']) { //开启错误提示
             error_reporting(E_ALL);// 报错级别设定,一般在开发环境中用E_ALL,这样能够看到所有错误提示
             ini_set('display_errors', 'On');// 有些环境关闭了错误显示
         } else {
@@ -523,20 +562,21 @@ final class myphp{
         }
 
         //设置本地时差
-        date_default_timezone_set(Config::$cfg['timezone']);
+        date_default_timezone_set(self::$cfg['timezone']);
         //初始类的可加载目录
         self::class_dir([COMMON, COMMON . '/model']); //基础类 扩展类 公共模型
-        if(Config::$cfg['class_dir']){
-            $classDir = is_array(Config::$cfg['class_dir']) ? Config::$cfg['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, Config::$cfg['class_dir']));
+        if(self::$cfg['class_dir']){
+            $classDir = is_array(self::$cfg['class_dir']) ? self::$cfg['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, self::$cfg['class_dir']));
             self::class_dir($classDir);
         }
+
         //注册类的自动加载
-        spl_autoload_register('self::autoload', true, true);
+        //spl_autoload_register('self::autoload', true, true);
 
         // 设定错误和异常处理
         Log::register();
         //日志记录初始
-        Log::init(Config::$cfg['log_dir'], Config::$cfg['log_level'], Config::$cfg['log_size']);
+        Log::init(self::$cfg['log_dir'], self::$cfg['log_level'], self::$cfg['log_size']);
         is_file(COMMON . '/common.php') && require COMMON . '/common.php';	//引入公共函数
 
         if(!defined('APP_PATH')){
@@ -554,56 +594,18 @@ final class myphp{
         if ('?>' == substr($content, -2)) $content = substr($content, 0, -2);
         return $content;
     }
+
     //读取或设置类加载路径
     public static function class_dir($dir){
-        //单独设置类加载路径需要写全地址
-        if(is_array($dir)) self::$classDir = array_merge(self::$classDir, array_fill_keys($dir, 1));
-        else self::$classDir[$dir] = 1;
+        MyLoader::class_dir($dir);
     }
-
-    /**
-     * @param $class_name
-     */
-    public static function autoload($class_name) {
-        if (isset(self::$classMap[$class_name])) { //优先加载类映射
-            include self::$classMap[$class_name];
-            return;
-        }
-
-        $name = $class_name;
-        //命名空间类加载 仿psr4
-        if ($pos = strpos($class_name, '\\')) {
-            $class_path = strtr($class_name, '\\', DIRECTORY_SEPARATOR);
-
-            if (self::loadPHP(ROOT . DIRECTORY_SEPARATOR . $class_path . '.php')) {
-                return;
-            }
-            //未匹配-取类名
-            $pos = strrpos($class_path, DIRECTORY_SEPARATOR);
-            $name = substr($class_path, $pos + 1);
-        }
-        //循环判断
-        foreach (self::$classDir as $path => $v) {
-            if (self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.php')) {
-                return;
-            }
-            if (self::$classOldSupport && self::loadPHP($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
-                return;
-            }
-        }
-    }
-
     /**
      * 载入php文件
      * @param string $path  路径
      * @return bool
      */
     public static function loadPHP($path) {
-        if (is_file($path)) {
-            include $path;
-            return true;
-        }
-        return false;
+        return MyLoader::load($path);
     }
 
     //语言
@@ -645,7 +647,7 @@ final class myphp{
                 $appConf = $option;
             }
         }else{
-            $appConf = Config::get('app.'.$name);
+            $appConf = self::get('app.'.$name);
         }
         if(isset($appConf['class'])) {
             $class = $appConf['class'];
@@ -660,14 +662,14 @@ final class myphp{
      * db实例化
      * @param string $name 数据库配置名
      * @param bool $force 是否强制生成新实例
-     * @return Db
-     * @throws Exception
+     * @return \myphp\Db
+     * @throws \Exception
      */
     public static function db($name = 'db', $force=false)
     {
         $k = '__db_' . $name;
         if ($force || !isset(self::$container[$k])) {
-            self::$container[$k] = new Db($name, $force);
+            self::$container[$k] = new \myphp\Db($name, $force);
         }
         return self::$container[$k];
     }
@@ -683,24 +685,20 @@ final class myphp{
 
     /**
      * 默认缓存实例
-     * @return CacheFile|CacheRedis
-     * @throws Exception
+     * @return \myphp\cache\File|\myphp\cache\Redis
+     * @throws \Exception
      */
     public static function cache(){
-        $type = isset(Config::$cfg['cache']) ? Config::$cfg['cache'] : 'file';
-        return Cache::getInstance($type, Config::$cfg['cache_option']);
+        $type = isset(self::$cfg['cache']) ? self::$cfg['cache'] : 'file';
+        return \myphp\Cache::getInstance($type, self::$cfg['cache_option']);
     }
 
     public static function runTime(){
         return '页面耗时'.run_time().'秒, 内存占用'.run_mem().', 执行'.Db::$times.'次SQL';
     }
-}
-//异常类
-class myException extends Exception{}
-//url路由器
-class UrlRoute{
+
     //url地址转换对应的模块/控制/方法
-    static public function run(){
+    public static function parseUrlMap(){
         /*
         url映射(无)：直接原样url分析
         url映射(有)：
@@ -709,22 +707,22 @@ class UrlRoute{
             2、动态url	如：<参数1>[<可选参数>]; [正则]->[*]特殊情况下使用 不支持‘.<>[]’
                 'news-<id\d>[-<page\d>]'=>'info/lists?<id>[&<page>]' 解析-> /index.php?c=info&a=lists&id=7&page=$2
         */
-        if(empty(Config::$cfg['url_maps'])) return false;
+        if(empty(self::$cfg['url_maps'])) return false;
         $url = rtrim($_SERVER["REQUEST_URI"], '/');
         if(ROOT_DIR!='')
             $url = str_replace(ROOT_DIR,'',$url);
-        if(strpos($url,Config::$cfg['url_index'])===0)
-            $url = substr($url,strlen(Config::$cfg['url_index']));
+        if(strpos($url,self::$cfg['url_index'])===0)
+            $url = substr($url,strlen(self::$cfg['url_index']));
         if($url_pos=strpos($url,'?'))
             $url = substr($url,0,$url_pos);
 
         $uri = $mac = $para = '';
-        if(isset(Config::$cfg['url_maps'][$url])){ //静态url
-            $uri = Config::$cfg['url_maps'][$url];
-        }elseif(isset(Config::$cfg['url_maps'][Helper::getMethod().' '.$url])){ //仅支持单项 GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS
-            $uri = Config::$cfg['url_maps'][Helper::getMethod().' '.$url];
+        if(isset(self::$cfg['url_maps'][$url])){ //静态url
+            $uri = self::$cfg['url_maps'][$url];
+        }elseif(isset(self::$cfg['url_maps'][Helper::getMethod().' '.$url])){ //仅支持单项 GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS
+            $uri = self::$cfg['url_maps'][Helper::getMethod().' '.$url];
         }else{ //动态url '/news/<id>[-<page>][-<pl>]'=>'info/lists?<id>[&<page>][&<pl>]',
-            foreach(Config::$cfg['url_maps'] as $k=>$v){
+            foreach(self::$cfg['url_maps'] as $k=>$v){
                 $reg_match = false;
                 if(strpos($k,'[')){ //可选参数或特殊regx模式
                     $k = str_replace(array('[',']'),array('(',')?'),$k);
@@ -747,7 +745,7 @@ class UrlRoute{
                                 $regx='(\S+)';
                             }elseif($type=='!'){ //正则 <all\*!> -> '*'=>'(.*)'
                                 $x = substr($__var,$depr+1,-1);
-                                $regx = isset(Config::$cfg['url_maps_regx'][$x]) ? Config::$cfg['url_maps_regx'][$x] : '([\w=]+)';
+                                $regx = isset(self::$cfg['url_maps_regx'][$x]) ? self::$cfg['url_maps_regx'][$x] : '([\w=]+)';
                                 $regx = str_replace('.','#dot',$regx);
                             }
                         }
@@ -808,9 +806,9 @@ class UrlRoute{
             if(substr_count($script_name,'/')>1){
                 $_SERVER['SCRIPT_NAME'] = substr($script_name,-1)=='/'?$script_name.'index.php':$script_name;
                 $_GET['m'] = md5($script_name);
-                Config::$cfg['module_maps'][$_GET['m']]=substr($script_name,0,strrpos($script_name,'/')).'/app';
+                self::$cfg['module_maps'][$_GET['m']]=substr($script_name,0,strrpos($script_name,'/')).'/app';
             }
-            //var_dump(Config::$cfg['module_maps']);
+            //var_dump(self::$cfg['module_maps']);
         }
         //echo $_SERVER['SCRIPT_NAME'].'<br>'; //当前URL路径
         //echo $script_name.'<br>';
@@ -849,7 +847,7 @@ class UrlRoute{
     */
     // 反转url	如：info/lists?id=7 -> /news
     // url模式:url_maps_k, url实际参数
-    static public function reverse_url($k,$vars){
+    public static function reverse_url($k,$vars){
         if($pos=strpos($k,'<')){ //是动态执行分析
             do{
                 $end = strpos($k,'>',$pos);
@@ -894,14 +892,14 @@ class UrlRoute{
     */
 
     //url正向解析 地址 [!]admin/index/show?b=c&d=e&....[#锚点@域名（待实现）], 附加参数 数组|null, url字符串如：/pub/index.php
-    static public function forward_url($uri='', $vars=null, $url=''){
+    public static function forward_url($uri='', $vars=null, $url=''){
         $normal = false;#$uri = trim($uri);
         $m = $c = $a = $mac = $para = '';
         if(substr($uri,0,1)=='!'){ //普通url模式
             $normal = true; $uri = substr($uri,1);
         }
         $pos = strpos($uri,'?');
-        $url_vars = myphp::env('url_vars');
+        $url_vars = self::env('url_vars');
         if(is_array($url_vars)){ //全局url参数设定
             $vars = $vars!=null ? array_merge($url_vars, $vars) : $url_vars;
         }
@@ -919,10 +917,10 @@ class UrlRoute{
             // $uri = rtrim($uri,'&');
         }
         //url映射
-        if(is_array(Config::$cfg['url_maps']) && !empty(Config::$cfg['url_maps'])){
+        if(is_array(self::$cfg['url_maps']) && !empty(self::$cfg['url_maps'])){
             static $url_maps;
             if(!isset($url_maps)){
-                foreach (Config::$cfg['url_maps'] as $k => $v) {
+                foreach (self::$cfg['url_maps'] as $k => $v) {
                     $url_maps[$v]=$k;
                 }
             }
@@ -954,19 +952,19 @@ class UrlRoute{
                 $c = array_pop($path);
                 if(!empty($path)) $m = array_pop($path);
             }else{
-                $c = myphp::env('CONTROL');
-                $a = $mac ? $mac : myphp::env('ACTION');
+                $c = self::env('CONTROL');
+                $a = $mac ? $mac : self::env('ACTION');
             }
         }
         if($c=='' && $a=='' && !is_array($vars)){
-            return $url==''?myphp::env('URI'):ROOT_DIR.$url;
+            return $url==''?self::env('URI'):ROOT_DIR.$url;
         }
         //
-        $url_mode = Config::$cfg['url_mode'];
-        $ups = Config::$cfg['url_para_str'];
+        $url_mode = self::$cfg['url_mode'];
+        $ups = self::$cfg['url_para_str'];
         $para = '';
-        #$c = $c==''?myphp::env('CONTROL'):$c;
-        #$a = $a==''?myphp::env('ACTION'):$a;
+        #$c = $c==''?self::env('CONTROL'):$c;
+        #$a = $a==''?self::env('ACTION'):$a;
         if ($c) $para = 'c=' . $c;
         if ($a) $para .= '&a=' . $a;
         if ($m) $para .= '&m=' . $m;
@@ -975,7 +973,7 @@ class UrlRoute{
         #if($m) $para .= '&m='.$m;
         //url映射处理
         if(isset($url_maps)){
-            $_url = $url==''?substr(myphp::env('URI'),strlen(ROOT_DIR)):$url;
+            $_url = $url==''?substr(self::env('URI'),strlen(ROOT_DIR)):$url;
 
             if(is_array($vars)) $para .= '&'.urldecode(http_build_query($vars));
             $_url .='?'.trim($para,'&');
@@ -992,7 +990,7 @@ class UrlRoute{
 
         //直接解析
         if($url_mode==0 || $normal){//普通模式
-            $url = $url==''?myphp::env('URI'):ROOT_DIR.$url;
+            $url = $url==''?self::env('URI'):ROOT_DIR.$url;
             if(is_array($vars)) $para .= '&'.urldecode(http_build_query($vars));
             return $url.'?'.trim($para,'&');
         }
@@ -1005,7 +1003,7 @@ class UrlRoute{
                 $url .= '/';
             }
         }else{
-            $url = myphp::env('APP');
+            $url = self::env('APP');
         }
 
 
@@ -1020,44 +1018,9 @@ class UrlRoute{
         return $url;
     }
 }
-//配置处理类
-class Config{
-    public static $cfg = [];
-    //载入配置
-    public static function load($file){
-        self::set(include $file);
-    }
-    //获取配置值 支持二维数组
-    public static function get($name, $defVal = null){
-        if ( false === ($pos = strpos($name, '.')) )
-            return isset(self::$cfg[$name]) ? self::$cfg[$name] : $defVal;
-        // 二维数组支持
-        $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
-        return isset(self::$cfg[$name1][$name2]) ? self::$cfg[$name1][$name2] : $defVal;
-    }
-    //动态设置配置值
-    public static function set($name, $val=null){
-        if(is_array($name)) {
-            self::$cfg = array_merge(self::$cfg, $name); return;
-        }
-        if ( false === ($pos = strpos($name, '.')) ){
-            self::$cfg[$name]=$val; return;
-        }
-        // 二维数组支持
-        $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
-        //$name = explode('.', $name);
-        self::$cfg[$name1][$name2]=$val;
-    }
-    //删除配置
-    public static function del($name){
-        if ( false === ($pos = strpos($name, '.')) ){
-            unset(self::$cfg[$name]); return;
-        }
-        // 二维数组支持
-        $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
-        unset(self::$cfg[$name1][$name2]);
-    }
-}
+//异常类
+class myException extends Exception{}
+//消息复用
 trait MyMsg
 {
     public static $myMsg = '';

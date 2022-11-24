@@ -1,10 +1,17 @@
 <?php
+namespace myphp\db;
+
+use PDO;
+use PDOStatement;
+use PDOException;
+use myphp\Log;
+
 /**
  * Class db_pdo
  * @property PDO $conn
  * @property PDOStatement $rs
  */
-class db_pdo extends DbBase{
+class db_pdo extends \myphp\DbBase{
 	//连接数据库
     public function connect() {
 		$cfg_db = &$this->config;

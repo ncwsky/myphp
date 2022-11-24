@@ -1,4 +1,6 @@
 <?php
+namespace myphp;
+
 //视图类
 class View
 {
@@ -15,16 +17,16 @@ class View
     //构造方法，实例化视图
     public function __construct($path='', $cachePath='')
     {
-        if ($path=='') $path = './view';;
+        if ($path=='') $path = './view';
         if ($cachePath=='') $cachePath = './cache';
 
         $this->template = new Template();
         $this->template->view_path = $path;
         $this->template->cache = true;    //设置是否开启缓存
         $this->template->cachePath = $cachePath;    //缓存路径
-        $this->template->suffix = isset(Config::$cfg['tmp_suffix']) ? Config::$cfg['tmp_suffix'] : '.html';    //模板后缀名
-        $this->template->leftTag = isset(Config::$cfg['tmp_left_tag']) ? Config::$cfg['tmp_left_tag'] : '{';    //模板左侧符号
-        $this->template->rightTag = isset(Config::$cfg['tmp_right_tag']) ? Config::$cfg['tmp_right_tag'] : '}';    //模板右侧符号
+        $this->template->suffix = isset(\myphp::$cfg['tmp_suffix']) ? \myphp::$cfg['tmp_suffix'] : '.html';    //模板后缀名
+        $this->template->leftTag = isset(\myphp::$cfg['tmp_left_tag']) ? \myphp::$cfg['tmp_left_tag'] : '{';    //模板左侧符号
+        $this->template->rightTag = isset(\myphp::$cfg['tmp_right_tag']) ? \myphp::$cfg['tmp_right_tag'] : '}';    //模板右侧符号
     }
 
     //单例模式
@@ -42,7 +44,7 @@ class View
     //取得页面内容
     public function fetch($file = '', $var = null)
     {
-        if ($file == '') $file = myphp::env('ACTION') . $this->template->suffix;
+        if ($file == '') $file = \myphp::env('ACTION') . $this->template->suffix;
         if (is_array($var)) {    //如果是数组，那么将它合并到属性$vars中
             $this->vars = array_merge($this->vars, $var);
         }
@@ -53,7 +55,7 @@ class View
     public function display($file = '', $var = null)
     {
         $content = $this->fetch($file, $var);
-        $this->obstart();
+        $this->obStart();
         echo $content;
         ob_end_flush();
     }
@@ -68,22 +70,27 @@ class View
         }
     }
 
-    //静态方法 直接返回解析后的php文件
-    public static function dotemp($file = '')
+    /**
+     * 静态方法 直接返回解析后的php文件
+     * @param string $file
+     * @return string
+     * @throws \Exception
+     */
+    public static function doTemp($file = '')
     {
         if(!self::$instance){
-            self::$instance = new self(myphp::env('VIEW_PATH'), myphp::env('CACHE_PATH'));
+            self::$instance = new self(\myphp::env('VIEW_PATH'), \myphp::env('CACHE_PATH'));
         }
-        if ($file == '') $file = myphp::env('ACTION') . self::$instance->template->suffix;
+        if ($file == '') $file = \myphp::env('ACTION') . self::$instance->template->suffix;
 
         return self::$instance->template->cacheFile($file);
     }
 
     //打开输出缓冲
-    public static function obstart()
+    public static function obStart()
     {
         // 配置变量isGzipEnable Gzip压缩开关
-        if (function_exists('ob_gzhandler') && isset(Config::$cfg['isGzipEnable']) && Config::$cfg['isGzipEnable']) {
+        if (function_exists('ob_gzhandler') && isset(\myphp::$cfg['isGzipEnable']) && \myphp::$cfg['isGzipEnable']) {
             ob_start('ob_gzhandler');
         } else {
             ob_start();

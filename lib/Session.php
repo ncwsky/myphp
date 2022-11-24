@@ -1,4 +1,6 @@
 <?php
+namespace myphp;
+
 /**
  * Session工厂
  */
@@ -17,36 +19,25 @@ class Session {
 		
 		session_set_cookie_params(
 			isset($opts['expire'])?(int)$opts['expire']:0,
-			isset(Config::$cfg['cookie_path'])?Config::$cfg['cookie_path']:'/',
-			isset(Config::$cfg['cookie_domain'])?Config::$cfg['cookie_domain']:'',
-			isset(Config::$cfg['cookie_secure'])?Config::$cfg['cookie_secure']:FALSE,
-			TRUE // HttpOnly; Yes, this is intentional and not configurable for security reasons
+			isset(\myphp::$cfg['cookie_path'])?\myphp::$cfg['cookie_path']:'/',
+			isset(\myphp::$cfg['cookie_domain'])?\myphp::$cfg['cookie_domain']:'',
+			isset(\myphp::$cfg['cookie_secure'])?\myphp::$cfg['cookie_secure']:false,
+            true // HttpOnly; Yes, this is intentional and not configurable for security reasons
 		);
 		session_name($opts['id']);
-		isset($opts['path']) && session_save_path($opts['path']);
-		
+
 		if(isset(self::$instance[$type])) return true;
 		
 		if($type!='file'){ //linux因权限原因自定义file操作类会出现无权限的情况
-            require_once(MY_PATH.'/lib/session/'.$type.'.php');
-			$session_class = 'session_'.$type;
-			if(!class_exists($session_class)) throw new Exception($session_class.' not found');
+            $session_class = '\myphp\session\\'.ucfirst($type);
+			if(!class_exists($session_class)) throw new \Exception($session_class.' not found');
 
 			$sess = new $session_class($opts);
-			if(version_compare(PHP_VERSION,'5.4','>=')){
-				session_set_save_handler($sess, true);
-			}else{
-				session_set_save_handler(
-					array($sess, 'open'),
-					array($sess, 'close'),
-					array($sess, 'read'),
-					array($sess, 'write'),
-					array($sess, 'destroy'),
-					array($sess, 'gc')
-				);
-			}
+            session_set_save_handler($sess, true);
 			register_shutdown_function('session_write_close');
-		}
+        } else {
+            isset($opts['path']) && session_save_path($opts['path']);
+        }
 		self::$instance[$type] = true;
 		if(!isset($_SESSION)) session_start();
 	}
@@ -71,30 +62,5 @@ class Session {
 	public static function del($name){ //删除 session
 		!isset($_SESSION) && self::init();
 		unset($_SESSION[$name]);
-	}
-}
-if (!interface_exists('SessionHandlerInterface')) {
-	//session接口
-	interface SessionHandlerInterface{
-		public function open($save_path, $name); // bool
-		public function read($sid);
-		public function write($sid, $data);
-		
-		public function close();
-		public function destroy($sid); //删除 session_id
-		public function gc($maxlifetime); //回收 bool
-	}
-}
-//session抽象类
-abstract class session_abstract implements SessionHandlerInterface{
-	protected $handler, $options;
-	
-	//构造函数
-	public function __construct($options=array()){
-		$this->options = $options;
-	}
-	//关闭
-	public function close(){
-		return true;
 	}
 }

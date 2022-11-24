@@ -1,4 +1,6 @@
 <?php
+namespace myphp;
+
 /**
  * Class Model 数据模型类
  * @method Model fields(string|array $val)
@@ -14,8 +16,8 @@
  * @method int update(array $post, string $table='', string|array $where = '')
  * @method int add(array $post, string $table='')
  * @method int del(string $table='', string|array $where = '')
- * @method array|self[]|false|PDOStatement select(bool|string $table='');
- * @method array|self[]|false|PDOStatement all(bool|string $table='');
+ * @method array|self[]|false|\PDOStatement select(bool|string $table='');
+ * @method array|self[]|false|\PDOStatement all(bool|string $table='');
  * @method array|self|false find();
  * @method array|self|false one();
  * @method string select_sql();
@@ -28,9 +30,9 @@
  * @method bool rollBack($force=false);
  * @property Db $db
  */
-class Model implements ArrayAccess
+class Model implements \ArrayAccess
 {
-    use MyMsg;
+    use \MyMsg;
     // 当前操作数据表名
     protected $tbName = null; //不指定自动获取
     protected $aliasName = null; //别名
@@ -65,7 +67,7 @@ class Model implements ArrayAccess
      * 构造函数  $tbName 不定义表模型 直接指定, $dbName 指定db配置名称
      * @param null $tbName
      * @param null|string|Db $dbName
-     * @throws Exception
+     * @throws \Exception
      */
     public function __construct($tbName = null, $dbName = null)
     {
@@ -79,7 +81,7 @@ class Model implements ArrayAccess
             }
         }
 
-        if (!$this->tbName) { //未指定表名或未传递表名时 自动获取【前缀+表名】
+        if (!$this->tbName) { //未指定表名或传递表名时 自动获取【前缀+表名】
             $this->tbName = $this->db->prefix . ($tbName === null ? strtolower(get_class($this)) : $tbName);
         }
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
@@ -173,7 +175,7 @@ class Model implements ArrayAccess
      * @param null $where
      * @param null $def
      * @return bool|int|mixed|string
-     * @throws Exception
+     * @throws \Exception
      */
     public function save($data = null, $where = null, $def=null)
     {
@@ -198,7 +200,7 @@ class Model implements ArrayAccess
         }
         //验证数据
         if (!Helper::validAll($this->_data, $fieldRule, true, $def === null ? $this->setDef : $def)) {
-            //throw new RuntimeException('验证失败');
+            //throw new \RuntimeException('验证失败');
             $this->db->options = null;
             return false;
         }
@@ -294,7 +296,7 @@ class Model implements ArrayAccess
         //if (strpos($methods, $method) === false) return;
         if ($method == 'del') {
             if(!$this->db->where){
-                throw new Exception("请指定删除条件");
+                throw new \Exception("请指定删除条件");
             }
             $this->_data = $this->_oldData = null;
         }

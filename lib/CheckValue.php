@@ -1,4 +1,6 @@
 <?php
+namespace myphp;
+
 class CheckValue{
     public static $before = null; //验证的前置操作 流程处理完请重置为null
     public static $after = null; //验证的后置操作 流程处理完请重置为null
@@ -53,7 +55,7 @@ class CheckValue{
      * @param mixed $default
      * @param $strict
      * @return array|bool|float|int|string
-     * @throws RuntimeException
+     * @throws \RuntimeException
      */
     public static function get(&$data, $name, $rule=null, $default=null, $strict=false){
         if(strpos($name,'.')){ //多维数组
@@ -219,7 +221,7 @@ class CheckValue{
         if($errCode){
             if($strict){ //严格验证 无默认值异常
                 # 1:值为空字符或null 2:值与对应类型设定不匹配
-                throw new RuntimeException($errCode==1?$err1:$err2);
+                throw new \RuntimeException($errCode==1?$err1:$err2);
             }
             if($type=='d' || $type=='f') {
                 $default = $type == 'd' ? (int)$default : (float)$default;

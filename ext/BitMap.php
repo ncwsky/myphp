@@ -36,7 +36,7 @@ class BitMap{
 
     public static function load($data) {
         $nRet = unpack('N*', substr($data, 0, 8));
-        if(!$nRet) throw new Exception('解析数据[m,n]失败');
+        if(!$nRet) throw new \Exception('解析数据[m,n]失败');
         $bitMap = new self($nRet[1], substr($data, 8), $nRet[2]);
         return $bitMap;
     }

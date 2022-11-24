@@ -1,6 +1,8 @@
 <?php
+namespace myphp\db;
+
 //获取表信息
-class tb_mysql extends TbBase
+class tb_mysql extends \myphp\TbBase
 {
     /**
      * @param string $type 数据库取得的类型

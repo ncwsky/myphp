@@ -22,7 +22,7 @@ class ReplyAck{
      * @return lib_redis|MyRedis|Redis
      */
     public static function redis(){
-        return lib_redis::getInstance(Config::get(self::$redisName));
+        return lib_redis::getInstance(myphp::get(self::$redisName));
     }
     /** 初始并生成定时器
      * @param string $redisName

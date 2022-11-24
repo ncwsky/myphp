@@ -1,10 +1,17 @@
 <?php
+namespace myphp\db;
+
+use mysqli;
+use mysqli_result;
+use Exception;
+use myphp\Log;
+
 /**
  * Class db_mysqli
  * @property mysqli $conn
  * @property mysqli_result $rs
  */
-class db_mysqli extends DbBase{
+class db_mysqli extends \myphp\DbBase{
 	// 连接数据库
     public function connect() {
 		$cfg_db = &$this->config;

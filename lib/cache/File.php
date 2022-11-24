@@ -1,6 +1,8 @@
 <?php
+namespace myphp\cache;
+
 //文件缓存类
-class CacheFile extends CacheAbstract{
+class File extends \myphp\CacheAbstract{
     public $gcProbability = 10; //1000000次设置有10次机率触发垃圾回收
     public $suffix = '.php';
 	//配置

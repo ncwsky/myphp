@@ -1,4 +1,6 @@
 <?php
+namespace myphp;
+
 //日志类
 class Log{
 	private $handler = null;
@@ -26,9 +28,9 @@ class Log{
     }
     //注册异常处理
     public static function register(){
-		set_error_handler('Log::UserErr'); // 自定义用户错误处理函数
-		set_exception_handler('Log::Exception'); //自定义异常处理
-		register_shutdown_function('Log::Err'); //定义PHP程序执行完成后执行的函数
+		set_error_handler('\myphp\Log::UserErr'); // 自定义用户错误处理函数
+		set_exception_handler('\myphp\Log::Exception'); //自定义异常处理
+		register_shutdown_function('\myphp\Log::Err'); //定义PHP程序执行完成后执行的函数
     }
 	//初始日志目录
 	public static function Init($logDir=null, $level=0, $size=2097152){
@@ -145,7 +147,7 @@ class Log{
 	}
 
     /** 自定义异常记录 用于 set_exception_handler
-     * @param Exception $e
+     * @param \Exception $e
      * @param bool $out
      */
 	public static function Exception($e, $out=true){
