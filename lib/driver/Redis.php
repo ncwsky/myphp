@@ -1,5 +1,7 @@
 <?php
-namespace myphp;
+namespace myphp\driver;
+
+use myphp\Log;
 
 /**
  * The redis connection class is used to establish a connection to a [redis](http://redis.io/) server.
@@ -216,7 +218,7 @@ namespace myphp;
  * @property string $driverName Name of the DB driver. This property is read-only.
  * @property bool $isActive Whether the DB connection is established. This property is read-only.
  */
-class MyRedis
+class Redis
 {
     /**
      * @var string the host or ip address to use for connecting to the redis server. Defaults to 'localhost'.
@@ -582,7 +584,6 @@ class MyRedis
                 $this->executeCommand('SELECT', [$this->database]);
             }
         } else {
-            //Log::ERROR("Failed to open redis connection ($connection): $errorNumber - $errorDescription");
             $message = 'Failed to open redis connection.';
             throw new \Exception($message, $errorDescription, $errorNumber);
         }
@@ -722,7 +723,7 @@ class MyRedis
                 try {
                     return $this->sendCommandInternal($command, $srcCommand);
                 } catch (\Exception $e) {
-                    Log::trace('retries' . $tries . ', ' . $srcCommand . ', ' . $e->getMessage(), 'MyRedis');
+                    Log::trace('retries' . $tries . ', ' . $srcCommand . ', ' . $e->getMessage(), 'Redis');
                     // backup retries, fail on commands that fail inside here
                     $retries = $this->retries;
                     $this->retries = 0; //close方法有调用executeCommand 不设置0会有死循环
@@ -739,7 +740,7 @@ class MyRedis
         try {
             return $this->sendCommandInternal($command, $srcCommand, $response);
         } catch (\Exception $e) {
-            Log::trace('retries:' . $e->getMessage(), 'MyRedis');
+            Log::trace('retries:' . $e->getMessage(), 'Redis');
             $this->close();
             $this->open();
         }
