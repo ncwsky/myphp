@@ -1,7 +1,6 @@
 <?php
-use myphp\View;
+namespace __app__\control;
 
-//直接继承基类
 class IndexAct extends Base{
 	//创建一个方法
 	public function index(){
@@ -18,19 +17,19 @@ class IndexAct extends Base{
 		return $this->fetch('index.html');
 /*
 		//可不用assign进行模板赋值
-		View::obStart();
-		include View::doTemp('index.html');
+		\myphp\View::obStart();
+		include \myphp\View::doTemp('index.html');
 
 		$this->assign('mess', '');
 		return $this->fetch();
 
 		extract($this->view->vars);
-		View::obStart();
-		include View::doTemp();
+		\myphp\View::obStart();
+		include \myphp\View::doTemp();
 
 		//还可以与assign混合使用 此处在__construct 时特别有用 可以对一些类里全局使用的模板变量进行赋值调用
-		View::obStart();extract($this->view->vars);
-		include View::doTemp('index.html');
+		\myphp\View::obStart();extract($this->view->vars);
+		include \myphp\View::doTemp('index.html');
 */
 	}
 }

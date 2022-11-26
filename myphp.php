@@ -91,8 +91,8 @@ final class myphp{
             }else{
                 self::Auth();
             }
-            $control = (strpos($_GET['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', $_GET['c']), ' ')) : ucfirst($_GET['c'])) . 'Act'; //转驼峰 控制器的类名
-            $action = strpos($_GET['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', $_GET['a']), ' ')) : $_GET['a']; //转驼峰
+            $control = self::$env['app_namespace'].'\\control\\'.(strpos(self::$env['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['c']), ' ')) : ucfirst(self::$env['c'])) . 'Act'; //转驼峰 控制器的类名
+            $action = strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a']; //转驼峰
             if (!class_exists($control)) throw new \Exception('class not exists ' . $control, 404);
             // 请求缓存检查
             if(!self::reqCache(self::$cfg['req_cache'], self::$cfg['req_cache_expire'], self::$cfg['req_cache_except'])){
@@ -185,7 +185,7 @@ final class myphp{
 
         //使用缓存
         if (true === $req_cache) {
-            $ca = '/'.$_GET['c'].'/'.$_GET['a'];
+            $ca = '/'.self::$env['c'].'/'.self::$env['a'];
             foreach ($except as $rule) {
                 if (0 === stripos($ca, $rule)) {
                     return false;
@@ -343,16 +343,30 @@ final class myphp{
             $_url = $_app.'?c=';
         }
         //控制器和方法是否为空，为空则使用默认
-        $_GET['c'] = isset($_GET['c']) ? $_GET['c'] : self::$cfg['default_control'];
-        $_GET['a'] = isset($_GET['a']) ? $_GET['a'] : self::$cfg['default_action'];
+        if (empty($_GET['c'])) {
+            $_GET['c'] = self::$cfg['default_control'];
+        }
+        if (empty($_GET['a'])) {
+            $_GET['a'] = self::$cfg['default_action'];
+        }
+        self::$env['c'] = $_GET['c'];
+        self::$env['a'] = $_GET['a'];
+        self::$env['app_namespace'] = basename(APP_PATH);
         $module = isset($_GET['m']) ? str_replace(array('\\', DS), '', $_GET['m']) : '';
         //指定项目模块
         $module_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
         if ($module != '') {
             if (isset(self::$cfg['module_maps'][$module])) {
-                $module_path = substr(self::$cfg['module_maps'][$module], 0, 1) == DS ? ROOT . ROOT_DIR . self::$cfg['module_maps'][$module] : APP_PATH . DS . self::$cfg['module_maps'][$module];
+                if(substr(self::$cfg['module_maps'][$module], 0, 1) == DS){
+                    $module_path = ROOT . ROOT_DIR . self::$cfg['module_maps'][$module];
+                    self::$env['app_namespace'] = strtr(substr(self::$cfg['module_maps'][$module], 1), DS, '\\');
+                } else {
+                    $module_path = APP_PATH . DS . self::$cfg['module_maps'][$module];
+                    self::$env['app_namespace'] .= '\\'. strtr(self::$cfg['module_maps'][$module], DS, '\\');
+                }
             } else {
                 $module_path = APP_PATH . DS . $module;
+                self::$env['app_namespace'] .= '\\'.$module;
             }
         }
 
@@ -384,7 +398,7 @@ final class myphp{
         }
         if(!IS_CLI){
             define('__APP__', $_app);
-            define('__URL__', $_url . $_GET['c']);
+            define('__URL__', $_url . self::$env['c']);
             define('__URI__', $app_root . $basename);//当前URL路径
             define('URL', __URL__);
             define('APP', __APP__);
@@ -395,11 +409,9 @@ final class myphp{
         self::setEnv([
             'url_vars'=>self::$cfg['url_vars'],
             'URI'=> $uri,
-            'CONTROL' => $_GET['c'],
-            'ACTION' => $_GET['a'],
             'APP' => $_app, //相对当前地址的应用入口
-            'URL' => $_url . $_GET['c'], //相对当前地址的url控制
-            'BASE_URL' => $_url . $_GET['c'] . self::$cfg['url_para_str'] . $_GET['a'],
+            'URL' => $_url . self::$env['c'], //相对当前地址的url控制
+            'BASE_URL' => $_url . self::$env['c'] . self::$cfg['url_para_str'] . self::$env['a'],
             'MODULE' => $module,
             'MODULE_PATH' => $module_path,
             //路径 自动生成
@@ -485,8 +497,9 @@ final class myphp{
             $dirs  = array(
                 self::$env['CACHE_PATH'],
                 $cPath,
-                self::$env['VIEW_PATH'],
-                self::$env['LANG_PATH']
+                self::$env['LANG_PATH'],
+                self::$env['MODEL_PATH'],
+                self::$env['VIEW_PATH']
             );
             foreach ($dirs as $dir){
                 if(!is_dir($dir))  mkdir($dir,0755);
@@ -495,14 +508,14 @@ final class myphp{
             // 写入测试Action
             if(!is_file($cPath.'/IndexAct.php')){
                 file_put_contents($path.'/index.htm', 'dir');
-                file_put_contents($cPath.'/Base.php', file_get_contents(MY_PATH.'/Base.class.tpl'));
-                file_put_contents($cPath.'/IndexAct.php', file_get_contents(MY_PATH.'/IndexAct.class.tpl'));
+                file_put_contents($cPath.'/Base.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(MY_PATH.'/Base.class.tpl')));
+                file_put_contents($cPath.'/IndexAct.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(MY_PATH.'/IndexAct.class.tpl')));
                 file_put_contents(self::$env['VIEW_PATH'].'/index.html', file_get_contents(MY_PATH.'/index.tpl'));
             }
             // 生成项目配置
-            $runconfig = $path .'/config.php';
-            if(!is_file($runconfig))
-                file_put_contents($runconfig, file_get_contents(MY_PATH.'/config.tpl'));
+            $runConfig = $path .'/config.php';
+            if(!is_file($runConfig))
+                file_put_contents($runConfig, file_get_contents(MY_PATH.'/config.tpl'));
         }
     }
     //初始框架
@@ -580,7 +593,7 @@ final class myphp{
         is_file(COMMON . '/common.php') && require COMMON . '/common.php';	//引入公共函数
 
         if(!defined('APP_PATH')){
-            define('APP_PATH', realpath(dirname($_SERVER['SCRIPT_FILENAME'])));
+            define('APP_PATH', realpath(dirname($_SERVER['SCRIPT_FILENAME'])) . '/app');
             if (!IS_CLI) {
                 self::conType(Helper::isAjax() ? 'application/json' : 'text/html'); //默认输出类型设置
                 self::sendHeader();
@@ -952,8 +965,8 @@ final class myphp{
                 $c = array_pop($path);
                 if(!empty($path)) $m = array_pop($path);
             }else{
-                $c = self::env('CONTROL');
-                $a = $mac ? $mac : self::env('ACTION');
+                $c = self::env('c');
+                $a = $mac ? $mac : self::env('a');
             }
         }
         if($c=='' && $a=='' && !is_array($vars)){
@@ -963,8 +976,8 @@ final class myphp{
         $url_mode = self::$cfg['url_mode'];
         $ups = self::$cfg['url_para_str'];
         $para = '';
-        #$c = $c==''?self::env('CONTROL'):$c;
-        #$a = $a==''?self::env('ACTION'):$a;
+        #$c = $c==''?self::env('c'):$c;
+        #$a = $a==''?self::env('a'):$a;
         if ($c) $para = 'c=' . $c;
         if ($a) $para .= '&a=' . $a;
         if ($m) $para .= '&m=' . $m;

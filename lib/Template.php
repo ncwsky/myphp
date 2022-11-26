@@ -15,8 +15,6 @@ class Template{
 	private $cacheFile = '';	//当前缓存文件名
 	private $level = 0, $maxLevel = 0; //模板嵌套层次 层次深度
 	private $dir = array(); //模板嵌套 模板层次关系 模板内容 存放数组
-	//私有的构造函数，不允许直接创建对象
-	public function __construct(){}
 
     /**
      * 初始化模板文件夹以及缓存文件完整路径
@@ -27,7 +25,7 @@ class Template{
         //判断模板文件是否存在
         $templateFile = ($file[0] == '/' ? ROOT . ROOT_DIR : $this->view_path . DS) . $file;
         if (!is_file($templateFile)) {
-            throw new \Exception('模板文件' . $file . '不存在');
+            throw new \Exception('模板文件' . str_replace(ROOT, '', $templateFile) . '不存在');
         }
 
 		$this->templateFile = $templateFile;

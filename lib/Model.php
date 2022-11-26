@@ -81,8 +81,15 @@ class Model implements \ArrayAccess
             }
         }
 
-        if (!$this->tbName) { //未指定表名或传递表名时 自动获取【前缀+表名】
-            $this->tbName = $this->db->prefix . ($tbName === null ? strtolower(get_class($this)) : $tbName);
+        if ($this->tbName===null) { //未指定表名且未传递表名时 自动获取【前缀+表名】
+            if ($tbName === null) {
+                $tbName = get_class($this); //static::class
+                if ($pos = strrpos($tbName, '\\')) { //命名空间
+                    $tbName = substr($tbName, $pos + 1);
+                }
+                $tbName = $this->db->prefix . strtolower($tbName);
+            }
+            $this->tbName = $tbName;
         }
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);

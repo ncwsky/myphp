@@ -61,13 +61,14 @@ MyLoader::$classMap = [
     'myphp\Hook' => __DIR__ . '/lib/Hook.php',
     'myphp\Log' => __DIR__ . '/lib/Log.php',
     'myphp\Model' => __DIR__ . '/lib/Model.php',
-    'myphp\MyRedis' => __DIR__ . '/lib/MyRedis.php',
     'myphp\Session' => __DIR__ . '/lib/Session.php',
     'myphp\Template' => __DIR__ . '/lib/Template.php',
     'myphp\View' => __DIR__ . '/lib/View.php',
 
     //'myphp\cache\File' => __DIR__ . '/lib/cache/File.php',
     //'myphp\cache\Redis' => __DIR__ . '/lib/cache/Redis.php',
+
+    'myphp\driver\Redis' => __DIR__ . '/lib/driver/Redis.php',
 
     //'myphp\session\Redis' => __DIR__ . '/lib/session/Redis.php',
 

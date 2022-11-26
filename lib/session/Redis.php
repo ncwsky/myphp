@@ -43,7 +43,7 @@ class Redis implements \SessionHandlerInterface{
             $this->handler->select($this->options['select']);
         }else{
             $this->options['database'] = $this->options['select'];
-            $this->handler = new \myphp\MyRedis($this->options);
+            $this->handler = new \myphp\driver\Redis($this->options);
         }
 
 		return $this->handler ? true : false;

@@ -44,7 +44,7 @@ class View
     //取得页面内容
     public function fetch($file = '', $var = null)
     {
-        if ($file == '') $file = \myphp::env('ACTION') . $this->template->suffix;
+        if ($file == '') $file = \myphp::env('a') . $this->template->suffix;
         if (is_array($var)) {    //如果是数组，那么将它合并到属性$vars中
             $this->vars = array_merge($this->vars, $var);
         }
@@ -81,7 +81,7 @@ class View
         if(!self::$instance){
             self::$instance = new self(\myphp::env('VIEW_PATH'), \myphp::env('CACHE_PATH'));
         }
-        if ($file == '') $file = \myphp::env('ACTION') . self::$instance->template->suffix;
+        if ($file == '') $file = \myphp::env('a') . self::$instance->template->suffix;
 
         return self::$instance->template->cacheFile($file);
     }
