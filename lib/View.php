@@ -42,7 +42,7 @@ class View
     }
 
     //取得页面内容
-    public function fetch($file = '', $var = null)
+    public function fetch($file = '', &$var = null)
     {
         if ($file == '') $file = \myphp::env('a') . $this->template->suffix;
         if (is_array($var)) {    //如果是数组，那么将它合并到属性$vars中

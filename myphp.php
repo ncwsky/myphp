@@ -91,8 +91,8 @@ final class myphp{
             }else{
                 self::Auth();
             }
-            $control = self::$env['app_namespace'].'\\control\\'.(strpos(self::$env['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['c']), ' ')) : ucfirst(self::$env['c'])) . 'Act'; //转驼峰 控制器的类名
-            $action = strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a']; //转驼峰
+            //转驼峰 控制器的类名
+            $control = self::$env['app_namespace'] . '\\control\\' . self::$env['CONTROL'];
             if (!class_exists($control)) throw new \Exception('class not exists ' . $control, 404);
             // 请求缓存检查
             if(!self::reqCache(self::$cfg['req_cache'], self::$cfg['req_cache_expire'], self::$cfg['req_cache_except'])){
@@ -100,7 +100,7 @@ final class myphp{
                  * @var \myphp\Control $instance
                  */
                 $instance = new $control();
-                $data = $instance->_run($action);
+                $data = $instance->_run(self::$env['ACTION']);
                 null!==$data && self::send($data, self::$statusCode, $instance->req_cache);
             }
         } catch (\Exception $e) {
@@ -394,6 +394,8 @@ final class myphp{
             'APP' => $_app, //相对当前地址的应用入口
             'URL' => $_url . self::$env['c'], //相对当前地址的url控制
             'BASE_URL' => $_url . self::$env['c'] . self::$cfg['url_para_str'] . self::$env['a'],
+            'CONTROL' => (strpos(self::$env['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['c']), ' ')) : ucfirst(self::$env['c'])) . 'Act',
+            'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰
             'MODULE' => $module,
             'MODULE_PATH' => $module_path,
             //路径 自动生成
@@ -512,7 +514,7 @@ final class myphp{
         if (!is_file(self::$env['CONTROL_PATH'] . '/IndexAct.php')) {
             file_put_contents(self::$env['MODULE_PATH'] . '/index.htm', 'dir');
             file_put_contents(self::$env['CONTROL_PATH'] . '/Base.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(__DIR__ . '/Base.class.tpl')));
-            file_put_contents(self::$env['CONTROL_PATH'] . '/IndexAct.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(__DIR__ . '/IndexAct.class.tpl')));
+            file_put_contents(self::$env['CONTROL_PATH'] . '/'.self::$env['CONTROL'].'.php', str_replace(['__app__','__c__','__a__'], [self::$env['app_namespace'], self::$env['CONTROL'], self::$env['ACTION']], file_get_contents(__DIR__ . '/IndexAct.class.tpl')));
             file_put_contents(self::$env['VIEW_PATH'] . '/index.html', file_get_contents(__DIR__ . '/index.tpl'));
         }
         //生成git忽略文件

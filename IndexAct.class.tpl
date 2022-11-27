@@ -1,9 +1,9 @@
 <?php
 namespace __app__\control;
 
-class IndexAct extends Base{
+class __c__ extends Base{
 	//创建一个方法
-	public function index(){
+	public function __a__(){
 /*
 		$res = db()->query("select * from test");	//查询数据库
 		$row = db()->fetch_array($res);	//获得查询结果
