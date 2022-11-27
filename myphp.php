@@ -307,7 +307,7 @@ final class myphp{
 
         $_app = $_url = '';
         if(!$uri) $uri = $app_root . $basename; //当前URL路径
-        //echo __URI__,'===',$uri,PHP_EOL;
+        //echo 'uri=',$uri,PHP_EOL;
         if($url_mode == 1){
             $_url = $_app = $uri .'?do=';
             $do = isset($_GET['do']) ? trim($_GET['do']) : '';	//获得执行参数
@@ -379,22 +379,12 @@ final class myphp{
         //自定义项目模板目录 用于模板资源路径
         if(!isset(self::$cfg['app_res_path'])){
             $path = $view_path;
-            if(!IS_CLI){
-                if(strpos($view_path,ROOT)===0){
-                    $path = str_replace(ROOT,'', $view_path);
-                }elseif(substr($view_path,0,2) == './'){
-                    $path = APP_ROOT . substr($view_path,1);
-                }
+            if(strpos($view_path,ROOT)===0){
+                $path = str_replace(ROOT,'', $view_path);
+            }elseif(substr($view_path,0,2) == './'){
+                $path = APP_ROOT . substr($view_path,1);
             }
             self::$cfg['app_res_path'] = $path;
-        }
-        if(!IS_CLI){
-            define('__APP__', $_app);
-            define('__URL__', $_url . self::$env['c']);
-            define('__URI__', $app_root . $basename);//当前URL路径
-            define('URL', __URL__);
-            define('APP', __APP__);
-            define('MODULE', $module);
         }
 
         //运行变量
@@ -502,10 +492,9 @@ final class myphp{
     // app项目初始化
     private static function init_app($isCLI = IS_CLI){
         if(!$isCLI && self::$env['MODULE']!='') return; //仅cli下自动生成项目模块
-        $path = self::$env['MODULE_PATH'];
-        if(is_file($path .'/index.htm')) return;
+        if(is_file(self::$env['MODULE_PATH'] .'/index.htm')) return;
         // 创建项目目录
-        if(!is_dir($path)) mkdir($path,0755, true);
+        if(!is_dir(self::$env['MODULE_PATH'])) mkdir(self::$env['MODULE_PATH'],0755, true);
         $dirs  = array(
             self::$env['CACHE_PATH'],
             self::$env['CONTROL_PATH'],
@@ -517,18 +506,18 @@ final class myphp{
             if(!is_dir($dir))  mkdir($dir,0755, true);
         }
         // 生成项目配置
-        $runConfig = $path . '/config.php';
+        $runConfig = self::$env['MODULE_PATH'] . '/config.php';
         if (!is_file($runConfig)) file_put_contents($runConfig, file_get_contents(__DIR__ . '/config.tpl'));
         // 写入测试Action
         if (!is_file(self::$env['CONTROL_PATH'] . '/IndexAct.php')) {
-            file_put_contents($path . '/index.htm', 'dir');
+            file_put_contents(self::$env['MODULE_PATH'] . '/index.htm', 'dir');
             file_put_contents(self::$env['CONTROL_PATH'] . '/Base.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(__DIR__ . '/Base.class.tpl')));
             file_put_contents(self::$env['CONTROL_PATH'] . '/IndexAct.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(__DIR__ . '/IndexAct.class.tpl')));
             file_put_contents(self::$env['VIEW_PATH'] . '/index.html', file_get_contents(__DIR__ . '/index.tpl'));
         }
         //生成git忽略文件
         file_put_contents(self::$env['CACHE_PATH'] . '/.gitignore', "*\r\n!.gitignore");
-        file_put_contents($path . '/.gitignore', "/config.php");
+        file_put_contents(self::$env['MODULE_PATH'] . '/.gitignore', "/config.php");
     }
     //初始框架
     public static function init($cfg=null){
