@@ -79,7 +79,7 @@ final class myphp{
      */
     public static function Run($sendFun=null, $isCli=IS_CLI){
         self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法
-        self::init_app();
+        self::init_app($isCli);
         self::$sendFun = $sendFun;
         try {
             if(self::$beforeFun instanceof \Closure){ //前置处理
@@ -288,7 +288,6 @@ final class myphp{
     */
     //解析URL获得控制器的与方法
     public static function Analysis($isCLI = IS_CLI){
-        static $hasAppConfig;
         $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //获取当前执行文件名
         $app_root = IS_CLI ? DS : APP_ROOT . DS; //app_url根路径
         $url_mode = isset(self::$cfg['url_mode']) ? self::$cfg['url_mode'] : -1;
@@ -344,10 +343,10 @@ final class myphp{
         }
         //控制器和方法是否为空，为空则使用默认
         if (empty($_GET['c'])) {
-            $_GET['c'] = self::$cfg['default_control'];
+            $_GET['c'] = self::$cfg['def_control'];
         }
         if (empty($_GET['a'])) {
-            $_GET['a'] = self::$cfg['default_action'];
+            $_GET['a'] = self::$cfg['def_action'];
         }
         self::$env['c'] = $_GET['c'];
         self::$env['a'] = $_GET['a'];
@@ -356,6 +355,9 @@ final class myphp{
         //指定项目模块
         $module_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
         if ($module != '') {
+            //引入模块上级app下的配置文件
+            self::loadConfig($module_path);
+
             if (isset(self::$cfg['module_maps'][$module])) {
                 if(substr(self::$cfg['module_maps'][$module], 0, 1) == DS){
                     $module_path = ROOT . ROOT_DIR . self::$cfg['module_maps'][$module];
@@ -369,18 +371,8 @@ final class myphp{
                 self::$env['app_namespace'] .= '\\'.$module;
             }
         }
-
         //引入模块配置
-        if(!isset($hasAppConfig[$module_path]) && is_file($module_path . '/config.php')){
-            $hasAppConfig[$module_path] = 1; #标识已引入
-            $appConfig = require($module_path . '/config.php');
-            if(isset($appConfig['class_dir'])){
-                $classDir = is_array($appConfig['class_dir']) ? $appConfig['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, $appConfig['class_dir']));
-                self::class_dir($classDir);
-                unset($appConfig['class_dir']);
-            }
-            self::$cfg = array_merge(self::$cfg, $appConfig);
-        }
+        self::loadConfig($module_path);
 
         //是否开启模板主题
         $view_path = $module_path . DS . 'view' . (self::$cfg['tmp_theme'] ? DS . self::$cfg['site_template'] : '');
@@ -423,8 +415,29 @@ final class myphp{
             //相对项目的模板目录
             'APP_VIEW'=>self::$cfg['app_res_path'],
         ]);
-        self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
-        self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
+        //通过命名空间加载可不需要指定目录遍历了
+        //self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
+        //self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
+    }
+
+    /**
+     * 引入合并配置
+     * @param $module_path
+     */
+    private static function loadConfig($module_path){
+        static $hasAppConfig = [];
+        if(isset($hasAppConfig[$module_path])) return;
+        if(!is_file($module_path . '/config.php')) return;
+
+        //引入配置
+        $hasAppConfig[$module_path] = 1; //标识已引入
+        $config = require($module_path . '/config.php');
+        if(isset($config['class_dir'])){
+            $classDir = is_array($config['class_dir']) ? $config['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, $config['class_dir']));
+            self::class_dir($classDir);
+            unset($config['class_dir']);
+        }
+        self::$cfg = array_merge(self::$cfg, $config);
     }
     //网址解析生成
     private static function parseUrl($url = ''){
@@ -474,7 +487,7 @@ final class myphp{
         //仅登陆验证
         if(strpos( self::$cfg['auth_login_model'] , ','.$c.',')!==false || strpos( self::$cfg['auth_login_action'] , ','.$c.'/'.$a.',')!==false){
             if(!$auth->$auth_login()) {
-                if($c==self::$cfg['default_control']) redirect(ROOT_DIR .self::$cfg['auth_gateway']);
+                if($c==self::$cfg['def_control']) redirect(ROOT_DIR .self::$cfg['auth_gateway']);
                 else Helper::outMsg('你未登录,请先登录!', ROOT_DIR .self::$cfg['auth_gateway']);
             }
             //验证此模块中需要验证的动作
@@ -487,36 +500,35 @@ final class myphp{
     }
 
     // app项目初始化
-    private static function init_app(){
-        if(!IS_CLI && self::$env['MODULE']!='') return true; //仅cli自动生成项目模块
+    private static function init_app($isCLI = IS_CLI){
+        if(!$isCLI && self::$env['MODULE']!='') return; //仅cli下自动生成项目模块
         $path = self::$env['MODULE_PATH'];
-        if(!is_file($path .'/index.htm')) {// 生成项目目录
-            $cPath = self::$env['CONTROL_PATH'];
-            // 创建项目目录
-            if(!is_dir($path)) mkdir($path,0755);
-            $dirs  = array(
-                self::$env['CACHE_PATH'],
-                $cPath,
-                self::$env['LANG_PATH'],
-                self::$env['MODEL_PATH'],
-                self::$env['VIEW_PATH']
-            );
-            foreach ($dirs as $dir){
-                if(!is_dir($dir))  mkdir($dir,0755);
-            }
-            file_put_contents(self::$env['CACHE_PATH'].'/.gitignore', "*\r\n!.gitignore");
-            // 写入测试Action
-            if(!is_file($cPath.'/IndexAct.php')){
-                file_put_contents($path.'/index.htm', 'dir');
-                file_put_contents($cPath.'/Base.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(MY_PATH.'/Base.class.tpl')));
-                file_put_contents($cPath.'/IndexAct.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(MY_PATH.'/IndexAct.class.tpl')));
-                file_put_contents(self::$env['VIEW_PATH'].'/index.html', file_get_contents(MY_PATH.'/index.tpl'));
-            }
-            // 生成项目配置
-            $runConfig = $path .'/config.php';
-            if(!is_file($runConfig))
-                file_put_contents($runConfig, file_get_contents(MY_PATH.'/config.tpl'));
+        if(is_file($path .'/index.htm')) return;
+        // 创建项目目录
+        if(!is_dir($path)) mkdir($path,0755, true);
+        $dirs  = array(
+            self::$env['CACHE_PATH'],
+            self::$env['CONTROL_PATH'],
+            self::$env['LANG_PATH'],
+            self::$env['MODEL_PATH'],
+            self::$env['VIEW_PATH']
+        );
+        foreach ($dirs as $dir){
+            if(!is_dir($dir))  mkdir($dir,0755, true);
         }
+        // 生成项目配置
+        $runConfig = $path . '/config.php';
+        if (!is_file($runConfig)) file_put_contents($runConfig, file_get_contents(__DIR__ . '/config.tpl'));
+        // 写入测试Action
+        if (!is_file(self::$env['CONTROL_PATH'] . '/IndexAct.php')) {
+            file_put_contents($path . '/index.htm', 'dir');
+            file_put_contents(self::$env['CONTROL_PATH'] . '/Base.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(__DIR__ . '/Base.class.tpl')));
+            file_put_contents(self::$env['CONTROL_PATH'] . '/IndexAct.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(__DIR__ . '/IndexAct.class.tpl')));
+            file_put_contents(self::$env['VIEW_PATH'] . '/index.html', file_get_contents(__DIR__ . '/index.tpl'));
+        }
+        //生成git忽略文件
+        file_put_contents(self::$env['CACHE_PATH'] . '/.gitignore', "*\r\n!.gitignore");
+        file_put_contents($path . '/.gitignore', "/config.php");
     }
     //初始框架
     public static function init($cfg=null){

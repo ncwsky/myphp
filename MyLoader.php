@@ -47,16 +47,14 @@ class MyLoader
                 include self::$rootPath . DIRECTORY_SEPARATOR . $path . (substr($path,-1)==DIRECTORY_SEPARATOR?'':DIRECTORY_SEPARATOR) . substr($class_path, strlen($namespace)) . '.php';
                 return;
             }
-
-            if (self::load(self::$rootPath . DIRECTORY_SEPARATOR . $class_path . '.php')) {
-                return;
-            }
+            self::load(self::$rootPath . DIRECTORY_SEPARATOR . $class_path . '.php');
+            return; //命名空间的不用遍历存在类的目录
             //未匹配-取类名
-            $pos = strrpos($class_path, DIRECTORY_SEPARATOR);
-            $name = substr($class_path, $pos + 1);
+            //$pos = strrpos($class_path, DIRECTORY_SEPARATOR);
+            //$name = substr($class_path, $pos + 1);
         }
 
-        //循环可存在类的目录
+        //遍历可存在类的目录
         foreach (self::$classDir as $path => $i) {
             if (self::load($path . DIRECTORY_SEPARATOR . $name . '.php')) {
                 return;
@@ -73,6 +71,7 @@ class MyLoader
      */
     public static function load($path)
     {
+        var_dump($path);
         if (is_file($path)) {
             include $path;
             return true;

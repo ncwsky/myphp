@@ -10,9 +10,8 @@ return array(
     'url_rewrite' => true,	//启用url伪静态 用于url_mode=2
     'url_index' => '/index.php',	//启用url伪静态 对应的入口文件
 	'cli_url_mode'=>null, //cli模式请求处理模式 默认2 PATH_INFO模式
-	// 'default_module'=>'app', //默认模块名 m
-	'default_control' => 'index',  //默认控制器名 c
-	'default_action' => 'index',	//默认方法名 a
+	'def_control' => 'index',  //默认控制器名 c
+	'def_action' => 'index',	//默认方法名 a
 	'url_para_str' => '/',	//参数分隔符，一般不需要修改
 	'url_maps_regx'=> null, //url映射正则规则
     'url_vars'=>null, //全局url参数设定 array(q=>v,...) 可用于多个url都需要附带指定请求参数时
