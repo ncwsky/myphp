@@ -71,7 +71,6 @@ class MyLoader
      */
     public static function load($path)
     {
-        var_dump($path);
         if (is_file($path)) {
             include $path;
             return true;

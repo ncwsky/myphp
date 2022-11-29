@@ -1,9 +1,8 @@
 <?php
 namespace __package__;
 
-use myphp\Db;
-
 /**
+ * auto make
  * Class __name__ auto make
  * @package __package__
  *
