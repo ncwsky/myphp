@@ -529,7 +529,7 @@ final class myphp{
         #self::$cfg['APP_ROOT'] = $appRoot;
         define('APP_ROOT', $appRoot);
         //配置组合
-        self::load(MY_PATH . '/def_config.php'); //引入默认配置文件
+        self::load(__DIR__ . '/def_config.php'); //引入默认配置文件
         if(is_array($cfg)){ //组合参数配置
             self::set($cfg);
             unset($cfg);
@@ -560,17 +560,17 @@ final class myphp{
 /*
             $runFile = ROOT . '/~run.php';
             if (!is_file($runFile)) {
-                $php = self::compile(MY_PATH . '/inc/comm.func.php');
-                $php .= self::compile(MY_PATH . '/lib/Cache.php');
-                $php .= self::compile(MY_PATH . '/lib/CheckValue.php');
-                $php .= self::compile(MY_PATH . '/lib/Control.php');
-                $php .= self::compile(MY_PATH . '/lib/Db.php');
-                $php .= self::compile(MY_PATH . '/lib/Helper.php');
-                $php .= self::compile(MY_PATH . '/lib/Hook.php');
-                $php .= self::compile(MY_PATH . '/lib/Log.php');
-                $php .= self::compile(MY_PATH . '/lib/Model.php');
-                $php .= self::compile(MY_PATH . '/lib/Template.php');
-                $php .= self::compile(MY_PATH . '/lib/View.php');
+                $php = self::compile(__DIR__ . '/inc/comm.func.php');
+                $php .= self::compile(__DIR__ . '/lib/Cache.php');
+                $php .= self::compile(__DIR__ . '/lib/CheckValue.php');
+                $php .= self::compile(__DIR__ . '/lib/Control.php');
+                $php .= self::compile(__DIR__ . '/lib/Db.php');
+                $php .= self::compile(__DIR__ . '/lib/Helper.php');
+                $php .= self::compile(__DIR__ . '/lib/Hook.php');
+                $php .= self::compile(__DIR__ . '/lib/Log.php');
+                $php .= self::compile(__DIR__ . '/lib/Model.php');
+                $php .= self::compile(__DIR__ . '/lib/Template.php');
+                $php .= self::compile(__DIR__ . '/lib/View.php');
                 file_put_contents($runFile, '<?php ' . $php);
                 unset($php);
             }
@@ -689,7 +689,14 @@ final class myphp{
         }
         return self::$container[$k];
     }
-
+    /**
+     * @param string $name
+     * @return lib_redis
+     */
+    public static function redis($name = 'redis'){
+        //lib_redis::$isExRedis = false; //不使用redis扩展
+        return lib_redis::getInstance(GetC($name));
+    }
     /**
      * 释放容器资源
      * @param $name

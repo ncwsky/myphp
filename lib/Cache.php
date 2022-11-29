@@ -27,7 +27,7 @@ class Cache {
                 $options = \myphp::get('cache_option');
             }
             $cacheClass = '\myphp\cache\\' . ucfirst($type);
-            //require_once(MY_PATH.'/lib/cache/'.$cacheClass.'.php');
+            //require_once(__DIR__.'/cache/'.$cacheClass.'.php');
             if (!class_exists($cacheClass)) throw new \Exception($cacheClass . ' not found');
             self::$instance[$type] = new $cacheClass($options);
         }

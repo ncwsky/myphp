@@ -39,6 +39,7 @@ require __DIR__ . '/MyLoader.php';
 require __DIR__ . '/inc/comm.func.php';
 require __DIR__ . '/lib/Db.php';
 
+MyLoader::$rootPath = ROOT;
 MyLoader::$namespaceMap = [
     'myphp\\'=>'lib'
 ];
@@ -195,8 +196,7 @@ function db($name='db', $force=false){
  */
 function redis($name = 'redis')
 {
-    lib_redis::$isExRedis = false;
-    return lib_redis::getInstance(GetC($name));
+    return myphp::redis($name);
 }
 
 /**

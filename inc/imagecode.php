@@ -1,6 +1,5 @@
 <?php
-defined('MY_PATH') || define('MY_PATH', dirname(__DIR__));
-require_once MY_PATH . '/ext/Image.php';
+require_once __DIR__ . '/../ext/Image.php';
 
 $w = (int)($_GET['w']) ? (int)($_GET['w']) : 80;
 $h = (int)($_GET['h']) ? (int)($_GET['h']) : 36;
