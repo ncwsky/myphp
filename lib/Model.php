@@ -28,40 +28,61 @@ namespace myphp;
  * @method self beginTrans();
  * @method bool commit($force=false);
  * @method bool rollBack($force=false);
- * @property Db $db
  */
 class Model implements \ArrayAccess
 {
     use \MyMsg;
     // 当前操作数据表名
-    protected $tbName = null; //不指定自动获取
-    protected $aliasName = null; //别名
-    protected $db = null; //db操作类
-    protected $dbName = 'db'; //db配置名
-    // 表数据信息
-    private $_data = null;
-    private $_oldData = null; //单条查询记录数据
-    // 是否model实例
-    public $asModel = false;
-    //字段扩展过滤规则
-    public $extRule = array();
-    /* 示例
-    $extRule = [
-        'id'=>['rule'=>'%d{1,10}','err'=>'请输入数字','err2'=>'数字范围无效'], //'def'=>0, 有默认值不做提示
-        'name'=>['rule'=>'%s{10}','err'=>'请输入名称','err2'=>'名称最多不能超过10个字符'],
-        'des'=>['rule'=>'%s{250}','def'=>''], //
-        'his'=>['rule'=>'%his{250}','err'=>'时间无效'], // 无err2项时 默认使用err
-    ];
+    protected $tbName; //不指定自动获取
+    protected $aliasName; //别名
+    /**
+     * @var Db
      */
+    protected $db; //db操作类
+    // 表数据信息
+    private $_data = [];
+    private $_oldData = []; //单条查询记录数据
+
     //主键
-    protected $prikey = null;
-    protected $autoIncrement = ''; //自增键
+    protected $prikey;
+    protected $autoIncrement; //自增键
     //表查询的字段
     protected $fields = '*';
     //表字段验证规则无效时设默认值开关
     protected $setDef = false;
     //表字段列表过滤规则
-    public $fieldRule = array();//'id'=>array('rule'=>'%d{1,10}','def'=>0)
+    public $fieldRule = [];//'id'=>['rule'=>'%d{1,10}','def'=>0]
+    // 是否model实例
+    public $asModel = false;
+
+    protected static $dbName = 'db'; //db配置名
+    protected static $tableName = null; //表配置名
+
+    /**
+     * 数据库实例
+     * @return Db
+     * @throws \Exception
+     */
+    public static function getDb()
+    {
+        return new Db(static::$dbName);
+    }
+
+    /**
+     * 表名
+     * @return string|null
+     */
+    public static function tableName()
+    {
+        if (static::$tableName === null) { //未指定表名且未传递表名时 自动获取【前缀+表名】
+            $tbName = get_called_class(); //static::class
+            if ($pos = strrpos($tbName, '\\')) { //命名空间
+                $tbName = substr($tbName, $pos + 1);
+            }
+            return \myphp::get(static::$dbName . '.prefix') . strtolower($tbName);
+        }
+        return static::$tableName;
+    }
 
     /**
      * 构造函数  $tbName 不定义表模型 直接指定, $dbName 指定db配置名称
@@ -72,7 +93,7 @@ class Model implements \ArrayAccess
     public function __construct($tbName = null, $dbName = null)
     {
         if ($dbName === null) {
-            $this->db = new Db($this->dbName);
+            $this->db = static::getDb();
         } else {
             if ($dbName instanceof Db) {
                 $this->db = $dbName;
@@ -81,26 +102,31 @@ class Model implements \ArrayAccess
             }
         }
 
-        if ($this->tbName===null) { //未指定表名且未传递表名时 自动获取【前缀+表名】
-            if ($tbName === null) {
-                $tbName = get_class($this); //static::class
-                if ($pos = strrpos($tbName, '\\')) { //命名空间
-                    $tbName = substr($tbName, $pos + 1);
-                }
-                $tbName = $this->db->prefix . strtolower($tbName);
-            }
-            $this->tbName = $tbName;
-        }
+        $this->tbName = $tbName===null ? static::tableName() : $tbName;
+
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
-            //$this->fields = implode(',', array_keys($this->fieldRule));
-            //print_r($this->fields);
         }
     }
-    //设置字段规则  [id'=>array('rule'=>'%d{1,10}','def'=>0)]|id,array('rule'=>'%d{1,10}','def'=>0)
+
+    /**
+     * 带指定错误提示示例
+    $extRule = [
+        'id'=>['rule'=>'%d{1,10}','err'=>'请输入数字','err2'=>'数字范围无效'], //'def'=>0, 有默认值不做提示
+        'name'=>['rule'=>'%s{10}','err'=>'请输入名称','err2'=>'名称最多不能超过10个字符'],
+        'des'=>['rule'=>'%s{250}','def'=>''], //
+        'his'=>['rule'=>'%his{250}','err'=>'时间无效'], // 无err2项时 默认使用err
+    ];
+    $tb->setRule($extRule);
+     */
+    /**
+     * 设置扩展字段过滤规则
+     * @param string|array $name id|[id'=>array('rule'=>'%d{1,10}','def'=>0)]
+     * @param null|array $rule ['rule'=>'%d{1,10}','def'=>0]|null
+     */
     public function setRule($name, $rule=null){
         if(is_array($name)){
-            $this->fieldRule = array_merge($this->fieldRule,$name);
+            $this->fieldRule = array_merge($this->fieldRule, $name);
         }else{
             $this->fieldRule[$name] = $rule;
         }
@@ -115,7 +141,7 @@ class Model implements \ArrayAccess
                 $this->_data = $this->_data ? array_merge($this->_data, $data) : $data;
             }
         } elseif ($data === null) {
-            $this->_data = null;
+            $this->_data = [];
         }
     }
     //设置字段旧数据
@@ -132,20 +158,20 @@ class Model implements \ArrayAccess
                 $this->_data = $this->_oldData;
             }
         } elseif ($data === null) {
-            $this->_oldData = null;
+            $this->_oldData = [];
         }
     }
 
     //获取字段数据
     public function getData()
     {
-        return $this->_data === null ? [] : $this->_data;
+        return $this->_data ?: [];
     }
 
     //获取字段旧数据
     public function getOldData()
     {
-        return $this->_oldData === null ? [] : $this->_oldData;
+        return $this->_oldData ?: [];
     }
     //格式数据
     public function formatData(&$data){
@@ -186,9 +212,8 @@ class Model implements \ArrayAccess
      */
     public function save($data = null, $where = null, $def=null)
     {
-        $fieldRule = $this->extRule ? array_merge($this->fieldRule, $this->extRule) : $this->fieldRule;
         if (is_array($data)) {
-            $this->_data = is_array($this->_data) ? array_merge($this->_data, $data) : $data;
+            $this->_data = $this->_data ? array_merge($this->_data, $data) : $data;
         }
         if ($where) $this->db->where($where);
         //有单条查询且数据有主键 则识别为更新
@@ -203,10 +228,10 @@ class Model implements \ArrayAccess
             $isUpdate = true;
         }
         if($this->autoIncrement && empty($this->_data[$this->autoIncrement])){ //自增键[null 0 空]时排除验证规则
-            unset($this->_data[$this->autoIncrement], $fieldRule[$this->autoIncrement]);
+            unset($this->_data[$this->autoIncrement], $this->fieldRule[$this->autoIncrement]);
         }
         //验证数据
-        if (!Helper::validAll($this->_data, $fieldRule, true, $def === null ? $this->setDef : $def)) {
+        if (!Helper::validAll($this->_data, $this->fieldRule, true, $def === null ? $this->setDef : $def)) {
             //throw new \RuntimeException('验证失败');
             $this->db->options = null;
             return false;
@@ -305,7 +330,7 @@ class Model implements \ArrayAccess
             if(!$this->db->where){
                 throw new \Exception("请指定删除条件");
             }
-            $this->_data = $this->_oldData = null;
+            $this->_data = $this->_oldData = [];
         }
         if ($this->tbName && strpos($this->db->table,$this->tbName)!==0) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
         if ($method == 'find' || $method == 'select' || $method=='all') {
@@ -377,10 +402,12 @@ class Model implements \ArrayAccess
 
     /**
      * @param null $data
+     * @param null $tbName
+     * @param null $dbName
      * @return static
      */
-    public static function create($data=null){
-        $model = new static();
+    public static function create($data=null, $tbName=null, $dbName = null){
+        $model = new static($tbName, $dbName);
         $model->asModel = true;
         if ($data) {
             $model->setOldData($data);
