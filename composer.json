@@ -14,16 +14,6 @@
         }
     ],
 	"require": {
-      "php": ">=7.0",
-      "ext-mysqli": "*",
-      "ext-pdo": "*",
-      "ext-mbstring": "*",
-      "ext-json": "*",
-      "ext-libxml": "*",
-      "ext-simplexml": "*",
-      "ext-mcrypt": "*",
-      "ext-openssl": "*",
-      "ext-curl": "*",
-      "ext-gd": "*"
+      "php": ">=7.0"
     }
 }
