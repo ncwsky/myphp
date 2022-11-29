@@ -509,13 +509,13 @@ final class myphp{
         }
         // 生成项目配置
         $runConfig = self::$env['MODULE_PATH'] . '/config.php';
-        if (!is_file($runConfig)) file_put_contents($runConfig, file_get_contents(__DIR__ . '/config.tpl'));
+        if (!is_file($runConfig)) file_put_contents($runConfig, file_get_contents(__DIR__ . '/tpl/config.php'));
         // 写入测试Action
         if (!is_file(self::$env['CONTROL_PATH'] . '/IndexAct.php')) {
             file_put_contents(self::$env['MODULE_PATH'] . '/index.htm', 'dir');
-            file_put_contents(self::$env['CONTROL_PATH'] . '/Base.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(__DIR__ . '/Base.class.tpl')));
-            file_put_contents(self::$env['CONTROL_PATH'] . '/'.self::$env['CONTROL'].'.php', str_replace(['__app__','__c__','__a__'], [self::$env['app_namespace'], self::$env['CONTROL'], self::$env['ACTION']], file_get_contents(__DIR__ . '/IndexAct.class.tpl')));
-            file_put_contents(self::$env['VIEW_PATH'] . '/index.html', file_get_contents(__DIR__ . '/index.tpl'));
+            file_put_contents(self::$env['CONTROL_PATH'] . '/Base.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(__DIR__ . '/tpl/Base.php')));
+            file_put_contents(self::$env['CONTROL_PATH'] . '/'.self::$env['CONTROL'].'.php', str_replace(['__app__','__c__','__a__'], [self::$env['app_namespace'], self::$env['CONTROL'], self::$env['ACTION']], file_get_contents(__DIR__ . '/tpl/IndexAct.php')));
+            file_put_contents(self::$env['VIEW_PATH'] . '/index.html', file_get_contents(__DIR__ . '/tpl/index.html'));
         }
         //生成git忽略文件
         file_put_contents(self::$env['CACHE_PATH'] . '/.gitignore', "*\r\n!.gitignore");
