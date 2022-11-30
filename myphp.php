@@ -457,7 +457,7 @@ final class myphp{
         $auth_class = self::$cfg['auth_model'];
         $auth_action = self::$cfg['auth_action'];
         $auth_login = self::$cfg['auth_login'];
-        $c = $_GET['c']; $a = $_GET['a'];
+        $c = self::$env['c']; $a = self::$env['a'];
         //无需验证模块
         if(strpos( self::$cfg['auth_model_not'] , ','.$c.',')!==false){
             if(self::$cfg['auth_model_action']=='') return;

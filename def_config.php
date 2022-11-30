@@ -85,7 +85,7 @@ return array(
 	'auth_action' => 'check',//验证动作方法
 	'auth_login' => 'chkLogin',//登陆验证的动作方法
 	'auth_err' => 'errmsg',//验证错误信息记录变量
-	'auth_gateway'=> '/admin.php/index-login',//默认验证网关    ------------ 以下权限设置 优先级从上到下 ------------------------
+	'auth_gateway'=> '/admin.php/index/login',//默认验证网关    ------------ 以下权限设置 优先级从上到下 ------------------------
 	'auth_model_not' => '',//无需验证的模块，多个","分隔  用前后布置，包含  ,index,
 	'auth_model_action' => '',//无需验证的模块中需要验证的动作  //,index::index,index::info,
 	'auth_action_not' => '',//无需验证的动作，多个","分隔 格式：模块名/动作名
