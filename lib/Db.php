@@ -681,7 +681,15 @@ class Db {
 
 		return $this->getCustomId($table, $idName, $where, $orderByName.' DESC');
 	}
-	//获取自定字段值
+
+    /**
+     * 获取自定字段值
+     * @param $table
+     * @param $idName
+     * @param string $where
+     * @param string $orderBy
+     * @return bool|mixed
+     */
 	public function getCustomId($table, $idName, $where = '', $orderBy = ''){
 		$this->_table($table);
         $sql = 'SELECT TOP 1 ' . $this->startSpec . $idName . $this->endSpec . ' FROM ' . $table;
@@ -694,7 +702,14 @@ class Db {
 		$row = $this->getOne($sql, null, 'num');
 		return is_array($row)?$row[0]:false;
 	}
-	//执行一个SQL语句,仅返回一条记录 $bind[array:绑定数据],$type $bind为array时才有效
+
+    /**
+     * 执行一个SQL语句,仅返回一条记录 $bind[array:绑定数据],$type $bind为array时才有效
+     * @param $sql
+     * @param null $bind
+     * @param string $type
+     * @return array|false
+     */
 	public function getOne($sql, $bind=null, $type = 'assoc') {
 		if(is_array($bind)){
 			$result = $this->query($sql, $bind);

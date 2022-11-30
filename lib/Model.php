@@ -347,6 +347,7 @@ class Model implements \ArrayAccess
     //执行db方法的后置处理
     protected function _afterDbMethod($method, &$result){
         if ($method == 'find' || $method=='one') { //单条记录   || $method == 'getOne'
+            if (false === $result) return $result;
             $this->formatData($result);
             $this->_data = $this->_oldData = $result;
             if ($this->asModel) {
