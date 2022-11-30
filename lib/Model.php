@@ -3,29 +3,29 @@ namespace myphp;
 
 /**
  * Class Model 数据模型类
- * @method Model fields(string|array $val)
- * @method Model order(string $val)
- * @method Model group(string $val)
- * @method Model having(string $val)
- * @method Model lock(string $val = 'FOR UPDATE')
- * @method Model limit(string|int $val) example 30 or 2,5
- * @method Model table(string $val)
- * @method Model idx(string $val)
- * @method Model join(string $tb, string|array $on, $joinWay='inner')
- * @method Model where(string|array $val, $bind=null)
+ * @method null|static fields(string|array $val)
+ * @method null|static order(string $val)
+ * @method null|static group(string $val)
+ * @method null|static having(string $val)
+ * @method null|static lock(string $val = 'FOR UPDATE')
+ * @method null|static limit(string|int $val) example 30 or 2,5
+ * @method null|static table(string $val)
+ * @method null|static idx(string $val)
+ * @method null|static join(string $tb, string|array $on, $joinWay='inner')
+ * @method null|static where(string|array $val, $bind=null)
  * @method int update(array $post, string $table='', string|array $where = '')
  * @method int add(array $post, string $table='')
  * @method int del(string $table='', string|array $where = '')
- * @method array|self[]|false|\PDOStatement select(bool|string $table='');
- * @method array|self[]|false|\PDOStatement all(bool|string $table='');
- * @method array|self|false find();
- * @method array|self|false one();
+ * @method array|false|\PDOStatement|static[] select(bool|string $table='');
+ * @method array|false|\PDOStatement|static[] all(bool|string $table='');
+ * @method array|false|static find();
+ * @method array|false|static one()
  * @method string select_sql();
  * @method string find_sql();
  * @method mixed|null val($name);
  * @method string get_real_sql($sql, $bind = null);
- * @method self setTransactionLevel($level)
- * @method self beginTrans();
+ * @method null|static setTransactionLevel($level)
+ * @method null|static beginTrans();
  * @method bool commit($force=false);
  * @method bool rollBack($force=false);
  */
