@@ -5,7 +5,8 @@ class CheckValue{
     public static $before = null; //验证的前置操作 流程处理完请重置为null
     public static $after = null; //验证的后置操作 流程处理完请重置为null
     public static $defaultFilter = 'html_encode'; #默认过滤
-    /** 执行过滤方法
+    /**
+     * $val值过滤
      * @param mixed $val
      * @param bool|int|string $filter 过滤方式 指定的过滤函数不存在时使用filter_var
      * @return bool
@@ -66,7 +67,8 @@ class CheckValue{
         self::type2val($val, $rule, $default, $strict, $name);
         return $val;
     }
-    /** 规则处理
+    /**
+     * 规则解析
      * @param $rule
      * @param $type
      * @param null $min
@@ -100,13 +102,14 @@ class CheckValue{
         }
     }
 
-    /** 指定类型转换处理
+    /**
+     * 指定类型取值处理
      * @param $val
-     * @param string|array $rule string:%s{10,20},%s{20}|array:['s','min'=>10,'max'=>20, filter, digit, err, err2],['s','max'=>20]
-     * @param null $default
-     * @param bool $strict
-     * @param string $name
-     * @return int
+     * @param string|array $rule string:%s{10,20},%s{20}|array:['s','min'=>10,'max'=>20, filter, digit, err, err2],['s','max'=>20]  取值规则
+     * @param null $default 默认值
+     * @param bool $strict 强验证 失败抛出异常
+     * @param string $name 提示名称
+     * @return int $errCode
      */
     public static function type2val(&$val, $rule, $default=null, $strict=false, $name='value'){
         $type = 's'; // 默认转换为字符串

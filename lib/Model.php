@@ -42,15 +42,15 @@ class Model implements \ArrayAccess
     // 表数据信息
     private $_data = [];
     private $_oldData = []; //单条查询记录数据
-
     //主键
     protected $prikey;
-    protected $autoIncrement; //自增键
+    //自增键
+    protected $autoIncrement;
     //表查询的字段
     protected $fields = '*';
-    //表字段验证规则无效时设默认值开关
+    //表字段验证无效时设默认值开关
     protected $setDef = false;
-    //表字段列表过滤规则
+    //表字段规则
     public $fieldRule = [];//'id'=>['rule'=>'%d{1,10}','def'=>0]
     // 是否model实例
     public $asModel = false;
@@ -271,7 +271,7 @@ class Model implements \ArrayAccess
             $this->afterSave(false, $changed);
         } else {
             $result = $this->db->add($this->_data); //返回新增id
-            if ($this->prikey && $this->prikey==$this->autoIncrement) $this->_data[$this->prikey] = $result;
+            if ($this->autoIncrement) $this->_data[$this->autoIncrement] = $result;
             $this->afterSave(true, $this->_data);
         }
         $this->_oldData = $this->_data;
@@ -373,8 +373,8 @@ class Model implements \ArrayAccess
      * @param string $fields
      * @return int
      */
-    public function count($fields='*'){
-        return $this->db->getCount($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''), '', $fields=='*' && $this->prikey?$this->prikey:$fields);
+    public function count($field='*'){
+        return $this->db->getCount($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''), '', $field=='*' && $this->prikey?$this->prikey:$field);
     }
     protected static function runCall(Model $model, $method, $args){
         if (method_exists($model, $method)) {

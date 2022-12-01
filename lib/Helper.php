@@ -71,12 +71,13 @@ class Helper{
     public static $validBefore; //验证的前置操作 流程处理完请重置为null
     public static $validAfter; //验证的后置操作 流程处理完请重置为null
 
-    /** valid 数据过滤验证
+    /**
+     * valid 数据过滤验证
      * @param string $name 数据键名
      * @param string|array $rule array['rule','def','err','err2'] | string %s{}:fun   %s,%b,%d,%f,%a,%date[2014-01-11 13:23:32],%his[13:23:32]  {1,20}取值范围 filter:fun1,fun2,/regx/i正则过滤
      * @param null|array $data 数据
      * @param mixed $default $rule是string时可指定默认值
-     * @return array|bool|float|int|string
+     * @return array|bool|float|int|string 返回处理后的值
      * @throws \RuntimeException
      */
     public static function valid($name, $rule, &$data=null, $default=''){

@@ -58,6 +58,18 @@ class Tool
                 $type = 'float';
             }
             $notes .="\n* @property $type \$$k";
+            //解析规则
+            $type = 's'; $min = $max = null;
+            CheckValue::parseType($v['rule'], $type, $min, $max);
+            unset($fieldRule[$k]['null']);
+            $fieldRule[$k]['rule'] = [$type, 'min' => $min, 'max' => $max];
+            if(isset($fieldRule[$k]['def'])){
+                if($fieldRule[$k]['type']=='int'){
+                    $fieldRule[$k]['def'] = (int)$fieldRule[$k]['def'];
+                }elseif($fieldRule[$k]['type']=='double'){
+                    $fieldRule[$k]['def'] = (float)$fieldRule[$k]['def'];
+                }
+            }
         }
         $notes .="\n*/";
         $noteFlag = substr_cut($content, "/**", "*/\nclass", 0, false);
@@ -76,6 +88,21 @@ class Tool
 
         //protected static $tableName = '__table__';
         $content = str_replace('static $tableName '.substr_cut($content, 'static $tableName ', ';', 0, false).';', "static \$tableName = '$tbName';", $content);
+
+        //protected $prikey = '';
+        $content = str_replace('protected $prikey '.substr_cut($content, 'protected $prikey ', ';', 0, false).';', "protected \$prikey = '$prikey';", $content);
+
+        //protected $autoIncrement = ''; //自增键
+        $content = str_replace('protected $autoIncrement '.substr_cut($content, 'protected $autoIncrement ', ';', 0, false).';', "protected \$autoIncrement = '$autoIncrement';", $content);
+
+        //protected $fields = '*';
+        $content = str_replace('protected $fields '.substr_cut($content, 'protected $fields ', ';', 0, false).';', "protected \$fields = '$fields';", $content);
+
+        $fieldRule = strtr(var_export($fieldRule, true), ["=> \n  " => "=> ", "array (" => "[", "  )" => "        ]", "  '" => "        '", ")" => "    ]","NULL"=>"null","\n      0 => "=>"","\n      'min'"=>"'min'","\n      'max'"=>"'max'",",\n    )"=>"]"]);
+        $fieldRule = str_replace("'rule' =>   ","'rule' => ", $fieldRule);
+        //$fieldRule = var_export($fieldRule, true);
+        //public $fieldRule = [];
+        $content = str_replace('public $fieldRule '.substr_cut($content, 'public $fieldRule ', ';', 0, false).';', "public \$fieldRule = $fieldRule;", $content);
 
         file_put_contents($classFile, $content);
         return true;
