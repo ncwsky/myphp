@@ -46,7 +46,7 @@ class db_pdo extends \myphp\DbBase{
 			$dsn = $cfg_db['dsn'];
 		}
 		$cfg_db['pconnect'] = isset($cfg_db['pconnect']) ? $cfg_db['pconnect'] : false;
-		if($cfg_db['pconnect']) {//持久连接开启
+		if($cfg_db['pconnect']) { //持久连接开启
 			$options[PDO::ATTR_PERSISTENT] = TRUE;
 		}
 		/*if(empty($options[PDO::ATTR_TIMEOUT])){ //超时设置

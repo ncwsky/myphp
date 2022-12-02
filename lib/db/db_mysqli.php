@@ -16,7 +16,6 @@ class db_mysqli extends \myphp\DbBase{
     public function connect() {
 		$cfg_db = &$this->config;
 		//建立新连接 不返回已经打开的连接标识
-		$cfg_db['pconnect'] = isset($cfg_db['pconnect']) ? $cfg_db['pconnect'] : false;
 		$this->conn = new mysqli($cfg_db['server'].(empty($cfg_db['port']) ? '' : ':'.$cfg_db['port']), $cfg_db['user'], $cfg_db['pwd']);
 
 		if($this->conn->connect_error) {

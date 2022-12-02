@@ -3,55 +3,61 @@ namespace myphp;
 
 /**
  * Class Db 数据db类
- * @method Db order($val)
  * @method Db group($val)
  * @method Db having($val)
- * @method Db limit($val)
- * @method Db table($val)
  * @method Db idx($val)
+ * @method Db limit($val)
+ * @method Db order($val)
+ * @method Db table($val)
+ * @property string group
+ * @property string having
+ * @property string idx
+ * @property string limit
+ * @property string lock
+ * @property string order
  * @property string table
  */
 class Db {
 	public static $sql = ''; //完整的Sql
     public static $times = 0; //执行次数
-    protected static $log_type = 0; //是否记录sql
-    protected static $instance = array();
+    private static $log_type = 0; //是否记录sql
+    private static $instance = [];
     /**
      * 内部数据连接对象
      * @var \myphp\db\db_pdo|\myphp\db\db_mysqli
      */
-    public $db = null;
+    public $db;
     /**
      * 缓存
      * @var \myphp\cache\File
      */
-	protected $cache = null;
+    private $cache;
     /**
      * 配置
      * @var array
      */
-	protected $config = array(
-		'type' => 'pdo',	//数据库类型 仅有mysql、pdo
-		'dbms' => 'mysql', //数据库
-		'server' => '',	//数据库主机
-		'name' => '',	//数据库名称
-		'user' => '',	//数据库用户
-		'pwd' => '',	//数据库密码
-		'port' => '',     // 端口
-		'char' => 'utf8',	//数据库编码
-		'prefix' => '',	//数据库表前缀 9e_
-        'prod'=>false //生产环境
-	);
+    private $config = [
+        'type' => 'pdo',   //数据库连接类型 仅pdo、mysqli
+        'dbms' => 'mysql', //数据库
+        'server' => '',    //数据库主机
+        'name' => '',   //数据库名称
+        'user' => '',   //数据库用户
+        'pwd' => '',    //数据库密码
+        'port' => '',   // 端口
+        'char' => 'utf8', //数据库编码
+        'prefix' => '',  //数据库表前缀
+        'prod' => false  //生产环境
+    ];
 	// 链操作方法信息 被保存在此
-    public $options = null;
+    public $options;
     public $prefix = '';
 	// 链操作方法列表
-    protected $methods = ',order,group,having,limit,table,idx,lock,';
+    private $methods = ',group,having,idx,limit,order,table,';
     //表字段信息
-    protected $tbFields = array();
+    private $tbFields = [];
     //特殊符 默认mysql
-	protected $startSpec = '`';
-    protected $endSpec = '`';
+    private $startSpec = '`';
+    private $endSpec = '`';
 
     /**
      * Db constructor.

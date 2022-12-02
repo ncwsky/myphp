@@ -42,6 +42,8 @@ class Model implements \ArrayAccess
     // 表数据信息
     private $_data = [];
     private $_oldData = []; //单条查询记录数据
+    // 是否返回实例
+    private $_asObj = false;
     //主键
     protected $prikey;
     //自增键
@@ -52,8 +54,6 @@ class Model implements \ArrayAccess
     protected $setDef = false;
     //表字段规则
     public $fieldRule = [];//'id'=>['rule'=>'%d{1,10}','def'=>0]
-    // 是否model实例
-    public $asModel = false;
 
     protected static $dbName = 'db'; //db配置名
     protected static $tableName = null; //表配置名
@@ -161,13 +161,11 @@ class Model implements \ArrayAccess
             $this->_oldData = [];
         }
     }
-
     //获取字段数据
     public function getData()
     {
         return $this->_data ?: [];
     }
-
     //获取字段旧数据
     public function getOldData()
     {
@@ -192,7 +190,6 @@ class Model implements \ArrayAccess
     {
         return true;
     }
-
     /**
      * @param bool $insert
      * @param array $changed 变动的数据
@@ -286,19 +283,16 @@ class Model implements \ArrayAccess
         }
         $this->_data[$name] = $value;
     }
-
     // 获取数据对象的值
     public function __get($name)
     {
         return isset($this->_data[$name]) ? $this->_data[$name] : null;
     }
-
     //检测数据对象的值
     public function __isset($name)
     {
         return isset($this->_data[$name]);
     }
-
     //销毁数据对象的值
     public function __unset($name)
     {
@@ -346,15 +340,16 @@ class Model implements \ArrayAccess
     }
     //执行db方法的后置处理
     protected function _afterDbMethod($method, &$result){
+        $this->db->where;
         if ($method == 'find' || $method=='one') { //单条记录   || $method == 'getOne'
             if (false === $result) return $result;
             $this->formatData($result);
             $this->_data = $this->_oldData = $result;
-            if ($this->asModel) {
+            if ($this->_asObj) {
                 $result = $this;
             }
         }
-        if ($this->asModel) {
+        if ($this->_asObj) {
             if($method == 'select' || $method == 'all'){
                 foreach ($result as $k=>$row){
                     $result[$k] = self::create($row);
@@ -368,7 +363,15 @@ class Model implements \ArrayAccess
         $this->db->table($this->tbName.' '.$name);
         return $this;
     }
-
+    public function asArray(){
+        $this->_asObj = false;
+    }
+    public function asObj(){
+        $this->_asObj = true;
+    }
+    public function db(){
+        return $this->db;
+    }
     /** 合计行数
      * @param string $fields
      * @return int
@@ -409,7 +412,7 @@ class Model implements \ArrayAccess
      */
     public static function create($data=null, $tbName=null, $dbName = null){
         $model = new static($tbName, $dbName);
-        $model->asModel = true;
+        $model->_asObj = true;
         if ($data) {
             $model->setOldData($data);
         }
