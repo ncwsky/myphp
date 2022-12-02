@@ -23,18 +23,15 @@ class Db {
     private static $log_type = 0; //是否记录sql
     private static $instance = [];
     /**
-     * 内部数据连接对象
      * @var \myphp\db\db_pdo|\myphp\db\db_mysqli
      */
-    public $db;
+    private $db;
     /**
-     * 缓存
-     * @var \myphp\cache\File
+     * @var \myphp\cache\File 缓存
      */
     private $cache;
     /**
-     * 配置
-     * @var array
+     * @var array 配置
      */
     private $config = [
         'type' => 'pdo',   //数据库连接类型 仅pdo、mysqli
@@ -48,10 +45,12 @@ class Db {
         'prefix' => '',  //数据库表前缀
         'prod' => false  //生产环境
     ];
-	// 链操作方法信息 被保存在此
-    public $options;
-    public $prefix = '';
-	// 链操作方法列表
+    /**
+     * @var array 链操作方法信息
+     */
+    private $options;
+    public $resetOption = true;
+	//链操作方法列表
     private $methods = ',group,having,idx,limit,order,table,';
     //表字段信息
     private $tbFields = [];
@@ -76,14 +75,10 @@ class Db {
             $this->config = array_merge($this->config, $conf);
             $key = $this->config['dbms'] . $this->config['server'] . $this->config['name'] . $this->config['port'];
         }
-        $this->prefix = $this->config['prefix'];
 
         if ($force || !isset(self::$instance[$key])) {
             $db_type = '\myphp\db\db_' . $this->config['type'];
-
-
             $this->db = new $db_type($this->config);//连接数据库
-
             self::$instance[$key] = $this->db;//if (false === $force)
         } else {
             $this->db = self::$instance[$key];
@@ -232,8 +227,11 @@ class Db {
         $pattern = '/^\s*(SELECT|SHOW|DESCRIBE)\b/i';
         return preg_match($pattern, $sql) > 0;
     }
-    public function init(){
+    public function resetOptions(){
         $this->options = null;
+    }
+    public function conn(){
+        return $this->db;
     }
     //对sql部分语句进行转换
     final public function chkSql(&$sql, $curd=false) {
@@ -428,7 +426,7 @@ class Db {
 	private function _run_init(&$sql, $bind=null, $curd=false){
         $this->chkSql($sql, $curd);
         self::$sql = $sql = $this->get_real_sql($sql, $bind); //解析绑定参数
-		$this->options = null; //清除
+		if($this->resetOption) $this->options = null; //重置
 		if(self::$log_type==2 || (self::$log_type==1 && $curd)) Log::write($sql,'SQL');
 		self::$times++;
 	}
@@ -456,7 +454,7 @@ class Db {
      * 执行sql  todo:有主从时 默认都走主库
      * @param $sql
      * @param null $bind
-     * @return bool|int|mixed|\mysqli_result
+     * @return bool|int|mixed
      * @throws \Exception
      */
 	public function execute($sql, $bind=null) {
@@ -472,7 +470,9 @@ class Db {
         !is_array($bind) && $isArr = $bind;
         $idx = $isArr && isset($this->options['idx']) ? $this->options['idx'] : null; //指定键名
         // 替换前缀
-        !isset($this->options['table']) && $sql = str_replace('{prefix}', $this->prefix, $sql);
+        if(!isset($this->options['table']) && strpos($sql, '{prefix}')){
+            $sql = str_replace('{prefix}', $this->config['prefix'], $sql);
+        }
 
         $this->_run_init($sql, $bind);
         if(!$isArr) return $this->db->query($sql);
@@ -824,7 +824,7 @@ class Db {
         }
 
         if(strpos($tb,'{prefix}')!==false){ //表名前缀处理
-            $tb = str_replace('{prefix}', $this->prefix, $tb);
+            $tb = str_replace('{prefix}', $this->config['prefix'], $tb);
         }
 
         if($more){
@@ -936,9 +936,9 @@ abstract class DbBase{
     const REPEATABLE_READ = 'REPEATABLE READ'; //可重复读：幻读 如:mysql
     const SERIALIZABLE = 'SERIALIZABLE'; //串行化
 
-	public $conn = null; //连接实例
-	public $rs = null; //数据集
-    public $config = null;
+	public $conn; //连接实例
+	public $rs; //数据集
+    public $config;
     public $transCounter = 0;
 	
 	public function __construct($config) {

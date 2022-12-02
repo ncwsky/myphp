@@ -14,7 +14,6 @@ namespace myphp;
  * @method null|static join(string $tb, string|array $on, $joinWay='inner')
  * @method null|static where(string|array $val, $bind=null)
  * @method int update(array $post, string $table='', string|array $where = '')
- * @method int add(array $post, string $table='')
  * @method int del(string $table='', string|array $where = '')
  * @method array|false|\PDOStatement|static[] select(bool|string $table='');
  * @method array|false|\PDOStatement|static[] all(bool|string $table='');
@@ -101,12 +100,17 @@ class Model implements \ArrayAccess
                 $this->db = new Db($dbName);
             }
         }
+        $this->db->resetOption = false; //sql组合项执行后不重置
 
         $this->tbName = $tbName===null ? static::tableName() : $tbName;
 
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
         }
+    }
+
+    public function __clone(){
+        $this->db = clone $this->db; //用于复制隔离db->options
     }
 
     /**
@@ -230,7 +234,7 @@ class Model implements \ArrayAccess
         //验证数据
         if (!Helper::validAll($this->_data, $this->fieldRule, true, $def === null ? $this->setDef : $def)) {
             //throw new \RuntimeException('验证失败');
-            $this->db->options = null;
+            //$this->db->resetOptions();
             return false;
         }
         //未指定表名时指定表名
@@ -254,7 +258,7 @@ class Model implements \ArrayAccess
                 }
                 if (empty($this->_data)) {
                     $this->_data = $this->_oldData;
-                    $this->db->options = null; //清除未执行的条件 防条件被附加到下次执行的条件中
+                    $this->db->resetOptions(); //清除未执行的条件 防条件被附加到下次执行的条件中
                     $this->afterSave(false, []);
                     return 0;
                 }
@@ -340,7 +344,6 @@ class Model implements \ArrayAccess
     }
     //执行db方法的后置处理
     protected function _afterDbMethod($method, &$result){
-        $this->db->where;
         if ($method == 'find' || $method=='one') { //单条记录   || $method == 'getOne'
             if (false === $result) return $result;
             $this->formatData($result);
@@ -409,6 +412,7 @@ class Model implements \ArrayAccess
      * @param null $tbName
      * @param null $dbName
      * @return static
+     * @throws \Exception
      */
     public static function create($data=null, $tbName=null, $dbName = null){
         $model = new static($tbName, $dbName);
@@ -417,5 +421,56 @@ class Model implements \ArrayAccess
             $model->setOldData($data);
         }
         return $model;
+    }
+
+    /**
+     * @param array|array[] $post 添加数据可批量
+     * @return bool|mixed|string
+     * @throws \Exception
+     */
+    public static function add($post){
+        $model = static::create();
+        if ($model->fieldRule) { //有字段规则
+            if (isset($post[0])) { //批量
+                if($model->autoIncrement){ //自增键时排除验证规则
+                    unset($model->fieldRule[$model->autoIncrement]);
+                }
+                foreach ($post as &$data) {
+
+                    if (!Helper::validAll($data, $model->fieldRule, true)) {
+                        return false;
+                    }
+                }
+            } else {
+                if($model->autoIncrement && empty($post[$model->autoIncrement])){ //自增键[null 0 空]时排除验证规则
+                    unset($model->fieldRule[$model->autoIncrement]);
+                }
+                //验证数据
+                if (!Helper::validAll($post, $model->fieldRule, true)) {
+                    return false;
+                }
+            }
+        }
+        return $model->db()->add($post, static::tableName());
+    }
+    /**
+     * @param $data
+     * @param string|array $where
+     * @return bool|int
+     * @throws \Exception
+     */
+    public static function updateAll($data, $where = '')
+    {
+        return static::getDb()->update($data, static::tableName(), $where);
+    }
+
+    /**
+     * @param string|array $where
+     * @return bool|int
+     * @throws \Exception
+     */
+    public static function delAll($where)
+    {
+        return static::getDb()->del(static::tableName(), $where);
     }
 }
