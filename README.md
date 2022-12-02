@@ -8,7 +8,8 @@ https://github.com/php-casbin/php-casbin
 登陆错误次数限制｜通用密码登陆+来源ip｜账户不存在错误次数限制ip
 
 
-使用参考实例：
+###使用参考实例
+```
 <?php
 //定义项目路径
 define('APP_PATH','./app');
@@ -17,10 +18,36 @@ define('APP_PATH','./app');
 // 加载框架入口文件
 //require("./myphp/base.php");
 
-$myphp = new myphp();	//实例化一个类
-$myphp->Run();	//运行类的Run的方法
-?>
+myphp::Run();	//运行类的Run的方法
+```
 
-cli示例：
-php index.php c-a-id  默认请求模式下(url模式1示例同此示例)
-php index.php c=index a=test id=23  0 普通模式下
+###cli示例  
+php index.php c-a-id  默认请求模式下(url模式1示例同此示例)     
+php index.php c=index a=test id=23  0 普通模式下 
+
+###模板标签
+```
+#引入文件 
+{include:文件名.后缀名}  
+
+#循环数据    
+list $retData -> $retData as $key=>$val;
+list $retData $custom -> $retData as $k_custom=>$custom
+{list $retData}
+{/list}
+
+#条件
+{if x}{else}{elseif x}{/if}
+
+#标签
+~ => php    ~echo $name -> echo $name;
+$ => var    $name -> echo $name;
+* => echo   *$name -> echo $name;
+@ => lang   @name -> echo GetL('name');
+# => config #name -> echo Getc('name');
+? => isset  ?$v[=$fun][:$defval]
+    ?$name -> echo isset($name)?$name:'';
+    ?$name:0 -> echo isset($name)?$name:0;
+    ?$name=trim:$defval -> echo isset($name)?trim($name):$defval;
+ 
+```
