@@ -374,9 +374,11 @@ class Model implements \ArrayAccess
     }
     public function asArray(){
         $this->_asObj = false;
+        return $this;
     }
     public function asObj(){
         $this->_asObj = true;
+        return $this;
     }
     public function db(){
         return $this->db;
