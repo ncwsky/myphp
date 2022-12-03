@@ -103,6 +103,7 @@ class Tool
         //$fieldRule = var_export($fieldRule, true);
         //public $fieldRule = [];
         $content = str_replace('public $fieldRule '.substr_cut($content, 'public $fieldRule ', ';', 0, false).';', "public \$fieldRule = $fieldRule;", $content);
+        $content = str_replace('protected $fieldRule '.substr_cut($content, 'protected $fieldRule ', ';', 0, false).';', "protected \$fieldRule = $fieldRule;", $content);
 
         file_put_contents($classFile, $content);
         return true;

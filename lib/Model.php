@@ -52,7 +52,19 @@ class Model implements \ArrayAccess
     //表字段验证无效时设默认值开关
     protected $setDef = false;
     //表字段规则
-    public $fieldRule = [];//'id'=>['rule'=>'%d{1,10}','def'=>0]
+    protected $fieldRule = [];//'id'=>['rule'=>'%d{1,10}','def'=>0]
+    /**
+     * 字段扩展过滤规则
+     * 示例
+     $extRule = [
+        'id'=>['rule'=>'%d{1,10}','err'=>'请输入数字','err2'=>'数字范围无效'], // rule=>['d','min'=>1,'max'=>10] ;'def'=>0, 有默认值不做提示
+        'name'=>['rule'=>'%s{10}','err'=>'请输入名称','err2'=>'名称最多不能超过10个字符'],
+        'des'=>['rule'=>'%s{250}','def'=>''], // ['rule'=> ['d','max'=>250],'def'=>'']
+        'his'=>['rule'=>'%his{250}','err'=>'时间无效'], // 无err2项时 默认使用err
+     ];
+     * @var array
+     */
+    protected $extRule = [];
 
     protected static $dbName = 'db'; //db配置名
     protected static $tableName = null; //表配置名
@@ -107,33 +119,27 @@ class Model implements \ArrayAccess
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
         }
+        if ($this->extRule) {
+            $this->fieldRule = array_merge($this->fieldRule, $this->extRule);
+        }
     }
-
     public function __clone(){
         $this->db = clone $this->db; //用于复制隔离db->options
     }
-
-    /**
-     * 带指定错误提示示例
-    $extRule = [
-        'id'=>['rule'=>'%d{1,10}','err'=>'请输入数字','err2'=>'数字范围无效'], //'def'=>0, 有默认值不做提示
-        'name'=>['rule'=>'%s{10}','err'=>'请输入名称','err2'=>'名称最多不能超过10个字符'],
-        'des'=>['rule'=>'%s{250}','def'=>''], //
-        'his'=>['rule'=>'%his{250}','err'=>'时间无效'], // 无err2项时 默认使用err
-    ];
-    $tb->setRule($extRule);
-     */
     /**
      * 设置扩展字段过滤规则
-     * @param string|array $name id|[id'=>array('rule'=>'%d{1,10}','def'=>0)]
+     * @param string|array $name id|[id'=>['rule'=>'%d{1,10}','def'=>0]]
      * @param null|array $rule ['rule'=>'%d{1,10}','def'=>0]|null
      */
     public function setRule($name, $rule=null){
-        if(is_array($name)){
+        if (is_array($name)) {
             $this->fieldRule = array_merge($this->fieldRule, $name);
-        }else{
+        } else {
             $this->fieldRule[$name] = $rule;
         }
+    }
+    public function rules(){
+        return $this->fieldRule;
     }
     //设置字段数据
     public function setData($data, $reset = true)

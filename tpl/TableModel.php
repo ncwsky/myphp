@@ -17,10 +17,9 @@ class __name__ extends \myphp\Model {
     protected $autoIncrement = '';
     //表查询的字段
     protected $fields = '*';
-
-    /**
-     * @var array 字段规则 未配置时将自动获取 $fieldRule $prikey $autoIncrement $fields
-     */
-    public $fieldRule = [];
+    //字段规则 未配置时将自动获取 $fieldRule $prikey $autoIncrement $fields
+    protected $fieldRule = [];
+    //字段扩展过滤规则
+    protected $extRule = [];
 
 }
