@@ -114,6 +114,12 @@ class Control
             return "<meta http-equiv='Refresh' content='0;URL={$url}'>";
         }
     }
+    //在子类控制器及方法中调用 取得页面内容
+    final static function html($data)
+    {
+        \myphp::conType('text/html');
+        return $data;
+    }
     //json类型输出
     final static function json($data){
         \myphp::conType('application/json');
