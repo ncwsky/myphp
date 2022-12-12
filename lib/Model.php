@@ -212,17 +212,15 @@ class Model implements \ArrayAccess
      * $def:false 对未设置字段not null验证(不为空验证)
      * $def:true 对未设置字段not null验证,同时有默认值时设默认值
      * @param null $data
-     * @param null $where
      * @param null $def
      * @return bool|int|mixed|string
      * @throws \Exception
      */
-    public function save($data = null, $where = null, $def=null)
+    public function save($data = null, $def=null)
     {
         if (is_array($data)) {
             $this->_data = $this->_data ? array_merge($this->_data, $data) : $data;
         }
-        if ($where) $this->db->where($where);
         //有单条查询且数据有主键 则识别为更新
         $isUpdate = $this->db->where ? true : false;
         //主键值为[null 0 空]时可insert记录
