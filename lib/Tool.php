@@ -49,13 +49,15 @@ class Tool
         $notes = "/**\n* Class $className\n* @package $namespace\n*";
         foreach ($fieldRule as $k=>$v){
             $type = 'string';
-            $rule = substr($v['rule'],1,1);
-            if ($rule == 'd') {
-                $type = 'int';
-            } elseif ($rule == 'b') {
-                $type = 'bool';
-            } elseif ($rule == 'f') {
-                $type = 'float';
+            if(strpos($v['rule'], 'date')===false){
+                $rule = substr($v['rule'],1,1);
+                if ($rule == 'd') { 
+                    $type = 'int';
+                } elseif ($rule == 'b') {
+                    $type = 'bool';
+                } elseif ($rule == 'f') {
+                    $type = 'float';
+                }
             }
             $notes .="\n* @property $type \$$k";
             //解析规则
