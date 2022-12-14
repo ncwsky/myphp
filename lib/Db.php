@@ -146,7 +146,7 @@ class Db {
                 if ($this->config['prod']) { #生成模式下提前解析
                     foreach ($fieldInfo['rule'] as $k=>$rule){
                         $type = 's'; $min = $max = null;
-                        CheckValue::parseType($rule['rule'], $type, $min, $max);
+                        Value::parseType($rule['rule'], $type, $min, $max);
                         $fieldInfo['rule'][$k]['rule'] = [$type, 'min' => $min, 'max' => $max];
                     }
                     $this->cache->set($tb, $fieldInfo);

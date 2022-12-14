@@ -71,12 +71,14 @@ class Model implements \ArrayAccess
 
     /**
      * 数据库实例
+     * @param bool $newInstance
      * @return Db
      * @throws \Exception
      */
-    public static function getDb()
+    public static function getDb($newInstance = true)
     {
-        return new Db(static::$dbName);
+        if ($newInstance) return new Db(static::$dbName);
+        return \myphp::db(static::$dbName);
     }
 
     /**
@@ -467,7 +469,7 @@ class Model implements \ArrayAccess
      */
     public static function updateAll($data, $where = '')
     {
-        return static::getDb()->update($data, static::tableName(), $where);
+        return static::getDb(false)->update($data, static::tableName(), $where);
     }
 
     /**
@@ -477,6 +479,6 @@ class Model implements \ArrayAccess
      */
     public static function delAll($where)
     {
-        return static::getDb()->del(static::tableName(), $where);
+        return static::getDb(false)->del(static::tableName(), $where);
     }
 }

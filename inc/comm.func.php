@@ -881,7 +881,7 @@ function Q($name, $defVal='', $datas=null) {
     $filter = $min = $max = null;
     $type = 's'; // 默认转换为字符串
     $digit = 0; //小数位处理 四舍五入
-    \myphp\CheckValue::parseType($name, $type, $min, $max, $filter, $digit);
+    \myphp\Value::parseType($name, $type, $min, $max, $filter, $digit);
 
     $method = 'request'; // 默认为_REQUEST
     if(strpos($name,'.')!==false) { // 指定参数来源
@@ -931,7 +931,7 @@ function Q($name, $defVal='', $datas=null) {
     if($filter===null) $filter = true; #使用默认过滤处理
     elseif($filter==='null') $filter = null; #禁用默认过滤
 
-    \myphp\CheckValue::type2val($val, [$type, 'min' => $min, 'max' => $max, 'digit' => $digit, 'filter' => $filter], $defVal);
+    \myphp\Value::type2val($val, [$type, 'min' => $min, 'max' => $max, 'digit' => $digit, 'filter' => $filter], $defVal);
 
     return $val;
 }

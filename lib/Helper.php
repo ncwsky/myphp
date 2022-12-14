@@ -92,7 +92,7 @@ class Helper{
             $_rule = $rule;
         }
 
-        CheckValue::type2val($val, $_rule, $default, !$hasDef, $name);
+        Value::type2val($val, $_rule, $default, !$hasDef, $name);
         return $val;
     }
     /** 数据有效性全处理

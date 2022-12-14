@@ -62,7 +62,7 @@ class Tool
             $notes .="\n* @property $type \$$k";
             //解析规则
             $type = 's'; $min = $max = null;
-            CheckValue::parseType($v['rule'], $type, $min, $max);
+            Value::parseType($v['rule'], $type, $min, $max);
             unset($fieldRule[$k]['null']);
             $fieldRule[$k]['rule'] = [$type, 'min' => $min, 'max' => $max];
             if(isset($fieldRule[$k]['def'])){

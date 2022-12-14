@@ -562,7 +562,7 @@ final class myphp{
             if (!is_file($runFile)) {
                 $php = self::compile(__DIR__ . '/inc/comm.func.php');
                 $php .= self::compile(__DIR__ . '/lib/Cache.php');
-                $php .= self::compile(__DIR__ . '/lib/CheckValue.php');
+                $php .= self::compile(__DIR__ . '/lib/Value.php');
                 $php .= self::compile(__DIR__ . '/lib/Control.php');
                 $php .= self::compile(__DIR__ . '/lib/Db.php');
                 $php .= self::compile(__DIR__ . '/lib/Helper.php');

@@ -1,7 +1,7 @@
 <?php
 namespace myphp;
 
-class CheckValue{
+class Value{
     public static $before = null; //验证的前置操作 流程处理完请重置为null
     public static $after = null; //验证的后置操作 流程处理完请重置为null
     public static $defaultFilter = 'html_encode'; #默认过滤
@@ -99,6 +99,8 @@ class CheckValue{
                 $digit=(int)substr($type,-2,1);
                 $type=substr($type,-1);
             }
+        } else {
+            $type = $rule;
         }
     }
 
@@ -136,7 +138,7 @@ class CheckValue{
         }
         #var_dump($type, $min, $max, $digit);
         #filter过滤验证
-        if($errCode==0 && $filter && !CheckValue::filter($val, $filter)) $errCode = 2;
+        if($errCode==0 && $filter && !self::filter($val, $filter)) $errCode = 2;
 
         if($errCode==0){
             if(self::$before){ //验证的前置操作
