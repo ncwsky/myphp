@@ -811,10 +811,10 @@ final class myphp{
         if(substr($uri,0,1)=='/'){ //静态url /index.php?a=ask | /pub/index.php?a=ask(待实现)
             $pos = strpos($uri,'?');
             if($pos!==false) {// para获取
-                $script_name = substr($uri, 0, $pos);
+                //$script_name = substr($uri, 0, $pos);
                 $para = substr($uri,$pos+1);
             }else{
-                $script_name = $uri;
+                //$script_name = $uri;
             }
         }elseif($pos = strpos($uri,'?')){ // index/ask?id=1
             $mac = substr($uri,0,$pos);
@@ -822,9 +822,7 @@ final class myphp{
         }else{ // ask | index/ask | pub/index/ask
             $mac = $uri;
         }
-        // url_mode 2 $_SERVER["REQUEST_URI"] = ROOT_DIR.$uri;
-        // if($script_name=='/') $script_name .='index.php';
-
+        /*
         if(isset($script_name) && $script_name!=$_SERVER['SCRIPT_NAME']){
             if(substr_count($script_name,'/')>1){
                 $_SERVER['SCRIPT_NAME'] = substr($script_name,-1)=='/'?$script_name.'index.php':$script_name;
@@ -832,7 +830,7 @@ final class myphp{
                 self::$cfg['module_maps'][$_GET['m']]=substr($script_name,0,strrpos($script_name,'/')).'/app';
             }
             //var_dump(self::$cfg['module_maps']);
-        }
+        }*/
         //echo $_SERVER['SCRIPT_NAME'].'<br>'; //当前URL路径
         //echo $script_name.'<br>';
         //echo $mac.'===='.$para;
