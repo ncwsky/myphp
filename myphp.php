@@ -742,8 +742,8 @@ final class myphp{
         $uri = $mac = $para = '';
         if(isset(self::$cfg['url_maps'][$url])){ //静态url
             $uri = self::$cfg['url_maps'][$url];
-        }elseif(isset(self::$cfg['url_maps'][Helper::getMethod().' '.$url])){ //仅支持单项 GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS
-            $uri = self::$cfg['url_maps'][Helper::getMethod().' '.$url];
+        //}elseif(isset(self::$cfg['url_maps'][Helper::getMethod().' '.$url])){ //仅支持单项 GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS
+        //    $uri = self::$cfg['url_maps'][Helper::getMethod().' '.$url];
         }else{ //动态url '/news/<id>[-<page>][-<pl>]'=>'info/lists?<id>[&<page>][&<pl>]',
             foreach(self::$cfg['url_maps'] as $k=>$v){
                 $reg_match = false;

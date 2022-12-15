@@ -187,7 +187,7 @@ class Model implements \ArrayAccess
     public function formatData(&$data){
         if(!is_array($data) || empty($this->fieldRule)) return;
         foreach ($data as $k=>$val){
-            if(isset($this->fieldRule[$k])) { //转换到指定类型
+            if(isset($this->fieldRule[$k]['type'])) { //转换到指定类型
                 $type = $this->fieldRule[$k]['type'];
                 if($type=='double') $data[$k] = (float) $val;
                 elseif($type=='bit') $data[$k] = (bool) $val;
