@@ -173,9 +173,11 @@ class db_pdo extends \myphp\DbBase{
 
     /**
      * 取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
+     * @param string $sequenceName
      * @return string
      */
-	public function insert_id() {
-		return $this->conn->lastInsertId();//PDO::lastInsertId(); PDO_PGSQL() 要求为 name 参数指定序列对象的名称
+	public function insert_id($sequenceName=null) {
+	    //mssql 'SELECT CAST(COALESCE(SCOPE_IDENTITY(), @@IDENTITY) AS bigint)'
+		return $this->conn->lastInsertId($sequenceName);//PDO::lastInsertId(); PDO_PGSQL() 要求为 name 参数指定序列对象的名称
 	}
 }

@@ -109,9 +109,10 @@ class db_mysqli extends \myphp\DbBase{
 
     /**
      * 取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
+     * @param $sequenceName
      * @return mixed
      */
-	public function insert_id() {
+	public function insert_id($sequenceName=null) {
 		return $this->conn->insert_id;
 	}
 }

@@ -592,13 +592,13 @@ class Db {
     /**
      * @param array|array[] $post 可批量
      * @param string $table
-     * @return mixed|string
+     * @return mixed|string 自动自增获取最后插入记录的id
      * @throws \Exception
      */
     public function add($post, $table='') {
 		$this->execute($this->add_sql($post, $table));
-		return $this->getInsertId();
-	}
+		return $this->db->insert_id();
+    }
 	//更新记录 $where[str|arr]
     public function update_sql($post, $table='', $where = '') {
         $value = '';
@@ -787,10 +787,6 @@ class Db {
 	public function getRows() {
 		return $this->db->num_rows();
 	}
-	//获取最后插入记录的 自动id
-	public function getInsertId() {
-		return $this->db->insert_id();	
-	}
 	//初始化缓存类，如果开启缓存，则加载缓存类并实例化
 	public function initCache() {
         if (!$this->cache) {
@@ -831,7 +827,7 @@ class Db {
             $tb = trim($tb);
             if ($tb[0]=='(' || strpos($tb, '.') || strpos($tb, ',')) return $tb; //子查询|联合查询[.,]
             if ($pos = strpos($tb, ' ')) { //有别名
-                if(strpos($tb, ' ', $pos)+1){ //多个空格 可能非别名
+                if(strpos($tb, ' ', $pos+1)){ //多个空格 可能非别名
                     return $tb;
                 }
                 $tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, $tb); //, str_replace('`', '', $tb)
@@ -1048,7 +1044,7 @@ abstract class DbBase{
 	//取得结果集行的数目
 	abstract public function num_rows();
 	//取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
-	abstract public function insert_id();
+	abstract public function insert_id($sequenceName);
 }
 //表达式
 class Expr{

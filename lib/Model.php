@@ -383,12 +383,13 @@ class Model implements \ArrayAccess
     public function db(){
         return $this->db;
     }
-    /** 合计行数
-     * @param string $fields
+
+    /**
+     * @param string $field
      * @return int
      */
     public function count($field='*'){
-        return $this->db->getCount($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''), '', $field=='*' && $this->prikey?$this->prikey:$field);
+        return $this->db->getCount($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''), '', $field);
     }
     protected static function runCall(Model $model, $method, $args){
         if (method_exists($model, $method)) {
