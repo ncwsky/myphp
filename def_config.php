@@ -87,11 +87,11 @@ return array(
 	'auth_err' => 'errmsg',//验证错误信息记录变量
 	'auth_gateway'=> '/admin.php/index/login',//默认验证网关    ------------ 以下权限设置 优先级从上到下 ------------------------
 	'auth_model_not' => '',//无需验证的模块，多个","分隔  用前后布置，包含  ,index,
-	'auth_model_action' => '',//无需验证的模块中需要验证的动作  //,index::index,index::info,
-	'auth_action_not' => '',//无需验证的动作，多个","分隔 格式：模块名/动作名
+	'auth_model_action' => '',//无需验证的模块中需要验证的动作  //,index/index,index/info,
+	'auth_action_not' => '',//无需验证的动作，多个","分隔 格式：控制器/方法名
 	'auth_login_model' => '',//仅登陆验证的模块
+    'auth_login_action' => '',//仅登陆验证的方法
 	'auth_login_M_A' => '',//登陆验证模块中需要验证的动作
-	'auth_login_action' => '',//仅登陆验证的动作
 	//日志设置
 	'log_type' => 'file',// 记录类型
 	'log_dir' => ROOT.'/log', //日志记录主目录名称
