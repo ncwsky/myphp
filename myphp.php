@@ -1061,7 +1061,8 @@ trait MyMsg
         if ($msg === null) {
             return self::$myMsg;
         } else {
-            return self::msg($msg, $code);
+            self::msg($msg, $code);
+            return false;
         }
     }
 }
