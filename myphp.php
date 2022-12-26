@@ -747,12 +747,12 @@ final class myphp{
         }else{ //动态url '/news/<id>[-<page>][-<pl>]'=>'info/lists?<id>[&<page>][&<pl>]',
             foreach(self::$cfg['url_maps'] as $k=>$v){
                 $reg_match = false;
-                if(strpos($k,'[')){ //可选参数或特殊regx模式
-                    $k = str_replace(array('[',']'),array('(',')?'),$k);
-                    $reg_match = true;
-                }
                 if(false!==$pos=strpos($k,'<')){ //是动态执行分析
                     $reg_match = true; $vars = array(); //解析变量数组
+                    if(strpos($k,'[')){ //可选参数或特殊regx模式
+                        $k = str_replace(array('[',']'),array('(',')?'),$k);
+                        //$reg_match = true;
+                    }
                     do{
                         $end = strpos($k,'>',$pos);
                         $var = $__var = substr($k,$pos+1,$end-$pos-1);
@@ -778,11 +778,13 @@ final class myphp{
                         $k = str_replace('<'.$__var.'>',$regx,$k);
                         $pos=strpos($k,'<',$pos);
                     } while ($pos);
+
+                    $k = str_replace(array('.','#','#dot'),array('\.','\#','.'),$k);
                 }
+
                 if($reg_match){
-                    $k = str_replace(array('.','/','#dot'),array('\.','\/','.'),$k);
                     //Log::trace($k.'|||'.$url);Log::trace($vars);
-                    if (preg_match ('/^'.$k.'$/i', $url, $regArr)) {
+                    if (preg_match ('#^'.$k.'$#u', $url, $regArr)) {
                         $count = count($regArr);
                         if(isset($vars) && $count>1){
                             //var_dump($regArr);
