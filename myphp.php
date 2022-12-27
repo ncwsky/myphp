@@ -739,7 +739,7 @@ final class myphp{
         if($url_pos=strpos($url,'?'))
             $url = substr($url,0,$url_pos);
 
-        $uri = $mac = $para = '';
+        $uri = $mca = $para = '';
         if(isset(self::$cfg['url_maps'][$url])){ //静态url
             $uri = self::$cfg['url_maps'][$url];
         //}elseif(isset(self::$cfg['url_maps'][Helper::getMethod().' '.$url])){ //仅支持单项 GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS
@@ -819,36 +819,27 @@ final class myphp{
                 //$script_name = $uri;
             }
         }elseif($pos = strpos($uri,'?')){ // index/ask?id=1
-            $mac = substr($uri,0,$pos);
+            $mca = substr($uri,0,$pos);
             $para = substr($uri,$pos+1);
         }else{ // ask | index/ask | pub/index/ask
-            $mac = $uri;
+            $mca = $uri;
         }
-        /*
-        if(isset($script_name) && $script_name!=$_SERVER['SCRIPT_NAME']){
-            if(substr_count($script_name,'/')>1){
-                $_SERVER['SCRIPT_NAME'] = substr($script_name,-1)=='/'?$script_name.'index.php':$script_name;
-                $_GET['m'] = md5($script_name);
-                self::$cfg['module_maps'][$_GET['m']]=substr($script_name,0,strrpos($script_name,'/')).'/app';
-            }
-            //var_dump(self::$cfg['module_maps']);
-        }*/
         //echo $_SERVER['SCRIPT_NAME'].'<br>'; //当前URL路径
         //echo $script_name.'<br>';
-        //echo $mac.'===='.$para;
+        //echo $mca.'===='.$para;
 
         if($para!=''){
             parse_str($para,$get);
             $_GET = array_merge($_GET,$get);
         }
-        if($mac!=''){//分解m a c
-            if($pos = strpos($mac,'/')){
-                $path = explode('/',$mac);
+        if($mca!=''){//分解m c a
+            if($pos = strpos($mca,'/')){
+                $path = explode('/',$mca);
                 $_GET['a'] = array_pop($path);
                 $_GET['c'] = array_pop($path);
                 if(!empty($path)) $_GET['m'] = array_pop($path);
             }else{
-                $_GET['a'] = $mac;
+                $_GET['a'] = $mca;
             }
         }
         $_REQUEST = array_merge($_REQUEST,$_GET);
