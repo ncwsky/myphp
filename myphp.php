@@ -921,14 +921,13 @@ final class myphp{
         if(substr($uri,0,1)=='!'){ //普通url模式
             $normal = true; $uri = substr($uri,1);
         }
-        $pos = strpos($uri,'?');
-        $url_vars = self::env('url_vars');
-        if(is_array($url_vars)){ //全局url参数设定
-            $vars = $vars!=null ? array_merge($url_vars, $vars) : $url_vars;
+        //全局url参数设定
+        if (isset(self::$env['url_vars']) && is_array(self::$env['url_vars'])) {
+            $vars = is_array($vars) ? array_merge(self::$env['url_vars'], $vars) : self::$env['url_vars'];
         }
-
+        $pos = strpos($uri,'?');
         if($pos!==false && isset($vars['!'])){ //排除参数处理 参数!的参数值为排除项 多个使用,分隔
-            $del_paras = explode(',', $vars['!']);
+            $del_paras = is_array($vars['!']) ? $vars['!'] : explode(',', $vars['!']);
             foreach($del_paras as $k){
                 if($k!='' && $_s = strpos($uri, $k, $pos)){ //?位置开始
                     $_e = strpos($uri, '&', $_s); //参数位置开始
