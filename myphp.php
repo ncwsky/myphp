@@ -311,8 +311,7 @@ final class myphp{
             $_app = $uri;
             $_url = $_app . '?c=';
         }
-        if($hasMatch){
-        }elseif($url_mode == 2){	//如果Url模式为2，那么就是使用PATH_INFO模式
+        if(!$hasMatch && $url_mode == 2){	//如果Url模式为2，那么就是使用PATH_INFO模式
             $url = $_SERVER["REQUEST_URI"];//获取完整的路径，包含"?"之后的字
             //去除url包含的当前文件的路径信息
             if (strpos($url, $uri, 0) === 0) {
