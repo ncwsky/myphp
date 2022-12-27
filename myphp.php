@@ -294,35 +294,33 @@ final class myphp{
         if($isCLI){ //cli模式请求处理
             //cli_url_mode请求模式 默认2 PATH_INFO模式
             $url_mode = self::$cfg['url_mode'] = isset(self::$cfg['cli_url_mode'])?self::$cfg['cli_url_mode']:2;
-            if($url_mode == 1){
-                $_GET['do'] = implode(self::$cfg['url_para_str'], array_slice($_SERVER['argv'], 1));
-            }elseif($url_mode == 2){
-                $_SERVER["REQUEST_URI"] = implode(self::$cfg['url_para_str'], array_slice($_SERVER['argv'], 1));
+            if($url_mode == 2){
+                $_SERVER["REQUEST_URI"] = implode('/', array_slice($_SERVER['argv'], 1));
             }else{
                 parse_str(implode('&', array_slice($_SERVER['argv'], 1)), $_GET);
             }
         }
         // 简单 url 映射  //仅支持映射到普通url模式
-        $uri = self::parseUrlMap();
+        $hasMatch = self::parseUrlMap();
 
-        $_app = $_url = '';
-        if(!$uri) $uri = $app_root . $basename; //当前URL路径
+        $uri = $app_root . $basename; //当前URL路径
         //echo 'uri=',$uri,PHP_EOL;
-        if($url_mode == 1){
-            $_url = $_app = $uri .'?do=';
-            $do = isset($_GET['do']) ? trim($_GET['do']) : '';	//获得执行参数
-            self::parseUrl($do);
-        }
-        elseif($url_mode == 2){	//如果Url模式为2，那么就是使用PATH_INFO模式
+        if ($url_mode == 2) {
             $_url = $_app = (self::$cfg['url_rewrite'] && $uri == self::$cfg['url_index'] ? '' : $uri) . '/';
+        } else {
+            $_app = $uri;
+            $_url = $_app . '?c=';
+        }
+        if($hasMatch){
+        }elseif($url_mode == 2){	//如果Url模式为2，那么就是使用PATH_INFO模式
             $url = $_SERVER["REQUEST_URI"];//获取完整的路径，包含"?"之后的字
-
             //去除url包含的当前文件的路径信息
-            if ( strpos($url,$uri,0) !== false ){
+            if (strpos($url, $uri, 0) === 0) {
                 $url = substr($url, strlen($uri));
             } else { //伪静态时去除
-                if ( substr($url, 0, strlen($app_root))==$app_root ){
-                    $url = substr($url, strlen($app_root));
+                $len = strlen($app_root);
+                if (substr($url, 0, $len) == $app_root) {
+                    $url = substr($url, $len);
                 }
             }
             //去除?处理
@@ -334,12 +332,8 @@ final class myphp{
                 }
                 $url = substr($url, 0, $pos);
             }
-            $url = trim($url, '/');
-            self::parseUrl($url);
-        }
-        else{//0
-            $_app = $uri;
-            $_url = $_app.'?c=';
+            //分解m c a
+            self::deMCA($url);
         }
         //控制器和方法是否为空，为空则使用默认
         if (empty($_GET['c'])) {
@@ -351,13 +345,13 @@ final class myphp{
         self::$env['c'] = $_GET['c'];
         self::$env['a'] = $_GET['a'];
         self::$env['app_namespace'] = basename(APP_PATH);
-        $module = isset($_GET['m']) ? str_replace(array('\\', DS), '', $_GET['m']) : '';
+        $module = isset($_GET['m']) ? $_GET['m'] : ''; //self::$env['m'] =
+        //var_dump($_GET);
         //指定项目模块
         $module_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
         if ($module != '') {
             //引入模块上级app下的配置文件
             self::loadConfig($module_path);
-
             if (isset(self::$cfg['module_maps'][$module])) {
                 if(substr(self::$cfg['module_maps'][$module], 0, 1) == DS){
                     $module_path = ROOT . ROOT_DIR . self::$cfg['module_maps'][$module];
@@ -389,11 +383,10 @@ final class myphp{
 
         //运行变量
         self::setEnv([
-            'url_vars'=>self::$cfg['url_vars'],
             'URI'=> $uri,
             'APP' => $_app, //相对当前地址的应用入口
             'URL' => $_url . self::$env['c'], //相对当前地址的url控制
-            'BASE_URL' => $_url . self::$env['c'] . self::$cfg['url_para_str'] . self::$env['a'],
+            'BASE_URL' => $_url . self::$env['c'] . '/' . self::$env['a'],
             'CONTROL' => (strpos(self::$env['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['c']), ' ')) : ucfirst(self::$env['c'])) . 'Act',
             'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰
             'MODULE' => $module,
@@ -430,25 +423,6 @@ final class myphp{
             unset($config['class_dir']);
         }
         self::$cfg = array_merge(self::$cfg, $config);
-    }
-    //网址解析生成
-    private static function parseUrl($url = ''){
-        if($url=='' || isset($_GET['c']) || isset($_GET['a'])) return;
-        $paths = explode(self::$cfg['url_para_str'], urldecode($url));	//分离路径
-
-        $_GET['c'] = array_shift($paths);	//获得控制器名
-        $_GET['a'] = array_shift($paths);	//获得方法名
-
-        //获取参数设置到get中
-        if(!empty($paths)) {
-            $param=$paths;
-            $param_count=count($param);
-            for($i=0; $i<$param_count;$i=$i+2) {
-                if(isset($param[$i+1]) && !is_numeric($param[$i])) {//预防最后个参数没有获取值。
-                    $_REQUEST[$param[$i]] = $_GET[$param[$i]]=$param[$i+1];
-                }
-            }
-        }
     }
 
     // 权限验证处理 在config.php配置中设置开启
@@ -742,8 +716,8 @@ final class myphp{
         $uri = $mca = $para = '';
         if(isset(self::$cfg['url_maps'][$url])){ //静态url
             $uri = self::$cfg['url_maps'][$url];
-        //}elseif(isset(self::$cfg['url_maps'][Helper::getMethod().' '.$url])){ //仅支持单项 GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS
-        //    $uri = self::$cfg['url_maps'][Helper::getMethod().' '.$url];
+            //}elseif(isset(self::$cfg['url_maps'][Helper::getMethod().' '.$url])){ //仅支持单项 GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS
+            //    $uri = self::$cfg['url_maps'][Helper::getMethod().' '.$url];
         }else{ //动态url '/news/<id>[-<page>][-<pl>]'=>'info/lists?<id>[&<page>][&<pl>]',
             foreach(self::$cfg['url_maps'] as $k=>$v){
                 $reg_match = false;
@@ -805,45 +779,43 @@ final class myphp{
                     }
                 }
             }
-            //var_dump($_GET);exit;
         }
+
         //echo $uri;
-        if($uri=='') return false;
+        if ($uri == '') return false;
+        $uri = trim($uri, DS);
         //解析获取实际执行的地址
-        if(substr($uri,0,1)=='/'){ //静态url /index.php?a=ask | /pub/index.php?a=ask(待实现)
-            $pos = strpos($uri,'?');
-            if($pos!==false) {// para获取
-                //$script_name = substr($uri, 0, $pos);
-                $para = substr($uri,$pos+1);
-            }else{
-                //$script_name = $uri;
-            }
-        }elseif($pos = strpos($uri,'?')){ // index/ask?id=1
+        if($pos = strpos($uri,'?')){ // index/ask?id=1
             $mca = substr($uri,0,$pos);
             $para = substr($uri,$pos+1);
         }else{ // ask | index/ask | pub/index/ask
             $mca = $uri;
         }
+
         //echo $_SERVER['SCRIPT_NAME'].'<br>'; //当前URL路径
-        //echo $script_name.'<br>';
         //echo $mca.'===='.$para;
 
-        if($para!=''){
-            parse_str($para,$get);
-            $_GET = array_merge($_GET,$get);
+        if ($para != '') {
+            parse_str($para, $get);
+            $_GET = array_merge($_GET, $get);
+            $_REQUEST = array_merge($_REQUEST, $_GET);
         }
-        if($mca!=''){//分解m c a
-            if($pos = strpos($mca,'/')){
-                $path = explode('/',$mca);
-                $_GET['a'] = array_pop($path);
-                $_GET['c'] = array_pop($path);
-                if(!empty($path)) $_GET['m'] = array_pop($path);
-            }else{
-                $_GET['a'] = $mca;
-            }
+        //分解m c a
+        self::deMCA($mca);
+        return true;
+    }
+    //分解m c a
+    private static function deMCA(&$mca){
+        $mca = trim($mca, '/');
+        if ($mca === '') return;
+        if (strpos($mca, '/')) {
+            $path = explode('/', $mca);
+            $_GET['a'] = array_pop($path);
+            $_GET['c'] = array_pop($path);
+            if (!empty($path)) $_GET['m'] = array_pop($path);
+        } else {
+            $_GET['a'] = $mca;
         }
-        $_REQUEST = array_merge($_REQUEST,$_GET);
-        return $_SERVER['SCRIPT_NAME']; //当前URL路径
     }
     /*
         url反转时 使用静态变量存放 v 记录 如 info/lists?id=7 第二次调用时就要以array来验证
@@ -907,15 +879,12 @@ final class myphp{
 
     //url正向解析 地址 [!]admin/index/show?b=c&d=e&....[#锚点@域名（待实现）], 附加参数 数组|null, url字符串如：/pub/index.php
     public static function forward_url($uri='', $vars=null, $url=''){
-        $normal = false;#$uri = trim($uri);
+        $normal = false;
         $m = $c = $a = $mac = $para = '';
         if(substr($uri,0,1)=='!'){ //普通url模式
             $normal = true; $uri = substr($uri,1);
         }
-        //全局url参数设定
-        if (isset(self::$env['url_vars']) && is_array(self::$env['url_vars'])) {
-            $vars = is_array($vars) ? array_merge(self::$env['url_vars'], $vars) : self::$env['url_vars'];
-        }
+
         $pos = strpos($uri,'?');
         if($pos!==false && isset($vars['!'])){ //排除参数处理 参数!的参数值为排除项 多个使用,分隔
             $del_paras = is_array($vars['!']) ? $vars['!'] : explode(',', $vars['!']);
@@ -927,7 +896,6 @@ final class myphp{
             }
             if(count($vars)>1) unset($vars['!']);
             else $vars=null;
-            // $uri = rtrim($uri,'&');
         }
         //url映射
         if(is_array(self::$cfg['url_maps']) && !empty(self::$cfg['url_maps'])){
@@ -937,98 +905,77 @@ final class myphp{
                     $url_maps[$v]=$k;
                 }
             }
-            $maps_para = '';
-            if(is_array($vars)) $maps_para = http_build_query($vars);
         }
+        $query = '';
         //分析mac及参数
-        if($pos!==false) {// 参数处理
-            $mac = substr($uri,0,$pos);
-            if(is_array($vars)){
-                parse_str(substr($uri,$pos+1),$get);
-                $vars = array_merge($vars,$get);
-            }else{
-                parse_str(substr($uri,$pos+1),$vars);
+        if ($pos !== false) {// 参数处理
+            $mca = substr($uri, 0, $pos);
+            $query = substr($uri, $pos + 1);
+            if (is_array($vars)) {
+                parse_str($query, $get);
+                $vars = array_merge($get, $vars);
+            } else {
+                parse_str($query, $vars);
             }
-        }else{
-            $mac = $uri;
+        } else {
+            $mca = $uri;
+        }
+        if (is_array($vars)) {
+            $query = http_build_query($vars);
         }
 
-        if($mac!=''){//分解m a c
-            if($pos=strpos($mac,'.php')){ #有指定入口php url
-                $url = substr($mac,0, $pos+4);
-                $mac = substr($mac, $pos+4);
+        //直接解析 普通模式
+        if(self::$cfg['url_mode']!=2 || $normal){
+            if($mca!=''){//分解m a c
+                if($pos=strpos($mca,'.php')){ #有指定入口php url
+                    $url = substr($mca,0, $pos+4);
+                    $mca = substr($mca, $pos+4);
+                }
+                if (strpos($mca, '/') !== false) {
+                    $path = explode('/', trim($mca, '/'));
+                    $a = array_pop($path);
+                    $c = array_pop($path);
+                    if (!empty($path)) $m = array_pop($path);
+                } else {
+                    $c = self::env('c');
+                    $a = $mca ? $mca : self::env('a');
+                }
             }
-            $mac = ltrim($mac,'/');
-            if($pos = strpos($mac,'/')){
-                $path = explode('/',$mac);
-                $a = array_pop($path);
-                $c = array_pop($path);
-                if(!empty($path)) $m = array_pop($path);
-            }else{
-                $c = self::env('c');
-                $a = $mac ? $mac : self::env('a');
-            }
-        }
-        if($c=='' && $a=='' && !is_array($vars)){
-            return $url==''?self::env('URI'):ROOT_DIR.$url;
-        }
-        //
-        $url_mode = self::$cfg['url_mode'];
-        $ups = self::$cfg['url_para_str'];
-        $para = '';
-        #$c = $c==''?self::env('c'):$c;
-        #$a = $a==''?self::env('a'):$a;
-        if ($c) $para = 'c=' . $c;
-        if ($a) $para .= '&a=' . $a;
-        if ($m) $para .= '&m=' . $m;
 
-        #$para = 'c='.$c.'&a='.$a;
-        #if($m) $para .= '&m='.$m;
+            if($c=='' && $a=='' && !$query){
+                return $url==''?self::env('URI'):ROOT_DIR.$url;
+            }
+
+            $para = '';
+            if ($m) $para .= '&m=' . $m;
+            if ($c) $para .= '&c=' . $c;
+            if ($a) $para .= '&a=' . $a;
+
+            $url = $url == '' ? self::env('URI') : ROOT_DIR . $url;
+            if ($query) $para .= '&' . $query;
+            return $url . '?' . substr($para,1);
+        }
+
+        $mca = ($mca[0] == '/' ? '' : '/') . $mca;
+
         //url映射处理
         if(isset($url_maps)){
-            $_url = $url==''?substr(self::env('URI'),strlen(ROOT_DIR)):$url;
-
-            if(is_array($vars)) $para .= '&'.urldecode(http_build_query($vars));
-            $_url .='?'.trim($para,'&');
-
+            $_url = $url == '' ? substr(self::env('URI'), strlen(ROOT_DIR)) : $url;
+            if ($query) $_url .= '?' . $query;
             //先完整比配 再mac?附加参数比配 再 mac比配
-            if(isset($url_maps[$_url])){
-                return ROOT_DIR.$url_maps[$_url];
-            }elseif(isset($url_maps[$mac.'?'.$maps_para])){
-                return ROOT_DIR . self::reverse_url($url_maps[$mac.'?'.$maps_para],$vars);
-            }elseif(isset($url_maps[$mac])){
-                return ROOT_DIR . self::reverse_url($url_maps[$mac],$vars);
+            if (isset($url_maps[$_url])) {
+                return ROOT_DIR . $url_maps[$_url];
+            } elseif (isset($url_maps[$mca])) {
+                return ROOT_DIR . self::reverse_url($url_maps[$mca], $vars);
             }
         }
 
-        //直接解析
-        if($url_mode==0 || $normal){//普通模式
-            $url = $url==''?self::env('URI'):ROOT_DIR.$url;
-            if(is_array($vars)) $para .= '&'.urldecode(http_build_query($vars));
-            return $url.'?'.trim($para,'&');
+        if ($url != '') {
+            $url = ROOT_DIR . $url;
+        } else {
+            $url = rtrim(self::env('APP'), '/');
         }
-        //其他模式
-        if($url!=''){
-            $url = ROOT_DIR.$url;
-            if($url_mode == 1){
-                $url .= '?do=';
-            }elseif($url_mode == 2){
-                $url .= '/';
-            }
-        }else{
-            $url = self::env('APP');
-        }
-
-
-        $url .= $c . $ups . $a;
-        if($m!='') $url .= $ups.'m'.$ups.$m;
-        if(is_array($vars)){
-            foreach($vars as $k=>$v){
-                if($v==='') continue;
-                $url .=$ups.$k.$ups.$v;
-            }
-        }
-        return $url;
+        return $url . $mca . ($query ? '?' . $query : '');
     }
 }
 //异常类

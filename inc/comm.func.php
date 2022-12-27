@@ -516,7 +516,7 @@ args: allow_num|filetype|allow_del|
 $sp:参数分隔符
 */
 function setargs($args,$base=false){
-    $a = myphp::$cfg['url_para_str'];//url参数分隔符
+    $a = '/';//url参数分隔符
     if($base){
         $qstr = '&args='.$args.'&key='.getMd5($args.my_hash());
     }else{
