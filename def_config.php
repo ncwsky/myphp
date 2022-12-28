@@ -12,9 +12,7 @@ return array(
 	'cli_url_mode'=>null, //cli模式请求处理模式 默认2 PATH_INFO模式
 	'def_control' => 'index',  //默认控制器名 c
 	'def_action' => 'index',	//默认方法名 a
-	'url_para_str' => '/',	//参数分隔符，一般不需要修改
 	'url_maps_regx'=> null, //url映射正则规则
-    'url_vars'=>null, //全局url参数设定 array(q=>v,...) 可用于多个url都需要附带指定请求参数时
 	'url_maps' => null, //url映射 array()
 	'module_maps' => null, //模块映射 array(), 模块名=>模块（项目）路径
 	// array('admin'=>'/system')  -> /开头相对网站目录 无/开头相对项目目录 /index.php?m=admin&c=index&a=index 路径ROOT.ROOT_DIR./system
