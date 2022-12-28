@@ -41,7 +41,8 @@ require __DIR__ . '/lib/Db.php';
 
 MyLoader::$rootPath = ROOT;
 MyLoader::$namespaceMap = [
-    'myphp\\' => __DIR__ . '/lib'
+    'myphp\\' => __DIR__ . '/lib',
+    'common\\' => COMMON,
 ];
 //类映射
 MyLoader::$classMap = [
