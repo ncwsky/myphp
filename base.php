@@ -28,7 +28,7 @@ if(!isset($_SERVER['REQUEST_URI'])){
 }
 
 //绝对根目录
-define('ROOT', IS_CLI ? strtr(dirname(realpath($_SERVER['SCRIPT_FILENAME'])), '\\', DS) : str_replace($_SERVER['SCRIPT_NAME'], '', $_SERVER['SCRIPT_FILENAME']));
+define('ROOT', IS_CLI ? strtr(dirname(realpath($_SERVER['SCRIPT_FILENAME'])), '\\', DS) : str_replace($_SERVER['SCRIPT_NAME'], '', strtr($_SERVER['SCRIPT_FILENAME'], '\\', DS)));
 
 //运行临时目录
 defined('RUNTIME') || define('RUNTIME', ROOT.'/runtime');
