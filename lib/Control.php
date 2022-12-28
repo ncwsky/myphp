@@ -42,7 +42,7 @@ class Control
     //构造方法，实例化视图
     public function __construct()
     {
-        $this->view = View::getInstance(myphp::env('VIEW_PATH'), myphp::env('CACHE_PATH'));
+        $this->view = View::getInstance(\myphp::env('VIEW_PATH'), \myphp::env('CACHE_PATH'));
         $this->_init();
     }
 
@@ -70,7 +70,7 @@ class Control
     final function _run($action)
     {
         //判断实例中是否存在action方法，不存在则提示错误
-        if (!method_exists($this, $action)) throw new Exception('method not exists ' . $action, 404);
+        if (!method_exists($this, $action)) throw new \Exception('method not exists ' . $action, 404);
         //todo 前置操作定义处理
         $this->req_cache = null;
 
@@ -93,38 +93,44 @@ class Control
     //在子类控制器及方法中调用 显示模板
     final function display($file = '', $var = null)
     {
-        myphp::conType('text/html');
+        \myphp::conType('text/html');
         $this->view->display($file, $var);
     }
     //在子类控制器及方法中调用 取得页面内容
     final function fetch($file = '', $var=null)
     {
-        myphp::conType('text/html');
+        \myphp::conType('text/html');
         return $this->view->fetch($file, $var);
     }
     final static function redirect($url, $code=302){
         // 如果报头未发送，则发送
         if (!headers_sent()) {// redirect
-            myphp::$statusCode = $code;
-            myphp::setHeader('Location', $url);
+            \myphp::$statusCode = $code;
+            \myphp::setHeader('Location', $url);
             return '';
         } else {
             return "<meta http-equiv='Refresh' content='0;URL={$url}'>";
         }
     }
+    //在子类控制器及方法中调用 取得页面内容
+    final static function html($data)
+    {
+        \myphp::conType('text/html');
+        return $data;
+    }
     //json类型输出
     final static function json($data){
-        myphp::conType('application/json');
+        \myphp::conType('application/json');
         return Helper::toJson($data);
     }
     //jsonp类型输出
     final static function jsonp($data){
-        myphp::conType('application/javascript');
+        \myphp::conType('application/javascript');
 
-        $jsonp_call = isset($_GET[Config::$cfg['jsonp_call']])?$_GET[Config::$cfg['jsonp_call']]:Config::$cfg['jsonp_call'];
+        $jsonp_call = isset($_GET[\myphp::$cfg['jsonp_call']])?$_GET[\myphp::$cfg['jsonp_call']]:\myphp::$cfg['jsonp_call'];
         $data = Helper::toJson($data);
         if ($data === false) {
-            throw new Exception('to json fail');
+            throw new \Exception('to json fail');
         }
 
         $data = $jsonp_call . '(' . $data . ');';
@@ -132,7 +138,7 @@ class Control
     }
     //xml类型输出
     final static function xml($data){
-        myphp::conType('application/xml');
+        \myphp::conType('application/xml');
         return Helper::toXml($data);
     }
 }

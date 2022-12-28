@@ -39,7 +39,7 @@ class db_pdo extends DbBase{
 			$dsn = $cfg_db['dsn'];
 		}
 		$cfg_db['pconnect'] = isset($cfg_db['pconnect']) ? $cfg_db['pconnect'] : false;
-		if($cfg_db['pconnect']) {//持久连接开启
+		if($cfg_db['pconnect']) { //持久连接开启
 			$options[PDO::ATTR_PERSISTENT] = TRUE;
 		}
 		/*if(empty($options[PDO::ATTR_TIMEOUT])){ //超时设置
@@ -166,9 +166,11 @@ class db_pdo extends DbBase{
 
     /**
      * 取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
+     * @param string $sequenceName
      * @return string
      */
-	public function insert_id() {
-		return $this->conn->lastInsertId();//PDO::lastInsertId(); PDO_PGSQL() 要求为 name 参数指定序列对象的名称
+	public function insert_id($sequenceName=null) {
+	    //mssql 'SELECT CAST(COALESCE(SCOPE_IDENTITY(), @@IDENTITY) AS bigint)'
+		return $this->conn->lastInsertId($sequenceName);//PDO::lastInsertId(); PDO_PGSQL() 要求为 name 参数指定序列对象的名称
 	}
 }

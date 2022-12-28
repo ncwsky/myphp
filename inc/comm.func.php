@@ -453,7 +453,7 @@ function my_hash_md5($val,$hash=false){
 }
 //验证码
 function GetCode($w=80, $h=36, $fontsize=18, $len = 4, $reurl=false,$number=false) {
-    $codeurl = Config::$cfg['root_dir'].'/myphp/inc/imagecode.php?';
+    $codeurl = myphp::$cfg['root_dir'].'/myphp/inc/imagecode.php?';
     $codeurl .= "w=$w&h=$h&size=$fontsize&len=$len&t=".time().($number?'&number=1':'');
     if(!$reurl) return '<img src="'. $codeurl .'" alt="验证码,看不清楚?请点击刷新验证码" style="cursor:pointer; vertical-align:middle;" onclick="this.src=\''. $codeurl .'\'+\'&t=\'+Math.random();return false;" />';
     else return $codeurl;
@@ -474,8 +474,8 @@ function CodeIsTrue($codename) {
 
 //返回经过随机串组合的加密md5  (encode_key)
 function getMd5($val,$encode = '') {
-    //if(!isset(Config::$cfg['encode_key'])) Config::$cfg['encode_key'] = 'myphp';
-    $encode = $encode != '' ? $encode : Config::$cfg['encode_key'];
+    //if(!isset(myphp::$cfg['encode_key'])) myphp::$cfg['encode_key'] = 'myphp';
+    $encode = $encode != '' ? $encode : myphp::$cfg['encode_key'];
     return md5($encode.$val);
 }
 /**
@@ -489,7 +489,7 @@ function getMd5($val,$encode = '') {
  */
 function sys_auth($string, $operation = 'ENCODE', $key = '', $expiry = 0) {
     $key_length = 4;
-    $key = md5($key != '' ? $key : Config::$cfg['encode_key']);
+    $key = md5($key != '' ? $key : myphp::$cfg['encode_key']);
     $fixedkey = md5($key);
     $egiskeys = md5(substr($fixedkey, 16, 16));
     $runtokey = $key_length ? ($operation == 'ENCODE' ? substr(md5(microtime(true)), -$key_length) : substr($string, 0, $key_length)) : '';
@@ -516,7 +516,7 @@ args: allow_num|filetype|allow_del|
 $sp:参数分隔符
 */
 function setargs($args,$base=false){
-    $a = Config::$cfg['url_para_str'];//url参数分隔符
+    $a = '/';//url参数分隔符
     if($base){
         $qstr = '&args='.$args.'&key='.getMd5($args.my_hash());
     }else{
@@ -647,7 +647,7 @@ function make_thumb($image){
     $ext = substr($image, $dot);
     if(strpos($imgType, strtolower($ext))===false) return false;//图片验证
 
-    $thumbs_wh = explode(',', Config::$cfg['thumb_wh']);//获取默认缩略图大小
+    $thumbs_wh = explode(',', myphp::$cfg['thumb_wh']);//获取默认缩略图大小
     foreach($thumbs_wh as $thumb_wh){
         $thumbname =  $base.$thumb_wh.$ext;
         $wh = explode('_', $thumb_wh);
@@ -666,7 +666,7 @@ function del_up_file($file, $is_img=0){
             $dot = strrpos($realFile,'.');
             $base = substr($realFile, 0, $dot);
             $ext = substr($realFile, $dot);
-            $thumbs_wh = explode(',', Config::$cfg['thumb_wh']);//获取默认缩略图大小
+            $thumbs_wh = explode(',', myphp::$cfg['thumb_wh']);//获取默认缩略图大小
             foreach($thumbs_wh as $thumb_wh){
                 is_file($base.$thumb_wh.$ext) && @unlink($base.$thumb_wh.$ext);
             }
@@ -728,12 +728,12 @@ function set_config($config, $file="/config.php", $allow_val=null) {
 function cookie($name, $value='', $option=null) {
     // 默认设置
     $config = array(
-        'prefix' => isset(Config::$cfg['cookie_pre']) ? Config::$cfg['cookie_pre'] : '', // cookie 名称前缀
-        'expire' => isset(Config::$cfg['cookie_expire']) ? Config::$cfg['cookie_expire'] : 0, // cookie 保存时间
-        'path' => isset(Config::$cfg['cookie_path']) ? Config::$cfg['cookie_path'] : '/', // cookie 保存路径
-        'domain' => isset(Config::$cfg['cookie_domain']) ? Config::$cfg['cookie_domain'] : '', // cookie 有效域名
-        'secure' => isset(Config::$cfg['cookie_secure']) ? Config::$cfg['cookie_secure'] : false, //  cookie 启用安全传输
-        'httponly' => isset(Config::$cfg['cookie_httponly']) ? Config::$cfg['cookie_httponly'] : false, // httponly设置
+        'prefix' => isset(myphp::$cfg['cookie_pre']) ? myphp::$cfg['cookie_pre'] : '', // cookie 名称前缀
+        'expire' => isset(myphp::$cfg['cookie_expire']) ? myphp::$cfg['cookie_expire'] : 0, // cookie 保存时间
+        'path' => isset(myphp::$cfg['cookie_path']) ? myphp::$cfg['cookie_path'] : '/', // cookie 保存路径
+        'domain' => isset(myphp::$cfg['cookie_domain']) ? myphp::$cfg['cookie_domain'] : '', // cookie 有效域名
+        'secure' => isset(myphp::$cfg['cookie_secure']) ? myphp::$cfg['cookie_secure'] : false, //  cookie 启用安全传输
+        'httponly' => isset(myphp::$cfg['cookie_httponly']) ? myphp::$cfg['cookie_httponly'] : false, // httponly设置
     );
     // 参数处理
     if (!is_null($option)) {
@@ -796,8 +796,8 @@ function cookie($name, $value='', $option=null) {
 // session 辅助类
 function session($name='', $value='') {
     !isset($_SESSION) && Session::init(
-        isset(Config::$cfg['session'])?Config::$cfg['session']:'file',
-        isset(Config::$cfg['session'])?GetC('session_option'):null
+        isset(myphp::$cfg['session'])?myphp::$cfg['session']:'file',
+        isset(myphp::$cfg['session'])?GetC('session_option'):null
     );
     if (is_null($name)) { // 清除所有session
         if (isset($_SESSION)) $_SESSION = array();
@@ -831,8 +831,8 @@ function cache($name, $value='', $option=null) {
     }elseif(is_array($option)){ //单独设置缓存并返回
         return Cache::getInstance($name, $option);
     }elseif(!isset($cache)){ //默认缓存设定
-        $type = isset(Config::$cfg['cache'])?Config::$cfg['cache']:'file';
-        $cache = Cache::getInstance($type, Config::$cfg['cache_option']);
+        $type = isset(myphp::$cfg['cache'])?myphp::$cfg['cache']:'file';
+        $cache = Cache::getInstance($type, myphp::$cfg['cache_option']);
     }
     if (is_null($name)) { // 清除所有cache
         $cache->clear();
@@ -881,7 +881,7 @@ function Q($name, $defVal='', $datas=null) {
     $filter = $min = $max = null;
     $type = 's'; // 默认转换为字符串
     $digit = 0; //小数位处理 四舍五入
-    CheckValue::parseType($name, $type, $min, $max, $filter, $digit);
+    Value::parseType($name, $type, $min, $max, $filter, $digit);
 
     $method = 'request'; // 默认为_REQUEST
     if(strpos($name,'.')!==false) { // 指定参数来源
@@ -931,7 +931,7 @@ function Q($name, $defVal='', $datas=null) {
     if($filter===null) $filter = true; #使用默认过滤处理
     elseif($filter==='null') $filter = null; #禁用默认过滤
 
-    CheckValue::type2val($val, [$type, 'min' => $min, 'max' => $max, 'digit' => $digit, 'filter' => $filter], $defVal);
+    Value::type2val($val, [$type, 'min' => $min, 'max' => $max, 'digit' => $digit, 'filter' => $filter], $defVal);
 
     return $val;
 }
@@ -1361,23 +1361,24 @@ function num2fixed($number){
 }
 /**
  * 表单重复提交限制 默认10秒内
- * @param url 跳转网址, time 限制时间 单位秒
- * @return NULL
+ * @param string $url 跳转网址
+ * @param int $limit 限制时间 单位秒
+ * @param int $time
  */
-function form_token($url='',$time=10,$stime=3){
+function form_token($url='',$limit=10, $time=3){
     //表单重复提交限制 10秒内
     //if(!isset($_SESSION)) session_start();
     $token = isset($_SESSION['token']) ? $_SESSION['token'] : 0;
     if(!empty($token)){
         $token = time()-$token;
-        $token = $token<=$time ? $token : 0;
+        $token = $token<=$limit ? $token : 0;
     }
-    if(!empty($token)) ShowMsg('表单 '. ($time-$token) .' 秒内限制提交',$url,'',$stime);
+    if(!empty($token)) ShowMsg('表单 '. ($limit-$token) .' 秒内限制提交',$url,'',$time);
     $_SESSION['token'] = time();
 }
 //AES 128位加密
 function aes($string, $operation = 'ENCODE', $key = ''){
-    $key = $key != '' ? $key : Config::$cfg['encode_key'];//md5($key != '' ? $key : Config::$cfg['encode_key'])
+    $key = $key != '' ? $key : myphp::$cfg['encode_key'];//md5($key != '' ? $key : myphp::$cfg['encode_key'])
     $aes = new AES(true);// 把加密后的字符串按十六进制进行存储
     //$aes = new AES(true,true);// 带有调试信息且加密字符串按十六进制存储
     $keys = $aes->makeKey($key);//128bit

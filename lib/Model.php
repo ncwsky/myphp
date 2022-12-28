@@ -1,76 +1,110 @@
 <?php
 /**
  * Class Model 数据模型类
- * @method Model fields(string|array $val)
- * @method Model order(string $val)
- * @method Model group(string $val)
- * @method Model having(string $val)
- * @method Model lock(string $val = 'FOR UPDATE')
- * @method Model limit(string|int $val) example 30 or 2,5
- * @method Model table(string $val)
- * @method Model idx(string $val)
- * @method Model join(string $tb, string|array $on, $joinWay='inner')
- * @method Model where(string|array $val, $bind=null)
+ * @method null|static fields(string|array $val)
+ * @method null|static order(string $val)
+ * @method null|static group(string $val)
+ * @method null|static having(string $val)
+ * @method null|static lock(string $val = 'FOR UPDATE')
+ * @method null|static limit(string|int $val) example 30 or 2,5
+ * @method null|static table(string $val)
+ * @method null|static idx(string $val)
+ * @method null|static join(string $tb, string|array $on, $joinWay='inner')
+ * @method null|static where(string|array $val, $bind=null)
  * @method int update(array $post, string $table='', string|array $where = '')
- * @method int add(array $post, string $table='')
  * @method int del(string $table='', string|array $where = '')
- * @method array|self[]|false|PDOStatement select(bool|string $table='');
- * @method array|self[]|false|PDOStatement all(bool|string $table='');
- * @method array|self|false find();
- * @method array|self|false one();
+ * @method array|false|\PDOStatement|static[] select(bool|string $table='');
+ * @method array|false|\PDOStatement|static[] all(bool|string $table='');
+ * @method array|false|static find();
+ * @method array|false|static one()
  * @method string select_sql();
  * @method string find_sql();
  * @method mixed|null val($name);
  * @method string get_real_sql($sql, $bind = null);
- * @method self setTransactionLevel($level)
- * @method self beginTrans();
+ * @method null|static setTransactionLevel($level)
+ * @method null|static beginTrans();
  * @method bool commit($force=false);
  * @method bool rollBack($force=false);
- * @property Db $db
  */
-class Model implements ArrayAccess
+class Model implements \ArrayAccess
 {
-    use MyMsg;
+    use \MyMsg;
     // 当前操作数据表名
-    protected $tbName = null; //不指定自动获取
-    protected $aliasName = null; //别名
-    protected $db = null; //db操作类
-    protected $dbName = 'db'; //db配置名
-    // 表数据信息
-    private $_data = null;
-    private $_oldData = null; //单条查询记录数据
-    // 是否model实例
-    public $asModel = false;
-    //字段扩展过滤规则
-    public $extRule = array();
-    /* 示例
-    $extRule = [
-        'id'=>['rule'=>'%d{1,10}','err'=>'请输入数字','err2'=>'数字范围无效'], //'def'=>0, 有默认值不做提示
-        'name'=>['rule'=>'%s{10}','err'=>'请输入名称','err2'=>'名称最多不能超过10个字符'],
-        'des'=>['rule'=>'%s{250}','def'=>''], //
-        'his'=>['rule'=>'%his{250}','err'=>'时间无效'], // 无err2项时 默认使用err
-    ];
+    protected $tbName; //不指定自动获取
+    protected $aliasName; //别名
+    /**
+     * @var Db
      */
+    protected $db; //db操作类
+    // 表数据信息
+    private $_data = [];
+    private $_oldData = []; //单条查询记录数据
+    // 是否返回实例
+    private $_asObj = false;
     //主键
-    protected $prikey = null;
-    protected $autoIncrement = ''; //自增键
+    protected $prikey;
+    //自增键
+    protected $autoIncrement;
     //表查询的字段
     protected $fields = '*';
-    //表字段验证规则无效时设默认值开关
+    //表字段验证无效时设默认值开关
     protected $setDef = false;
-    //表字段列表过滤规则
-    public $fieldRule = array();//'id'=>array('rule'=>'%d{1,10}','def'=>0)
+    //表字段规则
+    protected $fieldRule = [];//'id'=>['rule'=>'%d{1,10}','def'=>0]
+    /**
+     * 字段扩展过滤规则
+     * 示例
+     $extRule = [
+        'id'=>['rule'=>'%d{1,10}','err'=>'请输入数字','err2'=>'数字范围无效'], // rule=>['d','min'=>1,'max'=>10] ;'def'=>0, 有默认值不做提示
+        'name'=>['rule'=>'%s{10}','err'=>'请输入名称','err2'=>'名称最多不能超过10个字符'],
+        'des'=>['rule'=>'%s{250}','def'=>''], // ['rule'=> ['d','max'=>250],'def'=>'']
+        'his'=>['rule'=>'%his{250}','err'=>'时间无效'], // 无err2项时 默认使用err
+     ];
+     * @var array
+     */
+    protected $extRule = [];
+
+    protected static $dbName = 'db'; //db配置名
+    protected static $tableName = null; //表配置名
+
+    /**
+     * 数据库实例
+     * @param bool $newInstance
+     * @return Db
+     * @throws \Exception
+     */
+    public static function getDb($newInstance = true)
+    {
+        if ($newInstance) return new Db(static::$dbName);
+        return \myphp::db(static::$dbName);
+    }
+
+    /**
+     * 表名
+     * @return string|null
+     */
+    public static function tableName()
+    {
+        if (static::$tableName === null) { //未指定表名且未传递表名时 自动获取【前缀+表名】
+            $tbName = get_called_class(); //static::class
+            if ($pos = strrpos($tbName, '\\')) { //命名空间
+                $tbName = substr($tbName, $pos + 1);
+            }
+            return \myphp::get(static::$dbName . '.prefix') . strtolower($tbName);
+        }
+        return static::$tableName;
+    }
 
     /**
      * 构造函数  $tbName 不定义表模型 直接指定, $dbName 指定db配置名称
      * @param null $tbName
      * @param null|string|Db $dbName
-     * @throws Exception
+     * @throws \Exception
      */
     public function __construct($tbName = null, $dbName = null)
     {
         if ($dbName === null) {
-            $this->db = new Db($this->dbName);
+            $this->db = static::getDb();
         } else {
             if ($dbName instanceof Db) {
                 $this->db = $dbName;
@@ -78,23 +112,36 @@ class Model implements ArrayAccess
                 $this->db = new Db($dbName);
             }
         }
+        $this->db->resetOption = false; //sql组合项执行后不重置
 
-        if (!$this->tbName) { //未指定表名或未传递表名时 自动获取【前缀+表名】
-            $this->tbName = $this->db->prefix . ($tbName === null ? strtolower(get_class($this)) : $tbName);
+        if (!$this->tbName) {
+            $this->tbName = $tbName === null ? static::tableName() : $tbName;
         }
+
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
-            //$this->fields = implode(',', array_keys($this->fieldRule));
-            //print_r($this->fields);
+        }
+        if ($this->extRule) {
+            $this->fieldRule = array_merge($this->fieldRule, $this->extRule);
         }
     }
-    //设置字段规则  [id'=>array('rule'=>'%d{1,10}','def'=>0)]|id,array('rule'=>'%d{1,10}','def'=>0)
+    public function __clone(){
+        $this->db = clone $this->db; //用于复制隔离db->options
+    }
+    /**
+     * 设置扩展字段过滤规则
+     * @param string|array $name id|[id'=>['rule'=>'%d{1,10}','def'=>0]]
+     * @param null|array $rule ['rule'=>'%d{1,10}','def'=>0]|null
+     */
     public function setRule($name, $rule=null){
-        if(is_array($name)){
-            $this->fieldRule = array_merge($this->fieldRule,$name);
-        }else{
+        if (is_array($name)) {
+            $this->fieldRule = array_merge($this->fieldRule, $name);
+        } else {
             $this->fieldRule[$name] = $rule;
         }
+    }
+    public function rules(){
+        return $this->fieldRule;
     }
     //设置字段数据
     public function setData($data, $reset = true)
@@ -106,7 +153,7 @@ class Model implements ArrayAccess
                 $this->_data = $this->_data ? array_merge($this->_data, $data) : $data;
             }
         } elseif ($data === null) {
-            $this->_data = null;
+            $this->_data = [];
         }
     }
     //设置字段旧数据
@@ -123,26 +170,24 @@ class Model implements ArrayAccess
                 $this->_data = $this->_oldData;
             }
         } elseif ($data === null) {
-            $this->_oldData = null;
+            $this->_oldData = [];
         }
     }
-
     //获取字段数据
     public function getData()
     {
-        return $this->_data === null ? [] : $this->_data;
+        return $this->_data ?: [];
     }
-
     //获取字段旧数据
     public function getOldData()
     {
-        return $this->_oldData === null ? [] : $this->_oldData;
+        return $this->_oldData ?: [];
     }
     //格式数据
     public function formatData(&$data){
         if(!is_array($data) || empty($this->fieldRule)) return;
         foreach ($data as $k=>$val){
-            if(isset($this->fieldRule[$k])) { //转换到指定类型
+            if(isset($this->fieldRule[$k]['type'])) { //转换到指定类型
                 $type = $this->fieldRule[$k]['type'];
                 if($type=='double') $data[$k] = (float) $val;
                 elseif($type=='bit') $data[$k] = (bool) $val;
@@ -157,7 +202,6 @@ class Model implements ArrayAccess
     {
         return true;
     }
-
     /**
      * @param bool $insert
      * @param array $changed 变动的数据
@@ -170,18 +214,15 @@ class Model implements ArrayAccess
      * $def:false 对未设置字段not null验证(不为空验证)
      * $def:true 对未设置字段not null验证,同时有默认值时设默认值
      * @param null $data
-     * @param null $where
      * @param null $def
      * @return bool|int|mixed|string
-     * @throws Exception
+     * @throws \Exception
      */
-    public function save($data = null, $where = null, $def=null)
+    public function save($data = null, $def=null)
     {
-        $fieldRule = $this->extRule ? array_merge($this->fieldRule, $this->extRule) : $this->fieldRule;
         if (is_array($data)) {
-            $this->_data = is_array($this->_data) ? array_merge($this->_data, $data) : $data;
+            $this->_data = $this->_data ? array_merge($this->_data, $data) : $data;
         }
-        if ($where) $this->db->where($where);
         //有单条查询且数据有主键 则识别为更新
         $isUpdate = $this->db->where ? true : false;
         //主键值为[null 0 空]时可insert记录
@@ -194,12 +235,12 @@ class Model implements ArrayAccess
             $isUpdate = true;
         }
         if($this->autoIncrement && empty($this->_data[$this->autoIncrement])){ //自增键[null 0 空]时排除验证规则
-            unset($this->_data[$this->autoIncrement], $fieldRule[$this->autoIncrement]);
+            unset($this->_data[$this->autoIncrement], $this->fieldRule[$this->autoIncrement]);
         }
         //验证数据
-        if (!Helper::validAll($this->_data, $fieldRule, true, $def === null ? $this->setDef : $def)) {
-            //throw new RuntimeException('验证失败');
-            $this->db->options = null;
+        if (!Helper::validAll($this->_data, $this->fieldRule, true, $def === null ? $this->setDef : $def)) {
+            //throw new \RuntimeException('验证失败');
+            $this->db->resetOptions();
             return false;
         }
         //未指定表名时指定表名
@@ -223,7 +264,7 @@ class Model implements ArrayAccess
                 }
                 if (empty($this->_data)) {
                     $this->_data = $this->_oldData;
-                    $this->db->options = null; //清除未执行的条件 防条件被附加到下次执行的条件中
+                    $this->db->resetOptions(); //清除未执行的条件 防条件被附加到下次执行的条件中
                     $this->afterSave(false, []);
                     return 0;
                 }
@@ -237,7 +278,7 @@ class Model implements ArrayAccess
             $this->afterSave(false, $changed);
         } else {
             $result = $this->db->add($this->_data); //返回新增id
-            if ($this->prikey && $this->prikey==$this->autoIncrement) $this->_data[$this->prikey] = $result;
+            if ($this->autoIncrement) $this->_data[$this->autoIncrement] = $result;
             $this->afterSave(true, $this->_data);
         }
         $this->_oldData = $this->_data;
@@ -252,19 +293,16 @@ class Model implements ArrayAccess
         }
         $this->_data[$name] = $value;
     }
-
     // 获取数据对象的值
     public function __get($name)
     {
         return isset($this->_data[$name]) ? $this->_data[$name] : null;
     }
-
     //检测数据对象的值
     public function __isset($name)
     {
         return isset($this->_data[$name]);
     }
-
     //销毁数据对象的值
     public function __unset($name)
     {
@@ -294,9 +332,9 @@ class Model implements ArrayAccess
         //if (strpos($methods, $method) === false) return;
         if ($method == 'del') {
             if(!$this->db->where){
-                throw new Exception("请指定删除条件");
+                throw new \Exception("请指定删除条件");
             }
-            $this->_data = $this->_oldData = null;
+            $this->_data = $this->_oldData = [];
         }
         if ($this->tbName && strpos($this->db->table,$this->tbName)!==0) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
         if ($method == 'find' || $method == 'select' || $method=='all') {
@@ -313,13 +351,14 @@ class Model implements ArrayAccess
     //执行db方法的后置处理
     protected function _afterDbMethod($method, &$result){
         if ($method == 'find' || $method=='one') { //单条记录   || $method == 'getOne'
+            if (false === $result) return $result;
             $this->formatData($result);
             $this->_data = $this->_oldData = $result;
-            if ($this->asModel) {
+            if ($this->_asObj) {
                 $result = $this;
             }
         }
-        if ($this->asModel) {
+        if ($this->_asObj) {
             if($method == 'select' || $method == 'all'){
                 foreach ($result as $k=>$row){
                     $result[$k] = self::create($row);
@@ -333,13 +372,24 @@ class Model implements ArrayAccess
         $this->db->table($this->tbName.' '.$name);
         return $this;
     }
+    public function asArray(){
+        $this->_asObj = false;
+        return $this;
+    }
+    public function asObj(){
+        $this->_asObj = true;
+        return $this;
+    }
+    public function db(){
+        return $this->db;
+    }
 
-    /** 合计行数
-     * @param string $fields
+    /**
+     * @param string $field
      * @return int
      */
-    public function count($fields='*'){
-        return $this->db->getCount($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''), '', $fields=='*' && $this->prikey?$this->prikey:$fields);
+    public function count($field='*'){
+        return $this->db->getCount($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''), '', $field);
     }
     protected static function runCall(Model $model, $method, $args){
         if (method_exists($model, $method)) {
@@ -368,14 +418,68 @@ class Model implements ArrayAccess
 
     /**
      * @param null $data
+     * @param null $tbName
+     * @param null $dbName
      * @return static
+     * @throws \Exception
      */
-    public static function create($data=null){
-        $model = new static();
-        $model->asModel = true;
+    public static function create($data=null, $tbName=null, $dbName = null){
+        $model = new static($tbName, $dbName);
+        $model->_asObj = true;
         if ($data) {
             $model->setOldData($data);
         }
         return $model;
+    }
+
+    /**
+     * @param array|array[] $post 添加数据可批量
+     * @return bool|mixed|string
+     * @throws \Exception
+     */
+    public static function add($post){
+        $model = static::create();
+        if ($model->fieldRule) { //有字段规则
+            if (isset($post[0])) { //批量
+                if($model->autoIncrement){ //自增键时排除验证规则
+                    unset($model->fieldRule[$model->autoIncrement]);
+                }
+                foreach ($post as &$data) {
+
+                    if (!Helper::validAll($data, $model->fieldRule, true)) {
+                        return false;
+                    }
+                }
+            } else {
+                if($model->autoIncrement && empty($post[$model->autoIncrement])){ //自增键[null 0 空]时排除验证规则
+                    unset($model->fieldRule[$model->autoIncrement]);
+                }
+                //验证数据
+                if (!Helper::validAll($post, $model->fieldRule, true)) {
+                    return false;
+                }
+            }
+        }
+        return $model->db()->add($post, static::tableName());
+    }
+    /**
+     * @param $data
+     * @param string|array $where
+     * @return bool|int
+     * @throws \Exception
+     */
+    public static function updateAll($data, $where = '')
+    {
+        return static::getDb(false)->update($data, static::tableName(), $where);
+    }
+
+    /**
+     * @param string|array $where
+     * @return bool|int
+     * @throws \Exception
+     */
+    public static function delAll($where)
+    {
+        return static::getDb(false)->del(static::tableName(), $where);
     }
 }

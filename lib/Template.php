@@ -11,16 +11,19 @@ class Template{
 	public $var_dot = 'array'; //.语法变量识别，array|obj|'', 为空时自动识别
 	private $templateFile = '';	//当前模板文件名
 	private $cacheFile = '';	//当前缓存文件名
-	private $level = 0, $maxLevel = 0, $limitLevel = 3; //模板嵌套层次 层次深度 限制层次深度
+	private $level = 0, $maxLevel = 0; //模板嵌套层次 层次深度
 	private $dir = array(); //模板嵌套 模板层次关系 模板内容 存放数组
-	//私有的构造函数，不允许直接创建对象
-	public function __construct(){}
-	//初始化模板文件夹以及缓存文件完整路径
+
+    /**
+     * 初始化模板文件夹以及缓存文件完整路径
+     * @param $file
+     * @throws \Exception
+     */
 	private function initFile($file){
         //判断模板文件是否存在
         $templateFile = ($file[0] == '/' ? ROOT . ROOT_DIR : $this->view_path . DS) . $file;
         if (!is_file($templateFile)) {
-            throw new Exception('模板文件' . $file . '不存在');
+            throw new \Exception('模板文件' . str_replace(ROOT, '', $templateFile) . '不存在');
         }
 
 		$this->templateFile = $templateFile;
@@ -30,7 +33,12 @@ class Template{
 		$this->dir['level'] = array();
 		$this->dir['file'] = array();
 	}
-    //模板处理
+
+    /**
+     * 模板处理
+     * @param $file
+     * @throws \Exception
+     */
     private function tmp_process($file){
         $this->cacheLifeTime *= 60;
         $this->initFile($file);
@@ -40,8 +48,14 @@ class Template{
             $this->build();
         }
     }
-	//返回模板处理后的缓存文件
-	public function cachefile($file){
+
+    /**
+     * 返回模板处理后的缓存文件
+     * @param $file
+     * @return string
+     * @throws \Exception
+     */
+	public function cacheFile($file){
 		$this->tmp_process($file);
 		return $this->cacheFile;
 	}
@@ -60,7 +74,7 @@ class Template{
 	//模板样式 图片路径替换 可设指定路径
 	private function resetPath(&$content){
 		//app资源路径动态输出 app_dynamic_path
-		$path = isset(Config::$cfg['app_dynamic_path'])?'<?php echo Config::$cfg[\'app_dynamic_path\'];?>':Config::$cfg['app_res_path'];
+		$path = isset(\myphp::$cfg['app_dynamic_path'])?'<?php echo \myphp::$cfg[\'app_dynamic_path\'];?>':\myphp::$cfg['app_res_path'];
     	$content = preg_replace('/(link|link rel="stylesheet"|img|script)(\s*?)(src=|href=)"(?!http:\/\/|https:\/\/|\/|<)(.*?)"/i', "$1$2$3\"$path/$4\"", $content); #< -> <?php
 	}
 	//组合经　analyze　解析后的模板内容
@@ -136,7 +150,7 @@ class Template{
 				foreach($arrFile as $file) {
 					$this->analyze($fatherPath, $file); //'递归模板分析
 				}
-				$fatherPath = ''; //' 重置
+				//$fatherPath = ''; //重置
 			}
 		}
 		$this->level--;	//层次上下关系递归递减
@@ -146,7 +160,7 @@ class Template{
 		$content = file_get_contents($tmpfile);
 		//替换系统常量
 		$patt = array('__PUBLIC__', '__URL__', '__APP__');
-		$replace = array('<?php echo PUB; ?>','<?php echo myphp::env("URL"); ?>','<?php echo myphp::env("APP"); ?>');
+		$replace = array('<?php echo PUB; ?>','<?php echo \myphp::env("URL"); ?>','<?php echo \myphp::env("APP"); ?>');
 		$content = str_replace($patt, $replace, $content);
 		$patt = preg_quote($this->leftTag) .'(\S.+?)'. preg_quote($this->rightTag);
 		$content = preg_replace_callback("/{$patt}/", array($this,'parseTag'), $content); //i 不区分大小写 s .匹配所有的字符，包括换行符 e PHP代码求值并替换
@@ -364,14 +378,18 @@ class Template{
 		$tVars[$varStr] = $code;//记录模板变量
 		return $code;
 	}
-	/**
-	 * 解析系统变量$T开头的
-	 * 示例：$T.version 、$T.config.db.type 、 $T.lang.ab 、$T.GET
-	 */
+
+    /**
+     * 解析系统变量$T开头的
+     * 示例：$T.version 、$T.config.db.type 、 $T.lang.ab 、$T.GET
+     * @param $var
+     * @return string
+     */
 	private function parseT($var){
 		$vars = explode('.', $var);
 		$vars[1] = strtoupper(trim($vars[1]));
 		$len = count($vars);
+        $code = '';
 		if($len >= 3){
 			if(strpos(',COOKIE,SESSION,GET,POST,SERVER,', ','.$vars[1].',')!==false ){
 				//替换调名称，并将使用arrayHandler函数获取下标，支持多维
@@ -380,16 +398,12 @@ class Template{
 				if($len==4) $vars[2] = $vars[2].'.'.$vars[3];//支持二维
 				$key = substr($vars[1], 0, 1);
 				$code = 'Get'.$key.'(\''. $vars[2] .'\')';
-			}else{
-				$code = '';
 			}
 		}elseif($len == 2){
 			if($vars[1] == 'NOW'){
 				$code = "date('Y-m-d H:i:s', time())";
 			}elseif($vars[1] == 'VERSION'){
 				$code = 'VERSION';
-			}else{
-				$code = '';
 			}
 		}
 		unset($vars);
@@ -400,7 +414,7 @@ class Template{
 		$code = '';
 		$len = count($varArray);
 		// 获取不允许使用的函数
-		$not_fun = Config::$cfg['tmp_not_allow_fun'];
+		$not_fun = \myphp::$cfg['tmp_not_allow_fun'];
 		for($i = 0; $i < $len; $i++){
 			//以=分割函数参数，第一个元素就是函数名，之后的都是参数
 			$arr = explode('|', $varArray[$i]);

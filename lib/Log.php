@@ -145,7 +145,7 @@ class Log{
 	}
 
     /** 自定义异常记录 用于 set_exception_handler
-     * @param Exception $e
+     * @param \Exception $e
      * @param bool $out
      */
 	public static function Exception($e, $out=true){

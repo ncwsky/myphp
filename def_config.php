@@ -10,29 +10,26 @@ return array(
     'url_rewrite' => true,	//启用url伪静态 用于url_mode=2
     'url_index' => '/index.php',	//启用url伪静态 对应的入口文件
 	'cli_url_mode'=>null, //cli模式请求处理模式 默认2 PATH_INFO模式
-	// 'default_module'=>'app', //默认模块名 m
-	'default_control' => 'index',  //默认控制器名 c
-	'default_action' => 'index',	//默认方法名 a
-	'url_para_str' => '/',	//参数分隔符，一般不需要修改
+	'def_control' => 'index',  //默认控制器名 c
+	'def_action' => 'index',	//默认方法名 a
 	'url_maps_regx'=> null, //url映射正则规则
-    'url_vars'=>null, //全局url参数设定 array(q=>v,...) 可用于多个url都需要附带指定请求参数时
 	'url_maps' => null, //url映射 array()
 	'module_maps' => null, //模块映射 array(), 模块名=>模块（项目）路径
 	// array('admin'=>'/system')  -> /开头相对网站目录 无/开头相对项目目录 /index.php?m=admin&c=index&a=index 路径ROOT.ROOT_DIR./system
 	//数据库连接信息
 	'db' => array(
 		'pconnect' => false,
-		'dsn' => '',//使用pdo驱动时可直接设置dsn
-		'type' => 'pdo',	//数据库驱动类型 仅有mysqli、pdo
+		'dsn' => '', //使用pdo驱动时可直接设置dsn
+		'type' => 'pdo',   //数据库连接类型 仅pdo、mysqli
 		'dbms' => 'mysql', //数据库
-		'server' => 'localhost',	//数据库主机
-		'name' => '',	//数据库名称
-		'user' => 'root',	//数据库用户
-		'pwd' => '',	//数据库密码
-		'port' => 3306,     // 端口
-		'char' => 'utf8',	//数据库编码
-		'prefix' => '',	//数据库表前缀
-        'options'=>array() //辅助配置
+		'server' => 'localhost', //数据库主机
+		'name' => '',     //数据库名称
+		'user' => 'root', //数据库用户
+		'pwd' => '',	  //数据库密码
+		'port' => 3306,   // 端口
+		'char' => 'utf8', //数据库编码
+		'prefix' => '',   //数据库表前缀
+        'options'=>[]     //辅助配置
 	),
 	'cache' => null, // 'file'
 	'cache_option' => array(
@@ -85,14 +82,13 @@ return array(
 	'auth_model' => 'user',//验证模块 
 	'auth_action' => 'check',//验证动作方法
 	'auth_login' => 'chkLogin',//登陆验证的动作方法
-	'auth_err' => 'errmsg',//验证错误信息记录变量
-	'auth_gateway'=> '/admin.php/index-login',//默认验证网关    ------------ 以下权限设置 优先级从上到下 ------------------------
+	'auth_gateway'=> '/admin.php/index/login',//默认验证网关    ------------ 以下权限设置 优先级从上到下 ------------------------
 	'auth_model_not' => '',//无需验证的模块，多个","分隔  用前后布置，包含  ,index,
-	'auth_model_action' => '',//无需验证的模块中需要验证的动作  //,index::index,index::info,
-	'auth_action_not' => '',//无需验证的动作，多个","分隔 格式：模块名/动作名
+	'auth_model_action' => '',//无需验证的模块中需要验证的动作  //,index/index,index/info,
+	'auth_action_not' => '',//无需验证的动作，多个","分隔 格式：控制器/方法名
 	'auth_login_model' => '',//仅登陆验证的模块
+    'auth_login_action' => '',//仅登陆验证的方法
 	'auth_login_M_A' => '',//登陆验证模块中需要验证的动作
-	'auth_login_action' => '',//仅登陆验证的动作
 	//日志设置
 	'log_type' => 'file',// 记录类型
 	'log_dir' => ROOT.'/log', //日志记录主目录名称

@@ -1,85 +1,82 @@
 <?php
 /**
  * Class Db 数据db类
- * @method Db order($val)
  * @method Db group($val)
  * @method Db having($val)
- * @method Db limit($val)
- * @method Db table($val)
  * @method Db idx($val)
+ * @method Db limit($val)
+ * @method Db order($val)
+ * @method Db table($val)
+ * @property string group
+ * @property string having
+ * @property string idx
+ * @property string limit
+ * @property string lock
+ * @property string order
  * @property string table
  */
 class Db {
 	public static $sql = ''; //完整的Sql
     public static $times = 0; //执行次数
-    protected static $log_type = 0; //是否记录sql
-    protected static $instance = array();
+    private static $log_type = 0; //是否记录sql
+    private static $instance = [];
     /**
-     * 内部数据连接对象
      * @var db_pdo|db_mysqli
      */
-    public $db = null;
+    private $db;
     /**
-     * 缓存
-     * @var CacheFile
+     * @var CacheFile 缓存
      */
-	protected $cache = null;
+    private $cache;
     /**
-     * 配置
-     * @var array
+     * @var array 配置
      */
-	protected $config = array(
-		'type' => 'pdo',	//数据库类型 仅有mysql、pdo
-		'dbms' => 'mysql', //数据库
-		'server' => '',	//数据库主机
-		'name' => '',	//数据库名称
-		'user' => '',	//数据库用户
-		'pwd' => '',	//数据库密码
-		'port' => '',     // 端口
-		'char' => 'utf8',	//数据库编码
-		'prefix' => '',	//数据库表前缀 9e_
-        'prod'=>false //生产环境
-	);
-	// 链操作方法信息 被保存在此
-    public $options = null;
-    public $prefix = '';
-	// 链操作方法列表
-    protected $methods = ',order,group,having,limit,table,idx,lock,';
+    private $config = [
+        'type' => 'pdo',   //数据库连接类型 仅pdo、mysqli
+        'dbms' => 'mysql', //数据库
+        'server' => '',    //数据库主机
+        'name' => '',   //数据库名称
+        'user' => '',   //数据库用户
+        'pwd' => '',    //数据库密码
+        'port' => '',   // 端口
+        'char' => 'utf8', //数据库编码
+        'prefix' => '',  //数据库表前缀
+        'prod' => false  //生产环境
+    ];
+    /**
+     * @var array 链操作方法信息
+     */
+    private $options;
+    public $resetOption = true;
+	//链操作方法列表
+    private $methods = ',group,having,idx,limit,order,table,';
     //表字段信息
-    protected $tbFields = array();
+    private $tbFields = [];
     //特殊符 默认mysql
-	protected $startSpec = '`';
-    protected $endSpec = '`';
+    private $startSpec = '`';
+    private $endSpec = '`';
 
     /**
      * Db constructor.
      * @param string|array $conf
      * @param bool $force 是否强制生成新实例
-     * @throws Exception
+     * @throws \Exception
      */
     public function __construct($conf='db', $force=false) {
         $key = '';
         if (is_string($conf)) {
-            if (!isset(Config::$cfg[$conf])) throw new Exception($conf . 'DB连接配置不存在');
+            if (!isset(\myphp::$cfg[$conf])) throw new \Exception($conf . 'DB连接配置不存在');
 
             $key = $conf;
-            $this->config = array_merge($this->config, Config::$cfg[$conf]);
+            $this->config = array_merge($this->config, \myphp::$cfg[$conf]);
         } else {
             $this->config = array_merge($this->config, $conf);
             $key = $this->config['dbms'] . $this->config['server'] . $this->config['name'] . $this->config['port'];
         }
-        $this->prefix = $this->config['prefix'];
 
         if ($force || !isset(self::$instance[$key])) {
             $db_type = 'db_' . $this->config['type'];
-
-            $db_file = MY_PATH . '/lib/db/' . $db_type . '.php';
-            $tb_file = MY_PATH . '/lib/db/tb_' . $this->config['dbms'] . '.php';
-            is_file($db_file) && require_once($db_file);//加载数据库类
-            is_file($tb_file) && require_once($tb_file);//加载数据库类
-
             $this->db = new $db_type($this->config);//连接数据库
-
             self::$instance[$key] = $this->db;//if (false === $force)
         } else {
             $this->db = self::$instance[$key];
@@ -98,7 +95,7 @@ class Db {
 	//释放资源
 	public static function free($name='db'){
         unset(self::$instance[$name]);
-        myphp::free('__db_'.$name);
+        \myphp::free('__db_'.$name);
     }
 	//启用或关闭SQL记录 依赖Log类 0不记录 1仅execute的sql 2全部sql
 	public static function log_on($bool=2){
@@ -118,7 +115,7 @@ class Db {
 			$this->options[$method] = $args[0];
             return $this;
 		}else{
-            throw new Exception(__CLASS__.':'.$method.'方法无效');
+            throw new \Exception(__CLASS__.':'.$method.'方法无效');
         }
 	}
 	//获取最后执行的Sql
@@ -147,7 +144,7 @@ class Db {
                 if ($this->config['prod']) { #生成模式下提前解析
                     foreach ($fieldInfo['rule'] as $k=>$rule){
                         $type = 's'; $min = $max = null;
-                        CheckValue::parseType($rule['rule'], $type, $min, $max);
+                        Value::parseType($rule['rule'], $type, $min, $max);
                         $fieldInfo['rule'][$k]['rule'] = [$type, 'min' => $min, 'max' => $max];
                     }
                     $this->cache->set($tb, $fieldInfo);
@@ -228,8 +225,11 @@ class Db {
         $pattern = '/^\s*(SELECT|SHOW|DESCRIBE)\b/i';
         return preg_match($pattern, $sql) > 0;
     }
-    public function init(){
+    public function resetOptions(){
         $this->options = null;
+    }
+    public function conn(){
+        return $this->db;
     }
     //对sql部分语句进行转换
     final public function chkSql(&$sql, $curd=false) {
@@ -424,7 +424,7 @@ class Db {
 	private function _run_init(&$sql, $bind=null, $curd=false){
         $this->chkSql($sql, $curd);
         self::$sql = $sql = $this->get_real_sql($sql, $bind); //解析绑定参数
-		$this->options = null; //清除
+		if($this->resetOption) $this->options = null; //重置
 		if(self::$log_type==2 || (self::$log_type==1 && $curd)) Log::write($sql,'SQL');
 		self::$times++;
 	}
@@ -434,7 +434,7 @@ class Db {
      * 返回预处理对象 $stmt -> 调用 $stmt->execute($params=null) 处理sql数据
      * @param $sql
      * @param array $options
-     * @return false|mysqli_stmt|PDOStatement
+     * @return false|\mysqli_stmt|\PDOStatement
      */
     public function prepare($sql, $options = [])
     {
@@ -444,7 +444,7 @@ class Db {
     }
 
     /**
-     * @var Closure function($db, $sql){}
+     * @var \Closure function($db, $sql){}
      */
     public static $execCustom = null;
 
@@ -452,12 +452,12 @@ class Db {
      * 执行sql  todo:有主从时 默认都走主库
      * @param $sql
      * @param null $bind
-     * @return bool|int|mixed|mysqli_result
-     * @throws Exception
+     * @return bool|int|mixed
+     * @throws \Exception
      */
 	public function execute($sql, $bind=null) {
 		$this->_run_init($sql, $bind, true);
-		if(self::$execCustom instanceof Closure) { //自定义exec处理
+		if(self::$execCustom instanceof \Closure) { //自定义exec处理
             return call_user_func(self::$execCustom, $this->db, $sql);
         }else{
             return $this->db->exec($sql);
@@ -468,7 +468,9 @@ class Db {
         !is_array($bind) && $isArr = $bind;
         $idx = $isArr && isset($this->options['idx']) ? $this->options['idx'] : null; //指定键名
         // 替换前缀
-        !isset($this->options['table']) && $sql = str_replace('{prefix}', $this->prefix, $sql);
+        if(!isset($this->options['table']) && strpos($sql, '{prefix}')){
+            $sql = str_replace('{prefix}', $this->config['prefix'], $sql);
+        }
 
         $this->_run_init($sql, $bind);
         if(!$isArr) return $this->db->query($sql);
@@ -586,14 +588,15 @@ class Db {
 	}
 
     /**
-     * @param array $post 可批量
+     * @param array|array[] $post 可批量
      * @param string $table
-     * @return string
+     * @return mixed|string 自动自增获取最后插入记录的id
+     * @throws \Exception
      */
     public function add($post, $table='') {
 		$this->execute($this->add_sql($post, $table));
-		return $this->getInsertId();
-	}
+		return $this->db->insert_id();
+    }
 	//更新记录 $where[str|arr]
     public function update_sql($post, $table='', $where = '') {
         $value = '';
@@ -622,7 +625,7 @@ class Db {
      * @param string $table
      * @param string $where
      * @return bool|int|mixed
-     * @throws Exception
+     * @throws \Exception
      */
     public function update($post, $table='', $where = '') {
 		return $this->execute($this->update_sql($post, $table, $where));
@@ -682,7 +685,15 @@ class Db {
 
 		return $this->getCustomId($table, $idName, $where, $orderByName.' DESC');
 	}
-	//获取自定字段值
+
+    /**
+     * 获取自定字段值
+     * @param $table
+     * @param $idName
+     * @param string $where
+     * @param string $orderBy
+     * @return bool|mixed
+     */
 	public function getCustomId($table, $idName, $where = '', $orderBy = ''){
 		$this->_table($table);
         $sql = 'SELECT TOP 1 ' . $this->startSpec . $idName . $this->endSpec . ' FROM ' . $table;
@@ -695,7 +706,14 @@ class Db {
 		$row = $this->getOne($sql, null, 'num');
 		return is_array($row)?$row[0]:false;
 	}
-	//执行一个SQL语句,仅返回一条记录 $bind[array:绑定数据],$type $bind为array时才有效
+
+    /**
+     * 执行一个SQL语句,仅返回一条记录 $bind[array:绑定数据],$type $bind为array时才有效
+     * @param $sql
+     * @param null $bind
+     * @param string $type
+     * @return array|false
+     */
 	public function getOne($sql, $bind=null, $type = 'assoc') {
 		if(is_array($bind)){
 			$result = $this->query($sql, $bind);
@@ -706,18 +724,36 @@ class Db {
 		$row = $this->db->fetch_array($result, $type);//无记录返回false
 		return $row;
 	}
-    //返回当前的一条记录并把游标移向下一记录
+
+    /**
+     * 返回当前的一条记录并把游标移向下一记录
+     * @param null $rs
+     * @param string $type
+     * @return mixed
+     */
     public function fetch($rs=null, $type = 'assoc') {
         if($rs===null) $rs=$this->db->rs;
         return $this->db->fetch_array($rs, $type);
     }
+
+    /**
+     * @param null $rs
+     * @param string $type
+     * @return mixed
+     */
 	public function fetch_array($rs=null, $type = 'assoc') {
         return $this->fetch($rs, $type);
 	}
 	public function isTrans(){
         return $this->db->inTrans();
     }
-    //设置事务隔离等级
+
+    /**
+     * 设置事务隔离等级
+     * @param $level
+     * @return $this
+     * @throws \Exception
+     */
     public function setTransactionLevel($level){
         $sql = 'transaction isolationLevel '.$level;
         $this->_run_init($sql, null, true);
@@ -749,14 +785,10 @@ class Db {
 	public function getRows() {
 		return $this->db->num_rows();
 	}
-	//获取最后插入记录的 自动id
-	public function getInsertId() {
-		return $this->db->insert_id();	
-	}
 	//初始化缓存类，如果开启缓存，则加载缓存类并实例化
 	public function initCache() {
         if (!$this->cache) {
-            $this->cache = Cache::newInstance();
+            $this->cache = Cache::getInstance();
             $this->cache->setCacheDir(RUNTIME . DS . $this->config['dbms']);
             $this->cache->setCachePrefix($this->config['name'].'.');
             $this->cache->suffix = '.bin';
@@ -786,14 +818,14 @@ class Db {
         }
 
         if(strpos($tb,'{prefix}')!==false){ //表名前缀处理
-            $tb = str_replace('{prefix}', $this->prefix, $tb);
+            $tb = str_replace('{prefix}', $this->config['prefix'], $tb);
         }
 
         if($more){
             $tb = trim($tb);
             if ($tb[0]=='(' || strpos($tb, '.') || strpos($tb, ',')) return $tb; //子查询|联合查询[.,]
             if ($pos = strpos($tb, ' ')) { //有别名
-                if(strpos($tb, ' ', $pos)+1){ //多个空格 可能非别名
+                if(strpos($tb, ' ', $pos+1)){ //多个空格 可能非别名
                     return $tb;
                 }
                 $tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, $tb); //, str_replace('`', '', $tb)
@@ -889,7 +921,7 @@ abstract class TbBase{
 
 /**
  * Class DbBase
- * @property PDO|mysqli $conn
+ * @property \PDO|\mysqli $conn
  */
 abstract class DbBase{
     //隔离级别
@@ -898,9 +930,9 @@ abstract class DbBase{
     const REPEATABLE_READ = 'REPEATABLE READ'; //可重复读：幻读 如:mysql
     const SERIALIZABLE = 'SERIALIZABLE'; //串行化
 
-	public $conn = null; //连接实例
-	public $rs = null; //数据集
-    public $config = null;
+	public $conn; //连接实例
+	public $rs; //数据集
+    public $config;
     public $transCounter = 0;
 	
 	public function __construct($config) {
@@ -964,7 +996,12 @@ abstract class DbBase{
 		}
         if($force && $this->transCounter>0) $this->commit($force);
 	}
-    //设置事务隔离等级 isolation
+
+    /**
+     * 设置事务隔离等级 isolation
+     * @param $level
+     * @throws \Exception
+     */
 	public function setTransactionLevel($level){
         if ($this->config['dbms'] == 'sqlite') {
             switch ($level) {
@@ -975,7 +1012,7 @@ abstract class DbBase{
                     $this->exec('PRAGMA read_uncommitted = True;');
                     break;
                 default:
-                    throw new Exception(get_class($this) . ' only supports transaction isolation levels READ UNCOMMITTED and SERIALIZABLE.');
+                    throw new \Exception(get_class($this) . ' only supports transaction isolation levels READ UNCOMMITTED and SERIALIZABLE.');
             }
         } else {
             $this->exec("SET TRANSACTION ISOLATION LEVEL $level");
@@ -997,7 +1034,7 @@ abstract class DbBase{
 	abstract public function query($sql);
     /**
      * 从结果集中取得一行作为关联数组/数字索引数组
-     * @param PDOStatement|mysqli_result $query 数据集
+     * @param \PDOStatement|\mysqli_result $query 数据集
      * @param string $type 默认MYSQL_ASSOC 关联，MYSQL_NUM 数字，MYSQL_BOTH 两者
      * @return mixed
      */
@@ -1005,7 +1042,7 @@ abstract class DbBase{
 	//取得结果集行的数目
 	abstract public function num_rows();
 	//取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
-	abstract public function insert_id();
+	abstract public function insert_id($sequenceName);
 }
 //表达式
 class Expr{

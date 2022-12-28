@@ -34,7 +34,7 @@ class File {
             }
         } catch (\Exception $e) {
             if (!is_dir($path)) {
-                throw new Exception("Failed to create directory {$path}: " . $e->getMessage(), $e->getCode(), $e);
+                throw new \Exception("Failed to create directory {$path}: " . $e->getMessage(), $e->getCode(), $e);
             }
         }
         return true;

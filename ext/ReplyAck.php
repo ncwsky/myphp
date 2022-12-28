@@ -19,10 +19,10 @@ class ReplyAck{
     }
 
     /**
-     * @return lib_redis|MyRedis|Redis
+     * @return lib_redis
      */
     public static function redis(){
-        return lib_redis::getInstance(Config::get(self::$redisName));
+        return lib_redis::getInstance(myphp::get(self::$redisName));
     }
     /** 初始并生成定时器
      * @param string $redisName
@@ -105,7 +105,7 @@ class ReplyAck{
             #队列重发未应答消息
             myphp::class_dir(SrvBase::$instance->getConfig('timer_dir', APP_PATH.'/timer')); //定时处理载入
             $replyAckQueue = new ReplyAckQueue();
-            SwooleSrv::$instance->server->tick(2*1000, function () use($replyAckQueue) {
+            SrvBase::$instance->server->tick(2*1000, function () use($replyAckQueue) {
                 $replyAckQueue->run();
             });
             if (SrvBase::$isConsole) {
@@ -155,5 +155,50 @@ class ReplyAck{
             $redis->hdel(self::$prefix . self::MSG_LIST_HASH, $message_id);
             $redis->zRem(self::$prefix . self::MSG_LIST, $message_id);
         }
+    }
+}
+class ReplyAckQueue{
+    //通知频率 1m 3m 10m 20m 30m 30m 1h 3h 3h 6h  总计14h34m
+    public static $times = [ //队列名按通知次数自动累加 task_queue1 task_queue2 ...
+        15,30,40,50,60,70,80,90,100,110,120
+    ];
+    public function run(){
+        #$runTime = microtime(TRUE);
+        try{
+            $redis = ReplyAck::redis();
+            $redisQueueKey = ReplyAck::redisKey(ReplyAck::RETRY_QUEUE);
+            foreach (self::$times as $k=>$val){ //循环重发时间间隔
+                $queueKey = $redisQueueKey . ($k ? $k : ''); //队列key  task_queue 为初始最小间隔时间队列
+                // 格式 下次通知时间:数据
+                while($queue_data = $redis->lPop($queueKey)){
+                    $res = explode(':', $queue_data, 2);
+                    if($res[0]>time()) { //未到通知时间
+                        $redis->lPush($queueKey, $queue_data); //头部压入
+                        break;
+                    }
+                    //echo $res[3].PHP_EOL;
+                    $data = json_decode($res[1],true);
+                    if(isset($data['uid'])){
+                        $this->data = $data;
+                        $this->uid = isset($data['_uid']) ? $data['_uid'] : $data['uid'];
+                        $this->send(); //发送
+
+                        $messageId = $data['_id']??0;
+                        if($messageId){
+                            $nextIdx = $k+1;
+                            if(!isset(self::$times[$nextIdx])) continue; //超出重试次数
+
+                            $res[0] = $res[0]+self::$times[$nextIdx]; //更新下次的通知时间
+
+                            ReplyAck::queue($messageId, $nextIdx.'>'.$res[0].':'.$res[1]);
+                        }
+                    }
+                }
+            }
+        }catch (Exception $e){
+            Log::WARN(sprintf('file:%s, line:%s, err:%s',$e->getFile(),$e->getLine(),$e->getMessage()));
+            return false;
+        }
+        return true;
     }
 }

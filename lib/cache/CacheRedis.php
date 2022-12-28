@@ -25,10 +25,7 @@ class CacheRedis extends CacheAbstract{
             if ('' != $this->options['password']) {
                 $this->handler->auth($this->options['password']);
             }
-            //if (0 != $this->options['select']) {
             $this->handler->select($this->options['select']);
-            //}
-			//throw new Exception('redis扩展未启用',0);
         }else{
             $this->options['database'] = $this->options['select'];
             $this->handler = new MyRedis($this->options);
@@ -44,7 +41,7 @@ class CacheRedis extends CacheAbstract{
     public function get($name) {
         $value = $this->handler->get($this->options['prefix'].$name);
         $jsonData = json_decode( $value, true );
-        return ($jsonData === NULL) ? $value : $jsonData;	//检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
+        return ($jsonData === null) ? $value : $jsonData;	//检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
     }
 
     /**

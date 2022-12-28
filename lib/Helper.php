@@ -69,15 +69,16 @@ class Helper{
     public static $validBefore; //验证的前置操作 流程处理完请重置为null
     public static $validAfter; //验证的后置操作 流程处理完请重置为null
 
-    /** valid 数据过滤验证
+    /**
+     * 数据有效性处理
+     * @param null|array $data 数据
      * @param string $name 数据键名
      * @param string|array $rule array['rule','def','err','err2'] | string %s{}:fun   %s,%b,%d,%f,%a,%date[2014-01-11 13:23:32],%his[13:23:32]  {1,20}取值范围 filter:fun1,fun2,/regx/i正则过滤
-     * @param null|array $data 数据
      * @param mixed $default $rule是string时可指定默认值
-     * @return array|bool|float|int|string
-     * @throws RuntimeException
+     * @return array|bool|float|int|string 返回处理后的值
+     * @throws \RuntimeException
      */
-    public static function valid($name, $rule, &$data=null, $default=''){
+    public static function valid(&$data, $name, $rule, $default=''){
         $hasDef = true;
         $val = isset($data[$name]) ? $data[$name] : null;
 
@@ -89,7 +90,7 @@ class Helper{
             $_rule = $rule;
         }
 
-        CheckValue::type2val($val, $_rule, $default, !$hasDef, $name);
+        Value::type2val($val, $_rule, $default, !$hasDef, $name);
         return $val;
     }
     /** 数据有效性全处理
@@ -98,7 +99,7 @@ class Helper{
      * @param bool $exclude 是否排除非rule规则键名的数据
      * @param bool $setDef 是否给有默认值但未设置的字段设置默认值
      * @return bool
-     * @throws RuntimeException
+     * @throws \RuntimeException
      */
     public static function validAll(&$data, $rules, $exclude=false, $setDef=false){
         try{
@@ -106,7 +107,7 @@ class Helper{
                 if(isset($rules[$k])){
                     $is_continue = $setDef === 0 || $v instanceof Expr; //禁用默认值及验证处理或表达式
                     if (!$is_continue) {
-                        $data[$k] = self::valid($k, $rules[$k], $data);
+                        $data[$k] = self::valid($data, $k, $rules[$k]);
                     }
                     unset($rules[$k]);
                 }elseif($exclude){
@@ -126,15 +127,15 @@ class Helper{
                             if($hasDef) {
                                 $default = $rule['def'];
                             }else{
-                                throw new RuntimeException(isset($rule['err']) ? $rule['err'] : $k . ' is invalid');
+                                throw new \RuntimeException(isset($rule['err']) ? $rule['err'] : $k . ' is invalid');
                             }
                         }
                         if($setDef) $data[$k] = $default;
                     }
                 }
             }
-        }catch(RuntimeException $e){
-            myphp::err($e->getMessage());
+        }catch(\RuntimeException $e){
+            \myphp::err($e->getMessage());
             return false;
         }
         return true;
@@ -166,7 +167,7 @@ class Helper{
         if ($cPage > $pCount) $cPage = $pCount;
         $prev = $cPage > 1 ? $cPage - 1 : ''; //上一页
         $next = $cPage < $pCount ? $cPage + 1 : ''; //下一页
-        $path = myphp::env('BASE_URL', '');
+        $path = \myphp::env('BASE_URL', '');
         $path = $path != '/' ? rtrim($path, '/') : $path;
         $qstr = !empty($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
         if (strpos($qstr, $pName) !== false) {
@@ -696,14 +697,14 @@ class Helper{
      * });
      *
      * @param array $array array or object to extract value from
-     * @param string|Closure|array $key
+     * @param string|\Closure|array $key
      * @param mixed $default
      * @return mixed
      */
     public static function getValue($array, $key, $default = null)
     {
         if (!is_array($array)) return $default;
-        if ($key instanceof Closure) {
+        if ($key instanceof \Closure) {
             return $key($array, $default);
         }
         if (is_string($key) && strpos($key, '.')) {
@@ -740,7 +741,7 @@ class Helper{
      * });
      * ```
      * @param array $array
-     * @param string|Closure $name 列名
+     * @param string|\Closure $name 列名
      * @param bool $keepKeys 保持键名.
      * @return array 数组列
      */
@@ -768,7 +769,7 @@ class Helper{
      * `SORT_REGULAR`, `SORT_NUMERIC`, `SORT_STRING`, `SORT_LOCALE_STRING`, `SORT_NATURAL` and `SORT_FLAG_CASE`.
      * Please refer to [PHP manual](http://php.net/manual/en/function.sort.php)
      * for more details. When sorting by multiple keys with different sort flags, use an array of sort flags.
-     * @throws InvalidArgumentException if the $direction or $sortFlag parameters do not have
+     * @throws \InvalidArgumentException if the $direction or $sortFlag parameters do not have
      */
     public static function arrayMultiSort(&$array, $key, $direction = SORT_ASC, $sortFlag = SORT_REGULAR)
     {
@@ -780,12 +781,12 @@ class Helper{
         if (is_scalar($direction)) {
             $direction = array_fill(0, $n, $direction);
         } elseif (count($direction) !== $n) {
-            throw new InvalidArgumentException('The length of $direction parameter must be the same as that of $keys.');
+            throw new \InvalidArgumentException('The length of $direction parameter must be the same as that of $keys.');
         }
         if (is_scalar($sortFlag)) {
             $sortFlag = array_fill(0, $n, $sortFlag);
         } elseif (count($sortFlag) !== $n) {
-            throw new InvalidArgumentException('The length of $sortFlag parameter must be the same as that of $keys.');
+            throw new \InvalidArgumentException('The length of $sortFlag parameter must be the same as that of $keys.');
         }
         $args = [];
         foreach ($keys as $i => $key) {

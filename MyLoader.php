@@ -6,7 +6,7 @@ class MyLoader
 {
     public static $rootPath = __DIR__;
     public static $classDir = []; //设置可加载的目录 ['dir'=>1,....]
-    public static $namespaceMap = []; // ['namespace\\'=>'src/']
+    public static $namespaceMap = []; // ['namespace\\'=>'src/']; //命名空间路径映射 不指定完整路径使用rootPath
     public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
     public static $classOldSupport = false; //是否兼容xxx.class.php
 
@@ -39,24 +39,24 @@ class MyLoader
         }
 
         $name = $class_name;
-        if ($pos = strpos($class_name, '\\')) { //命名空间类加载
-            $class_path = strtr($class_name, '\\', DIRECTORY_SEPARATOR);
-            $namespace = substr($class_name, 0, $pos + 1);
+        if ($len = strpos($class_name, '\\')) { //命名空间类加载
+            $len += 1;
+            $namespace = substr($class_name, 0, $len); //包含尾部\
             if (isset(self::$namespaceMap[$namespace])) { //优先加载命名空间映射
-                $path = DIRECTORY_SEPARATOR=='\\' ? strtr(self::$namespaceMap[$namespace], '/', DIRECTORY_SEPARATOR) :  strtr(self::$namespaceMap[$namespace], '\\', DIRECTORY_SEPARATOR);
-                include self::$rootPath . DIRECTORY_SEPARATOR . $path . (substr($path,-1)==DIRECTORY_SEPARATOR?'':DIRECTORY_SEPARATOR) . substr($class_path, strlen($namespace)) . '.php';
+                $end = substr(self::$namespaceMap[$namespace], -1);
+                if (self::$namespaceMap[$namespace][0] == '/' || (DIRECTORY_SEPARATOR == '\\' && strpos(self::$namespaceMap[$namespace], ':\\'))) { //绝对路径 | win
+                    $path = self::$namespaceMap[$namespace];
+                } else {
+                    $path = self::$rootPath . DIRECTORY_SEPARATOR . self::$namespaceMap[$namespace];
+                }
+                self::load($path . ($end == '/' ? '' : DIRECTORY_SEPARATOR) . substr($class_name, $len) . '.php');
                 return;
             }
-
-            if (self::load(self::$rootPath . DIRECTORY_SEPARATOR . $class_path . '.php')) {
-                return;
-            }
-            //未匹配-取类名
-            $pos = strrpos($class_path, DIRECTORY_SEPARATOR);
-            $name = substr($class_path, $pos + 1);
+            self::load(self::$rootPath . DIRECTORY_SEPARATOR . strtr($class_name, '\\', DIRECTORY_SEPARATOR) . '.php');
+            return;
         }
 
-        //循环可存在类的目录
+        //遍历可存在类的目录
         foreach (self::$classDir as $path => $i) {
             if (self::load($path . DIRECTORY_SEPARATOR . $name . '.php')) {
                 return;
@@ -69,17 +69,13 @@ class MyLoader
 
     /**
      * @param string $path
-     * @param null $class_name
      * @return bool
      */
-    public static function load($path, $class_name = null)
+    public static function load($path)
     {
         if (is_file($path)) {
             include $path;
             return true;
-            if ($class_name === null || \class_exists($class_name, false)) {
-                return true;
-            }
         }
         return false;
     }

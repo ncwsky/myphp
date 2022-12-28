@@ -15,7 +15,7 @@ class BitmapFile
             $this->handler = @fopen($file, 'w+');
 
         if (!$this->handler) {
-            throw new Exception('open bitmap file failed');
+            throw new \Exception('open bitmap file failed');
         }
 
         $this->max = file_exists($file) ? (filesize($file) * 8 - 1) : 0;  
@@ -33,12 +33,12 @@ class BitmapFile
     /**
      *  -1 < $num < 4294967296
      * @param $num
-     * @throws Exception
+     * @throws \Exception
      */
     private function num_check($num)  
     {
-        if ($num < 0) throw new Exception('number must be greater than -1');
-        if ($num >= 4294967296) throw new Exception('number must be less than 4294967296'); // 2^32
+        if ($num < 0) throw new \Exception('number must be greater than -1');
+        if ($num >= 4294967296) throw new \Exception('number must be less than 4294967296'); // 2^32
         if ($this->max < $num) {
             fseek($this->handler, 0, SEEK_END);
             fwrite($this->handler, str_repeat("\x00", ceil(($num - $this->max) / 8))); // fill with 0

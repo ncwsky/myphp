@@ -46,9 +46,9 @@ class Hook{
         //记录构子执行前时间
 
         if(!is_array($params)) $params = [&$params];
-        if ($hook instanceof Closure) { //闭包 匿名函数
+        if ($hook instanceof \Closure) { //闭包 匿名函数
             $result = call_user_func_array($hook, $params);
-            $hook  = 'Closure';
+            $hook  = '\Closure';
         } elseif (is_array($hook)) { //实例类 方法
             list($hook, $method) = $hook;
             $result = (new $hook())->$method($params);

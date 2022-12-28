@@ -29,7 +29,7 @@ class DecConvert
     #自定义映射表
     public function setDict($dict){
         if(strlen($dict)!=62) {
-            throw new Exception('设置的字符映射表长度不符');
+            throw new \Exception('设置的字符映射表长度不符');
         }
 
         $deDict = [];
@@ -37,7 +37,7 @@ class DecConvert
             $deDict[$dict[$i]] = $i;
         }
         if(count($deDict)!=62){
-            throw new Exception('设置的字符映射表存在重复字符');
+            throw new \Exception('设置的字符映射表存在重复字符');
         }
         $this->dict = $dict;
         $this->deDict = $deDict;
@@ -47,11 +47,11 @@ class DecConvert
      * @param int|string $number
      * @param int $toBase
      * @return string
-     * @throws Exception
+     * @throws \Exception
      */
     public function to($number, $toBase) {
         /*if ($toBase > 62 || $toBase < 2) {
-            throw new Exception('Invalid to base('.$toBase.')');
+            throw new \Exception('Invalid to base('.$toBase.')');
         }elseif($toBase==10){
             return $number;
         }elseif(!$this->custom && $toBase<=36 && $number<=0xa7c5ac471b5f){
@@ -71,11 +71,11 @@ class DecConvert
      * @param string $number
      * @param int $fromBase
      * @return int|string
-     * @throws Exception
+     * @throws \Exception
      */
     public function from($number, $fromBase) {
         /*if ($fromBase > 62 || $fromBase < 2) {
-            throw new Exception('Invalid from base('.$fromBase.')');
+            throw new \Exception('Invalid from base('.$fromBase.')');
         }elseif($fromBase==10){
             return $number;
         }elseif(!$this->custom && $fromBase<=36 && $number<=0xa7c5ac471b5f){

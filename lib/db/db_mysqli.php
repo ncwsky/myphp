@@ -9,7 +9,6 @@ class db_mysqli extends DbBase{
     public function connect() {
 		$cfg_db = &$this->config;
 		//建立新连接 不返回已经打开的连接标识
-		$cfg_db['pconnect'] = isset($cfg_db['pconnect']) ? $cfg_db['pconnect'] : false;
 		$this->conn = new mysqli($cfg_db['server'].(empty($cfg_db['port']) ? '' : ':'.$cfg_db['port']), $cfg_db['user'], $cfg_db['pwd']);
 
 		if($this->conn->connect_error) {
@@ -103,9 +102,10 @@ class db_mysqli extends DbBase{
 
     /**
      * 取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
+     * @param $sequenceName
      * @return mixed
      */
-	public function insert_id() {
+	public function insert_id($sequenceName=null) {
 		return $this->conn->insert_id;
 	}
 }

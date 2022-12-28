@@ -1,5 +1,6 @@
 <?php
 #declare(strict_types=1);
+
 //系统开始时间
 define('SYS_START_TIME', microtime(TRUE));//时间戳.微秒数
 define('SYS_TIME', time());//时间戳和微秒数
@@ -13,6 +14,10 @@ define('DS', '/');
 //定义MY_PATH常量
 define('MY_PATH', __DIR__);
 
+if (!class_exists('Error')) { //兼容7.0
+    class Error extends \Exception{}
+}
+
 //REQUEST_URI 处理 ORIG_PATH_INFO REDIRECT_PATH_INFO REDIRECT_URL
 if(!isset($_SERVER['REQUEST_URI'])){
     if (isset($_SERVER['HTTP_X_REWRITE_URL'])) {
@@ -23,49 +28,60 @@ if(!isset($_SERVER['REQUEST_URI'])){
 }
 
 //绝对根目录
-define('ROOT', IS_CLI ? realpath(dirname($_SERVER['SCRIPT_FILENAME'])) : str_replace($_SERVER['SCRIPT_NAME'], '', IS_WIN ? strtr($_SERVER['SCRIPT_FILENAME'], '\\', DS) : $_SERVER['SCRIPT_FILENAME']));
+define('ROOT', IS_CLI ? strtr(dirname(realpath($_SERVER['SCRIPT_FILENAME'])), '\\', DS) : str_replace($_SERVER['SCRIPT_NAME'], '', $_SERVER['SCRIPT_FILENAME']));
+
 //运行临时目录
 defined('RUNTIME') || define('RUNTIME', ROOT.'/runtime');
 //公共目录
 defined('COMMON') || define('COMMON', ROOT.'/common');
-require MY_PATH . '/myphp.php';
-require MY_PATH . '/inc/comm.func.php';
-require MY_PATH . '/lib/Db.php';
+require __DIR__ . '/myphp.php';
+require __DIR__ . '/MyLoader.php';
+require __DIR__ . '/inc/comm.func.php';
+require __DIR__ . '/lib/Db.php';
+
+MyLoader::$rootPath = ROOT;
+MyLoader::$classOldSupport = true;
 //类映射
-myphp::$classMap = [
-    'Cache' => MY_PATH . '/lib/Cache.php',
-    'CacheAbstract' => MY_PATH . '/lib/Cache.php',
-    'CheckValue' => MY_PATH . '/lib/CheckValue.php',
-    'Control' => MY_PATH . '/lib/Control.php',
-    //'Db' => MY_PATH . '/lib/Db.php',
-    'File' => MY_PATH . '/lib/File.php',
-    'Helper' => MY_PATH . '/lib/Helper.php',
-    'Hook' => MY_PATH . '/lib/Hook.php',
-    'Log' => MY_PATH . '/lib/Log.php',
-    'Model' => MY_PATH . '/lib/Model.php',
-    'MyRedis' => MY_PATH . '/lib/MyRedis.php',
-    'Session' => MY_PATH . '/lib/Session.php',
-    'session_abstract' => MY_PATH . '/lib/Session.php',
-    'Template' => MY_PATH . '/lib/Template.php',
-    'View' => MY_PATH . '/lib/View.php',
-    'AES' => MY_PATH . '/ext/AES.php',
-    'BitMap' => MY_PATH . '/ext/BitMap.php',
-    'BitmapFile' => MY_PATH . '/ext/BitmapFile.php',
-    'DecConvert' => MY_PATH . '/ext/DecConvert.php',
-    'DesSecurity' => MY_PATH . '/ext/DesSecurity.php',
-    'Endian' => MY_PATH . '/ext/Endian.php',
-    'Http' => MY_PATH . '/ext/Http.php',
-    'HttpAuth' => MY_PATH . '/ext/HttpAuth.php',
-    'HttpCode' => MY_PATH . '/ext/HttpCode.php',
-    'HttpReqInfo' => MY_PATH . '/ext/HttpReqInfo.php',
-    'Image' => MY_PATH . '/ext/Image.php',
-    'lib_redis' => MY_PATH . '/ext/lib_redis.php',
-    'Py' => MY_PATH . '/ext/Py.php',
-    'ReplyAck' => MY_PATH . '/ext/ReplyAck.php',
-    'RotateLog' => MY_PATH . '/ext/RotateLog.php',
-    'Upload' => MY_PATH . '/ext/Upload.php',
-    'Zip' => MY_PATH . '/ext/Zip.php'
+MyLoader::$classMap = [
+    'Cache' => __DIR__ . '/lib/Cache.php',
+    'CacheAbstract' => __DIR__ . '/lib/Cache.php',
+    'CheckValue' => __DIR__ . '/lib/CheckValue.php',
+    'Value' => __DIR__ . '/lib/Value.php',
+    'Control' => __DIR__ . '/lib/Control.php',
+    //'Db' => __DIR__ . '/lib/Db.php',
+    'db_mysqli' => __DIR__ . '/lib/db/db_mysqli.php',
+    'db_pdo' => __DIR__ . '/lib/db/db_pdo.php',
+    'tb_mysql' => __DIR__ . '/lib/db/tb_mysql.php',
+    'tb_sqlite' => __DIR__ . '/lib/db/tb_sqlite.php',
+    'File' => __DIR__ . '/lib/File.php',
+    'Helper' => __DIR__ . '/lib/Helper.php',
+    'Hook' => __DIR__ . '/lib/Hook.php',
+    'Log' => __DIR__ . '/lib/Log.php',
+    'Model' => __DIR__ . '/lib/Model.php',
+    'MyRedis' => __DIR__ . '/lib/MyRedis.php',
+    'Session' => __DIR__ . '/lib/Session.php',
+    'Template' => __DIR__ . '/lib/Template.php',
+    'View' => __DIR__ . '/lib/View.php',
+    'AES' => __DIR__ . '/ext/AES.php',
+    'BitMap' => __DIR__ . '/ext/BitMap.php',
+    'BitmapFile' => __DIR__ . '/ext/BitmapFile.php',
+    'DecConvert' => __DIR__ . '/ext/DecConvert.php',
+    'DesSecurity' => __DIR__ . '/ext/DesSecurity.php',
+    'Endian' => __DIR__ . '/ext/Endian.php',
+    'Http' => __DIR__ . '/ext/Http.php',
+    'HttpAuth' => __DIR__ . '/ext/HttpAuth.php',
+    'HttpCode' => __DIR__ . '/ext/HttpCode.php',
+    'HttpReqInfo' => __DIR__ . '/ext/HttpReqInfo.php',
+    'Image' => __DIR__ . '/ext/Image.php',
+    'lib_redis' => __DIR__ . '/ext/lib_redis.php',
+    'Py' => __DIR__ . '/ext/Py.php',
+    'ReplyAck' => __DIR__ . '/ext/ReplyAck.php',
+    'RotateLog' => __DIR__ . '/ext/RotateLog.php',
+    'Upload' => __DIR__ . '/ext/Upload.php',
+    'Zip' => __DIR__ . '/ext/Zip.php'
 ];
+//注册类的自动加载
+spl_autoload_register('MyLoader::autoload', true, true);
 //初始框架
 myphp::init(isset($cfg) ? $cfg : null);
 /*---------- 辅助方法 ----------*/
@@ -98,29 +114,59 @@ if (!function_exists('getallheaders')) {
         return $headers;
     }
 }
-// 统计程序运行时间 秒
+/**
+ * 统计程序运行时间 秒
+ * @return string
+ */
 function run_time() {
     return number_format(microtime(TRUE) - SYS_START_TIME, 4);
 }
-// 统计程序内存开销
+
+/**
+ * 统计程序内存开销
+ * @return string
+ */
 function run_mem() {
     return MEMORY_LIMIT_ON ? toByte(memory_get_usage() - SYS_MEMORY) : 'unknown';
 }
-//获取配置值 支持二维数组
+
+/**
+ * 获取配置值 支持二维数组
+ * @param $name
+ * @param null $defVal
+ * @return mixed|null
+ */
 function GetC($name, $defVal = null){
-    return Config::get($name, $defVal);
+    return myphp::get($name, $defVal);
 }
-//动态设置配置值
+
+/**
+ * 动态设置配置值
+ * @param $name
+ * @param $val
+ */
 function SetC($name, $val){
-    Config::set($name, $val);
+    myphp::set($name, $val);
 }
-//获取语言信息 支持二维 需要先载入语言数组文件
+
+/**
+ * 获取语言信息 支持二维 需要先载入语言数组文件
+ * @param $name
+ * @return mixed|null
+ */
 function GetL($name){
     return myphp::lang($name);
 }
-//url解析 地址 [! 普通模式]admin/index/show?b=c&d=e, 附加参数 数组|null, url字符串如：/pub/index.php
+
+/**
+ * url解析 地址 [! 普通模式]admin/index/show?b=c&d=e, 附加参数 数组|null, url字符串如：/pub/index.php
+ * @param string $uri
+ * @param null $vars
+ * @param string $url
+ * @return mixed|string
+ */
 function U($uri='',$vars=null, $url=''){
-    return UrlRoute::forward_url($uri,$vars,$url);
+    return myphp::forward_url($uri,$vars,$url);
 }
 /**
  * db实例化
@@ -131,11 +177,34 @@ function U($uri='',$vars=null, $url=''){
 function db($name='db', $force=false){
     return myphp::db($name, $force);
 }
-//生成json
+
+/**
+ * @param string $name
+ * @return lib_redis
+ */
+function redis($name = 'redis')
+{
+    return myphp::redis($name);
+}
+
+/**
+ * 生成json
+ * @param $res
+ * @param int $option
+ * @return false|string
+ */
 function toJson($res, $option=0){
     return Helper::toJson($res, $option);
 }
-//消息输出
+
+/**
+ * 消息输出
+ * @param $message
+ * @param string $url
+ * @param string $info
+ * @param int $time
+ * @return false|string
+ */
 function out_msg($message, $url='', $info='', $time = 1){
     return Helper::outMsg($message, $url, $info, $time);
 }
