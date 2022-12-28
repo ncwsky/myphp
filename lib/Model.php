@@ -116,7 +116,7 @@ class Model implements \ArrayAccess
         }
         $this->db->resetOption = false; //sql组合项执行后不重置
 
-        $this->tbName = $tbName===null ? static::tableName() : $tbName;
+        if (!$this->tbName) $this->tbName = $tbName===null ? static::tableName() : $tbName;
 
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
