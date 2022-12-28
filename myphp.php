@@ -344,6 +344,10 @@ final class myphp{
         self::$env['c'] = $_GET['c'];
         self::$env['a'] = $_GET['a'];
         self::$env['app_namespace'] = basename(APP_PATH);
+        //自动指定app命名空间目录
+        if (!isset(MyLoader::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
+            MyLoader::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
+        }
         $module = isset($_GET['m']) ? $_GET['m'] : ''; //self::$env['m'] =
         //var_dump($_GET);
         //指定项目模块
