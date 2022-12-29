@@ -18,18 +18,6 @@ class MyLoader
         else self::$classDir[$dir] = 1;
     }
 
-    public static function namespace_map($namespace, $dir = null)
-    {
-        if (is_array($namespace)) self::$namespaceMap = array_merge(self::$namespaceMap, $namespace);
-        else self::$namespaceMap[$namespace] = $dir;
-    }
-
-    public static function class_map($name, $file = null)
-    {
-        if (is_array($name)) self::$classMap = array_merge(self::$classMap, $name);
-        else self::$classMap[$name] = $file;
-    }
-
     //自动加载对象
     public static function autoload($class_name)
     {

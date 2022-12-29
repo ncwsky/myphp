@@ -16,13 +16,15 @@ final class myphp{
     //private static $db = [];
     private static $container = []; //容器
 
-    //配置处理
-    public static $cfg = [];
+    //自动载入配置项
+    public static $rootPath = __DIR__;
+    public static $classDir = []; //设置可加载的目录 ['dir'=>1,....]
+    public static $namespaceMap = []; // ['namespace\\'=>'src/']; //命名空间路径映射 不指定完整路径使用rootPath
+    public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
+    public static $classOldSupport = false; //是否兼容xxx.class.php
 
-    //载入配置
-    public static function load($file){
-        self::set(include $file);
-    }
+    //配置处理 start
+    public static $cfg = [];
     //获取配置值 支持二维数组
     public static function get($name, $defVal = null){
         if ( false === ($pos = strpos($name, '.')) )
@@ -41,7 +43,6 @@ final class myphp{
         }
         // 二维数组支持
         $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
-        //$name = explode('.', $name);
         self::$cfg[$name1][$name2]=$val;
     }
     //删除配置
@@ -53,6 +54,66 @@ final class myphp{
         $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
         unset(self::$cfg[$name1][$name2]);
     }
+    //配置处理 end
+
+    //自动载入 start
+    //读取或设置类加载路径
+    public static function class_dir($dir)
+    {
+        //单独设置类加载路径需要写全地址
+        if (is_array($dir)) self::$classDir = array_merge(self::$classDir, array_fill_keys($dir, 1));
+        else self::$classDir[$dir] = 1;
+    }
+    //自动加载对象
+    public static function autoload($class_name)
+    {
+        if (isset(self::$classMap[$class_name])) { //优先加载类映射
+            include self::$classMap[$class_name];
+            return;
+        }
+
+        $name = $class_name;
+        if ($len = strpos($class_name, '\\')) { //命名空间类加载
+            $len += 1;
+            $namespace = substr($class_name, 0, $len); //包含尾部\
+            if (isset(self::$namespaceMap[$namespace])) { //优先加载命名空间映射
+                $end = substr(self::$namespaceMap[$namespace], -1);
+                if (self::$namespaceMap[$namespace][0] == '/' || (DIRECTORY_SEPARATOR == '\\' && strpos(self::$namespaceMap[$namespace], ':\\'))) { //绝对路径 | win
+                    $path = self::$namespaceMap[$namespace];
+                } else {
+                    $path = self::$rootPath . DIRECTORY_SEPARATOR . self::$namespaceMap[$namespace];
+                }
+                self::load($path . ($end == '/' ? '' : DIRECTORY_SEPARATOR) . substr($class_name, $len) . '.php');
+                return;
+            }
+            self::load(self::$rootPath . DIRECTORY_SEPARATOR . strtr($class_name, '\\', DIRECTORY_SEPARATOR) . '.php');
+            return;
+        }
+
+        //遍历可存在类的目录
+        foreach (self::$classDir as $path => $i) {
+            if (self::load($path . DIRECTORY_SEPARATOR . $name . '.php')) {
+                return;
+            }
+            if (self::$classOldSupport && self::load($path . DIRECTORY_SEPARATOR . $name . '.class.php')) { //兼容处理
+                return;
+            }
+        }
+    }
+    /**
+     * 引入文件
+     * @param string $path
+     * @return bool
+     */
+    public static function load($path)
+    {
+        if (is_file($path)) {
+            include $path;
+            return true;
+        }
+        return false;
+    }
+    //自动载入 end
 
     // 获取环境变量的值
     public static function env($name, $def = '')
@@ -345,8 +406,8 @@ final class myphp{
         self::$env['a'] = $_GET['a'];
         self::$env['app_namespace'] = basename(APP_PATH);
         //自动指定app命名空间目录
-        if (!isset(MyLoader::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
-            MyLoader::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
+        if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
+            self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
         }
         $module = isset($_GET['m']) ? $_GET['m'] : ''; //self::$env['m'] =
         //var_dump($_GET);
@@ -505,14 +566,14 @@ final class myphp{
         ($appRoot=='.' || $appRoot==DS) && $appRoot='';
         #self::$cfg['APP_ROOT'] = $appRoot;
         define('APP_ROOT', $appRoot);
-        //配置组合
-        self::load(__DIR__ . '/def_config.php'); //引入默认配置文件
+        //引入默认配置文件
+        self::set(include __DIR__ . '/def_config.php');
         if(is_array($cfg)){ //组合参数配置
             self::set($cfg);
             unset($cfg);
         }
         //引入公共配置文件
-        is_file(COMMON . '/config.php') && self::load(COMMON . '/config.php');
+        is_file(COMMON . '/config.php') && self::set(include COMMON . '/config.php');
 
         //相对根目录
         if(!isset(self::$cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
@@ -564,8 +625,7 @@ final class myphp{
         }
 
         //注册类的自动加载
-        //spl_autoload_register('self::autoload', true, true);
-
+        spl_autoload_register('self::autoload', true, true);
         // 设定错误和异常处理
         Log::register();
         //日志记录初始
@@ -588,17 +648,13 @@ final class myphp{
         return $content;
     }
 
-    //读取或设置类加载路径
-    public static function class_dir($dir){
-        MyLoader::class_dir($dir);
-    }
     /**
      * 载入php文件
      * @param string $path  路径
      * @return bool
      */
     public static function loadPHP($path) {
-        return MyLoader::load($path);
+        return self::load($path);
     }
 
     //语言

@@ -35,17 +35,16 @@ defined('RUNTIME') || define('RUNTIME', ROOT.'/runtime');
 //公共目录
 defined('COMMON') || define('COMMON', ROOT.'/common');
 require __DIR__ . '/myphp.php';
-require __DIR__ . '/MyLoader.php';
 require __DIR__ . '/inc/comm.func.php';
 require __DIR__ . '/lib/Db.php';
 
-MyLoader::$rootPath = ROOT;
-MyLoader::$namespaceMap = [
+myphp::$rootPath = ROOT;
+myphp::$namespaceMap = [
     'myphp\\' => __DIR__ . '/lib',
     'common\\' => COMMON,
 ];
 //类映射
-MyLoader::$classMap = [
+myphp::$classMap = [
     'myphp\Cache' => __DIR__ . '/lib/Cache.php',
     'myphp\CacheAbstract' => __DIR__ . '/lib/Cache.php',
     'myphp\Value' => __DIR__ . '/lib/Value.php',
@@ -93,8 +92,6 @@ MyLoader::$classMap = [
     'Upload' => __DIR__ . '/ext/Upload.php',
     'Zip' => __DIR__ . '/ext/Zip.php'
 ];
-//注册类的自动加载
-spl_autoload_register('MyLoader::autoload', true, true);
 //初始框架
 myphp::init(isset($cfg) ? $cfg : null);
 /*---------- 辅助方法 ----------*/
