@@ -32,7 +32,7 @@ class MyLoader
             $namespace = substr($class_name, 0, $len); //包含尾部\
             if (isset(self::$namespaceMap[$namespace])) { //优先加载命名空间映射
                 $end = substr(self::$namespaceMap[$namespace], -1);
-                if (self::$namespaceMap[$namespace][0] == '/' || (DIRECTORY_SEPARATOR == '\\' && strpos(self::$namespaceMap[$namespace], ':\\'))) { //绝对路径 | win
+                if (self::$namespaceMap[$namespace][0] == '/' || (DIRECTORY_SEPARATOR == '\\' && strpos(self::$namespaceMap[$namespace], ':'))) { //绝对路径 | win
                     $path = self::$namespaceMap[$namespace];
                 } else {
                     $path = self::$rootPath . DIRECTORY_SEPARATOR . self::$namespaceMap[$namespace];
