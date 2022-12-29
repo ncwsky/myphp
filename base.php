@@ -28,21 +28,20 @@ if(!isset($_SERVER['REQUEST_URI'])){
 }
 
 //绝对根目录
-define('ROOT', IS_CLI ? strtr(dirname(realpath($_SERVER['SCRIPT_FILENAME'])), '\\', DS) : str_replace($_SERVER['SCRIPT_NAME'], '', $_SERVER['SCRIPT_FILENAME']));
+define('ROOT', IS_CLI ? strtr(dirname(realpath($_SERVER['SCRIPT_FILENAME'])), '\\', DS) : str_replace($_SERVER['SCRIPT_NAME'], '', strtr($_SERVER['SCRIPT_FILENAME'], '\\', DS)));
 
 //运行临时目录
 defined('RUNTIME') || define('RUNTIME', ROOT.'/runtime');
 //公共目录
 defined('COMMON') || define('COMMON', ROOT.'/common');
 require __DIR__ . '/myphp.php';
-require __DIR__ . '/MyLoader.php';
 require __DIR__ . '/inc/comm.func.php';
 require __DIR__ . '/lib/Db.php';
 
-MyLoader::$rootPath = ROOT;
-MyLoader::$classOldSupport = true;
+myphp::$rootPath = ROOT;
+myphp::$classOldSupport = true;
 //类映射
-MyLoader::$classMap = [
+myphp::$classMap = [
     'Cache' => __DIR__ . '/lib/Cache.php',
     'CacheAbstract' => __DIR__ . '/lib/Cache.php',
     'CheckValue' => __DIR__ . '/lib/CheckValue.php',
@@ -80,8 +79,6 @@ MyLoader::$classMap = [
     'Upload' => __DIR__ . '/ext/Upload.php',
     'Zip' => __DIR__ . '/ext/Zip.php'
 ];
-//注册类的自动加载
-spl_autoload_register('MyLoader::autoload', true, true);
 //初始框架
 myphp::init(isset($cfg) ? $cfg : null);
 /*---------- 辅助方法 ----------*/
