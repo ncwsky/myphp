@@ -5,6 +5,8 @@ class File {
     public $path = '.'; //路径
     public $prefix = ''; //前缀
     public $clearExSuffix = ''; //排除指定后缀的文件 多个使用,分隔 .php,.html
+    public $listLimit = 2048; //显示列表限制
+    private $dirLen;
 
 	//构造函数
 	public function __construct($path='./', $prefix=''){
@@ -61,9 +63,11 @@ class File {
     }
 	//设置路径
 	public function setDir($path){
-		if(substr($path,-1)=='/') $path = substr($path,0, -1);
+		//if(substr($path,-1)=='/') $path = substr($path,0, -1);
+		$path = realpath($path);
         $this->createDir($path);
         $this->path = $path;
+        $this->dirLen = strlen($this->path);
 		
 	}
 	//设置文件前缀
@@ -138,6 +142,113 @@ class File {
     	//删除该文件
     	return @unlink($file);
 	}
+
+    /**
+     * 读取目录
+     * @param string $reqPath 相对$this->path下的 /a/b/c
+     * @param string $sortBy 排序方式 name_asc,name_desc | mtime_asc,mtime_desc | size_asc,size_desc
+     * @param string $search 搜索
+     * @param array $list 文件及目录列表
+     * @param array $pathList 目录路径列表
+     */
+	public function readPath($reqPath, $sortBy='name_asc', $search='', &$list=[], &$pathList=[]){
+        // name_asc,name_desc | mtime_asc,mtime_desc | size_asc,size_desc
+        //$sortBy = isset($_GET['sort']) ? trim($_GET['sort']) : 'name_asc';
+        //$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        $list = $this->depth($reqPath, $search!=='', $search); //有搜索递归
+        $path = $reqPath;
+        $pathList = []; //排除根目录 目录路径列表
+        if ($reqPath !== '/') {
+            $pathList = [$path];
+            while ($path = dirname($path)) {
+                if ($path == DIRECTORY_SEPARATOR) break;
+                $pathList[] = $path;
+            }
+            sort($pathList);
+        }
+
+        array_shift($list);
+        foreach ($list as $k => $v) {
+            $list[$k]['name'] = basename($v['path']);
+            if($list[$k]['name']=='$RECYCLE.BIN' || $list[$k]['name']=='System Volume Information'){
+                unset($list[$k]);
+            }
+        }
+
+        $array_column = function ($array, $column) {
+            if (function_exists('array_column')) {
+                return array_column($array, $column);
+            } else {
+                $columns = [];
+                foreach ($array as $element) {
+                    $columns[] = $element[$column];
+                }
+            }
+        };
+
+        switch ($sortBy) {
+            case 'name_desc':
+                $keys = ['is_dir', 'name'];
+                $direction = [SORT_ASC, SORT_DESC];
+                $sortFlag = [SORT_REGULAR, SORT_STRING | SORT_FLAG_CASE];
+                break;
+            case 'mtime_asc':
+                $keys = ['is_dir', 'mtime', 'name'];
+                $direction = [SORT_DESC, SORT_ASC, SORT_ASC];
+                $sortFlag = [SORT_REGULAR, SORT_REGULAR, SORT_STRING | SORT_FLAG_CASE];
+                break;
+            case 'mtime_desc':
+                $keys = ['is_dir', 'mtime', 'name'];
+                $direction = [SORT_ASC, SORT_DESC, SORT_DESC];
+                $sortFlag = [SORT_REGULAR, SORT_REGULAR, SORT_STRING | SORT_FLAG_CASE];
+                break;
+            case 'size_asc':
+                $keys = ['is_dir', 'size', 'name'];
+                $direction = [SORT_DESC, SORT_ASC, SORT_ASC];
+                $sortFlag = [SORT_REGULAR, SORT_NUMERIC, SORT_STRING | SORT_FLAG_CASE];
+                break;
+            case 'size_desc':
+                $keys = ['is_dir', 'size', 'name'];
+                $direction = [SORT_ASC, SORT_DESC, SORT_ASC];
+                $sortFlag = [SORT_REGULAR, SORT_NUMERIC, SORT_STRING | SORT_FLAG_CASE];
+                break;
+            default: //默认文件名升序
+                $keys = ['is_dir', 'name'];
+                $direction = [SORT_DESC, SORT_ASC];
+                $sortFlag = [SORT_REGULAR, SORT_STRING | SORT_FLAG_CASE];
+
+        }
+        $args = [];
+        foreach ($keys as $i => $key) {
+            $args[] = $array_column($list, $key);
+            $args[] = $direction[$i];
+            $args[] = $sortFlag[$i];
+        }
+        $args[] = range(1, count($list));
+        $args[] = SORT_ASC;
+        $args[] = SORT_NUMERIC;
+        $args[] = &$list;
+        call_user_func_array('array_multisort', $args);
+    }
+    /**
+     * 递归读取目录
+     * @param string $path  /a/b/c
+     * @param bool $infinity 递归
+     * @param string $search
+     * @return array
+     */
+    public function depth($path, $infinity = false, $search = '')
+    {
+        $fullPath = $this->path . rtrim($path, '/');
+        $stat = stat($fullPath);
+        $list = [];//new SplFixedArray($this->listLimit);
+        $list[0] = ['path' => $path, 'is_dir' => true, 'size' => $stat['size'], 'mtime' => $stat['mtime'], 'ctime' => $stat['ctime'], 'type' => ''];
+        $num = 1;
+
+        $this->depthRecursive($list, $num, $fullPath, $infinity, $search);
+        return $list;
+    }
+
     /** 删除所有文件
      * @param int $maxLifeTime 可指定过期时间 单位秒 比如删除1小时前的文件 3600
      * @param bool $isRecursive
@@ -176,6 +287,39 @@ class File {
                 if($this->prefix && strpos($file,$this->prefix)!==0) continue; //无前缀的跳过
                 if (!($mtime = @filemtime($fullPath)) || $mtime>$ts) continue;
                 @unlink($fullPath);
+            }
+        }
+        closedir($directory);
+    }
+
+    /**
+     * 递归处理目录
+     * @param $list
+     * @param $num
+     * @param $path
+     * @param bool $infinity
+     * @param string $search
+     */
+    protected function depthRecursive(&$list, &$num, $path, $infinity = false, $search = '')
+    {
+        if (($directory = opendir($path)) === false) {
+            return;
+        }
+
+        while (($file = readdir($directory)) !== false) {
+            if ($file === '.' || $file === '..') continue;
+            $fullPath = $path . '/' . $file;
+            $stat = stat($fullPath);
+            $isDir = is_dir($fullPath);
+
+            if ($search === '' || stripos($file, $search) !== false) {
+                $list[$num] = ['path' => substr($fullPath, $this->dirLen), 'is_dir' => $isDir, 'size' => $stat['size'], 'mtime' => $stat['mtime'], 'ctime' => $stat['ctime'], 'type' => $isDir ? '' : mime_content_type($fullPath)];
+                $num++;
+            }
+
+            if ($num >= $this->listLimit) break;
+            if ($isDir && $infinity) {
+                $this->depthRecursive($list, $num, $fullPath, $infinity, $search);
             }
         }
         closedir($directory);
