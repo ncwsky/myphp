@@ -8,6 +8,7 @@ class File {
     public $prefix = ''; //前缀
     public $clearExSuffix = ''; //排除指定后缀的文件 多个使用,分隔 .php,.html
     public $listLimit = 2048; //显示列表限制
+    private $dirLen;
 
 	//构造函数
 	public function __construct($path='./', $prefix=''){
@@ -64,9 +65,11 @@ class File {
     }
 	//设置路径
 	public function setDir($path){
-		if(substr($path,-1)=='/') $path = substr($path,0, -1);
+		//if(substr($path,-1)=='/') $path = substr($path,0, -1);
+		$path = realpath($path);
         $this->createDir($path);
         $this->path = $path;
+        $this->dirLen = strlen($this->path);
 		
 	}
 	//设置文件前缀
@@ -155,15 +158,13 @@ class File {
         //$sortBy = isset($_GET['sort']) ? trim($_GET['sort']) : 'name_asc';
         //$search = isset($_GET['search']) ? trim($_GET['search']) : '';
         $list = $this->depth($reqPath, $search!=='', $search); //有搜索递归
-        //取路径层次
-        $prefix = $this->prefix;
         $path = $reqPath;
         $pathList = []; //排除根目录 目录路径列表
         if ($reqPath !== '/') {
-            $pathList = [$prefix . $path];
+            $pathList = [$path];
             while ($path = dirname($path)) {
                 if ($path == DIRECTORY_SEPARATOR) break;
-                $pathList[] = $prefix . $path;
+                $pathList[] = $path;
             }
             sort($pathList);
         }
@@ -245,6 +246,7 @@ class File {
         $list = [];//new SplFixedArray($this->listLimit);
         $list[0] = ['path' => $path, 'is_dir' => true, 'size' => $stat['size'], 'mtime' => $stat['mtime'], 'ctime' => $stat['ctime'], 'type' => ''];
         $num = 1;
+
         $this->depthRecursive($list, $num, $fullPath, $infinity, $search);
         return $list;
     }
