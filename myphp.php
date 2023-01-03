@@ -72,7 +72,7 @@ final class myphp{
             $namespace = substr($class_name, 0, $len); //包含尾部\
             if (isset(self::$namespaceMap[$namespace])) { //优先加载命名空间映射
                 $end = substr(self::$namespaceMap[$namespace], -1);
-                if (self::$namespaceMap[$namespace][0] == '/' || (DIRECTORY_SEPARATOR == '\\' && strpos(self::$namespaceMap[$namespace], ':\\'))) { //绝对路径 | win
+                if (self::$namespaceMap[$namespace][0] == '/' || (DIRECTORY_SEPARATOR == '\\' && strpos(self::$namespaceMap[$namespace], ':'))) { //绝对路径 | win
                     $path = self::$namespaceMap[$namespace];
                 } else {
                     $path = self::$rootPath . DIRECTORY_SEPARATOR . self::$namespaceMap[$namespace];
@@ -442,7 +442,7 @@ final class myphp{
             'URL' => $_url . self::$env['c'], //相对当前地址的url控制
             'BASE_URL' => $_url . self::$env['c'] . '/' . self::$env['a'],
             'CONTROL' => (strpos(self::$env['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['c']), ' ')) : ucfirst(self::$env['c'])) . 'Act',
-            'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰
+            'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰  lcfirst首字母转小写
             'MODULE' => $module,
             'MODULE_PATH' => $module_path,
             //路径 自动生成
@@ -859,11 +859,24 @@ final class myphp{
         if ($mca === '') return;
         if (strpos($mca, '/')) {
             $path = explode('/', $mca);
-            $_GET['a'] = array_pop($path);
-            $_GET['c'] = array_pop($path);
-            if (!empty($path)) $_GET['m'] = array_pop($path);
+            if (isset($path[2])) {
+                $_GET['m'] = $path[0];
+                $_GET['c'] = $path[1];
+                $_GET['a'] = $path[2];
+            } elseif (isset(self::$cfg['module_maps'][$path[0]])) {
+                $_GET['m'] = $path[0];
+                $_GET['c'] = $path[1];
+            } else {
+                $_GET['c'] = $path[0];
+                $_GET['a'] = $path[1];
+            }
+            unset($path);
         } else {
-            $_GET['a'] = $mca;
+            if (isset(self::$cfg['module_maps'][$mca])) { //有配置模块优先
+                $_GET['m'] = $mca;
+            } else {
+                $_GET['c'] = $mca;
+            }
         }
     }
     /*
