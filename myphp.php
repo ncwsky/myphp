@@ -869,9 +869,18 @@ final class myphp{
         if ($mca === '') return;
         if (strpos($mca, '/')) {
             $path = explode('/', $mca);
-            $_GET['a'] = array_pop($path);
-            $_GET['c'] = array_pop($path);
-            if (!empty($path)) $_GET['m'] = array_pop($path);
+            if (isset($path[2])) {
+                $_GET['m'] = $path[0];
+                $_GET['c'] = $path[1];
+                $_GET['a'] = $path[2];
+            } elseif (isset(self::$cfg['module_maps'][$path[0]])) {
+                $_GET['m'] = $path[0];
+                $_GET['c'] = $path[1];
+            } else {
+                $_GET['c'] = $path[0];
+                $_GET['a'] = $path[1];
+            }
+            unset($path);
         } else {
             if (isset(self::$cfg['module_maps'][$mca])) { //有配置模块优先
                 $_GET['m'] = $mca;
