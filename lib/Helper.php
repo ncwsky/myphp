@@ -351,8 +351,10 @@ class Helper{
     }
     //json_encode 缩写
     public static function toJson($res, $option=0){
-        if($option==0 && defined('JSON_UNESCAPED_UNICODE'))
+        if ($option == 0 && defined('JSON_UNESCAPED_UNICODE')) {
             $option = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+            if (defined('JSON_UNESCAPED_UNICODE')) $option |= JSON_INVALID_UTF8_SUBSTITUTE;
+        }
         return json_encode($res, $option);
     }
     //toXml 转换成xml
