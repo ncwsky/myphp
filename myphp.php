@@ -452,7 +452,7 @@ final class myphp{
             'URL' => $_url . self::$env['c'], //相对当前地址的url控制
             'BASE_URL' => $_url . self::$env['c'] . '/' . self::$env['a'],
             'CONTROL' => (strpos(self::$env['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['c']), ' ')) : ucfirst(self::$env['c'])) . 'Act',
-            'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰
+            'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰  lcfirst首字母转小写
             'MODULE' => $module,
             'MODULE_PATH' => $module_path,
             //路径 自动生成
@@ -873,7 +873,11 @@ final class myphp{
             $_GET['c'] = array_pop($path);
             if (!empty($path)) $_GET['m'] = array_pop($path);
         } else {
-            $_GET['a'] = $mca;
+            if (isset(self::$cfg['module_maps'][$mca])) { //有配置模块优先
+                $_GET['m'] = $mca;
+            } else {
+                $_GET['c'] = $mca;
+            }
         }
     }
     /*
