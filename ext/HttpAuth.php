@@ -81,13 +81,12 @@ class HttpAuth
         $auth = self::auth($redirect ? true : false);
         if ($auth !== true) {
             $protocol = isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.0';
-            if ($auth === false) { //logout
-                header($protocol . ' 302 Found');
-                header('Location: ' . $redirect);
-                return false;
-            }
             header($protocol . ' 401 Unauthorized');
-            header('WWW-Authenticate: ' . $auth);
+            if ($auth === false) { //logout
+                echo "<meta http-equiv='Refresh' content='1;URL={$redirect}'>";
+            } else {
+                header('WWW-Authenticate: ' . $auth);
+            }
             return false;
         }
         return true;

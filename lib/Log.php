@@ -217,7 +217,12 @@ class Log{
 	//写入日志
 	public static function write($msg,$level='info',$file=null){
 		if(!self::_level($level)) return false;
-        if(!is_scalar($msg)) $msg = toJson($msg);
+        if(!is_scalar($msg)) {
+            $msg = toJson($msg);
+            if (false === $msg) {
+                $msg = '->json fail<-' . json_last_error_msg();
+            }
+        }
 		$fp = null;
 		if(!$file){
             if(isset(self::$instance->handler)) {

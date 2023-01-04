@@ -168,6 +168,8 @@ class File {
         }
 
         array_shift($list);
+        if(empty($list)) return;
+
         foreach ($list as $k => $v) {
             $list[$k]['name'] = basename($v['path']);
             if($list[$k]['name']=='$RECYCLE.BIN' || $list[$k]['name']=='System Volume Information'){
