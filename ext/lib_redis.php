@@ -330,8 +330,10 @@ class lib_redis{
             return call_user_func_array(array($this->handler, 'set'), func_get_args());
         }
         //对数组/对象数据进行缓存处理，保证数据完整性
-        $option = defined('JSON_UNESCAPED_UNICODE') ? JSON_UNESCAPED_UNICODE : 0;
-        $data = (is_object($data) || is_array($data)) ? json_encode($data, $option) : $data;
+        if (is_array($data) || is_object($data)) {
+            $option = defined('JSON_UNESCAPED_UNICODE') ? JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES : 0;
+            $data = json_encode($data, $option);
+        }
         if (is_int($expire) && $expire) {
             $result = $this->handler->setex($name, $expire, $data);
         } else {
