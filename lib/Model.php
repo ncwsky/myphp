@@ -118,7 +118,7 @@ class Model implements \ArrayAccess
                 $this->db = new Db($dbName);
             }
         }
-        $this->db->resetOption = self::$resetOption; //sql组合项执行后是否重置
+        $this->db->resetOption = static::$resetOption; //sql组合项执行后是否重置
 
         if (!$this->tbName) {
             $this->tbName = $tbName === null ? static::tableName() : $tbName;
@@ -367,7 +367,7 @@ class Model implements \ArrayAccess
         if ($this->_asObj) {
             if($method == 'all' || $method == 'select'){
                 foreach ($result as $k=>$row){
-                    $result[$k] = self::create($row);
+                    $result[$k] = static::create($row);
                 }
             }
         }
