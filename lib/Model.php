@@ -68,6 +68,10 @@ class Model implements \ArrayAccess
 
     protected static $dbName = 'db'; //db配置名
     protected static $tableName = null; //表配置名
+    /**
+     * @var bool 查询后是否重置sql-options
+     */
+    public static $resetOption = true;
 
     /**
      * 数据库实例
@@ -114,7 +118,7 @@ class Model implements \ArrayAccess
                 $this->db = new Db($dbName);
             }
         }
-        $this->db->resetOption = false; //sql组合项执行后不重置
+        $this->db->resetOption = self::$resetOption; //sql组合项执行后是否重置
 
         if (!$this->tbName) $this->tbName = $tbName===null ? static::tableName() : $tbName;
 
@@ -240,7 +244,6 @@ class Model implements \ArrayAccess
         //验证数据
         if (!Helper::validAll($this->_data, $this->fieldRule, true, $def === null ? $this->setDef : $def)) {
             //throw new \RuntimeException('验证失败');
-            //$this->db->resetOptions();
             return false;
         }
         //未指定表名时指定表名
@@ -337,7 +340,7 @@ class Model implements \ArrayAccess
             $this->_data = $this->_oldData = [];
         }
         if ($this->tbName && strpos($this->db->table,$this->tbName)!==0) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
-        if ($method == 'find' || $method == 'select' || $method=='all') {
+        if ($method == 'one' || $method == 'all' || $method == 'find' || $method == 'select') {
             if(!$this->tbName && $this->db->table){ //未取得表名及字段时
                 $this->tbName = $this->db->table;
                 $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
@@ -350,7 +353,7 @@ class Model implements \ArrayAccess
     }
     //执行db方法的后置处理
     protected function _afterDbMethod($method, &$result){
-        if ($method == 'find' || $method=='one') { //单条记录   || $method == 'getOne'
+        if ($method=='one' || $method == 'find') { //单条记录   || $method == 'getOne'
             if (false === $result) return $result;
             $this->formatData($result);
             $this->_data = $this->_oldData = $result;
@@ -359,7 +362,7 @@ class Model implements \ArrayAccess
             }
         }
         if ($this->_asObj) {
-            if($method == 'select' || $method == 'all'){
+            if($method == 'all' || $method == 'select'){
                 foreach ($result as $k=>$row){
                     $result[$k] = self::create($row);
                 }
@@ -445,7 +448,6 @@ class Model implements \ArrayAccess
                     unset($model->fieldRule[$model->autoIncrement]);
                 }
                 foreach ($post as &$data) {
-
                     if (!Helper::validAll($data, $model->fieldRule, true)) {
                         return false;
                     }
@@ -460,7 +462,7 @@ class Model implements \ArrayAccess
                 }
             }
         }
-        return $model->db()->add($post, static::tableName());
+        return static::getDb(false)->add($post, static::tableName());
     }
     /**
      * @param $data
