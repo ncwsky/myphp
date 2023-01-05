@@ -165,23 +165,16 @@ function GetL($name){
 function U($uri='',$vars=null, $url=''){
     return myphp::forward_url($uri,$vars,$url);
 }
+
 /**
  * db实例化
  * @param string $name 数据库配置名
  * @param bool $force 是否强制生成新实例
  * @return Db
+ * @throws Exception
  */
 function db($name='db', $force=false){
     return myphp::db($name, $force);
-}
-
-/**
- * @param string $name
- * @return lib_redis
- */
-function redis($name = 'redis')
-{
-    return myphp::redis($name);
 }
 
 /**
