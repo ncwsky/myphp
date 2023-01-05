@@ -441,7 +441,7 @@ class Model implements \ArrayAccess
      * @return bool|mixed|string
      * @throws \Exception
      */
-    public static function add($post){
+    public static function insert($post){
         $model = static::create();
         if ($model->fieldRule) { //有字段规则
             if (isset($post[0])) { //批量
