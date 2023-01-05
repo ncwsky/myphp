@@ -120,7 +120,9 @@ class Model implements \ArrayAccess
         }
         $this->db->resetOption = self::$resetOption; //sql组合项执行后是否重置
 
-        if (!$this->tbName) $this->tbName = $tbName===null ? static::tableName() : $tbName;
+        if (!$this->tbName) {
+            $this->tbName = $tbName === null ? static::tableName() : $tbName;
+        }
 
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
@@ -244,6 +246,7 @@ class Model implements \ArrayAccess
         //验证数据
         if (!Helper::validAll($this->_data, $this->fieldRule, true, $def === null ? $this->setDef : $def)) {
             //throw new \RuntimeException('验证失败');
+            $this->db->resetOptions();
             return false;
         }
         //未指定表名时指定表名

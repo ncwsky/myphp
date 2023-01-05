@@ -13,7 +13,6 @@ final class myphp{
     public static $header = [];
     public static $statusCode = 200;
     private static $req_cache = null;
-    //private static $db = [];
     private static $container = []; //容器
 
     //自动载入配置项
@@ -22,7 +21,6 @@ final class myphp{
     public static $namespaceMap = []; // ['namespace\\'=>'src/']; //命名空间路径映射 不指定完整路径使用rootPath
     public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
     public static $classOldSupport = false; //是否兼容xxx.class.php
-
     //配置处理 start
     public static $cfg = [];
     //获取配置值 支持二维数组
@@ -1052,6 +1050,25 @@ final class myphp{
 }
 //异常类
 class myException extends Exception{}
+//配置处理类
+class Config{
+    //载入配置
+    public static function load($file){
+        myphp::set(include $file);
+    }
+    //获取配置值 支持二维数组
+    public static function get($name, $defVal = null){
+        return myphp::get($name, $defVal);
+    }
+    //动态设置配置值
+    public static function set($name, $val=null){
+        myphp::set($name, $val);
+    }
+    //删除配置
+    public static function del($name){
+        myphp::del($name);
+    }
+}
 //消息复用
 trait MyMsg
 {
