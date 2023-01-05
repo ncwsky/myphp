@@ -2,7 +2,7 @@
 #declare(strict_types=1);
 
 //系统开始时间
-define('SYS_START_TIME', microtime(TRUE));//时间戳.微秒数
+define('SYS_START_TIME', microtime(true));//时间戳.微秒数
 define('SYS_TIME', time());//时间戳
 // 记录内存初始使用
 define('MEMORY_LIMIT_ON', function_exists('memory_get_usage'));
@@ -176,6 +176,7 @@ function U($uri='',$vars=null, $url=''){
 function db($name='db', $force=false){
     return myphp::db($name, $force);
 }
+
 /**
  * @param string $name
  * @return lib_redis
@@ -185,6 +186,7 @@ function redis($name = 'redis')
 {
     return myphp::redis($name);
 }*/
+
 /**
  * 生成json
  * @param $res
