@@ -353,7 +353,7 @@ class Zip
                 fwrite($fp, $binary_data, 8);
                 fclose($fp);
 
-                $gzp = @gzopen($to . $header['filename'] . '.gz', 'rb') or die("Cette archive est compress閑");
+                $gzp = @gzopen($to . $header['filename'] . '.gz', 'rb');
                 if (!$gzp) return (-2);
                 $fp = @fopen($to . $header['filename'], 'wb');
                 if (!$fp) return (-1);
