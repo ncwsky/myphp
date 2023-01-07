@@ -11,22 +11,21 @@ function e404(){header("HTTP/1.1 404 Not Found");header('Status:404 Not Found');
  * @return void
  */
 function redirect($url, $time=0, $msg='') {
-    if (empty($msg))
-        $msg    = "系统将在{$time}秒之后自动跳转到{$url}！";
+    if ($time && empty($msg)) {
+        $msg = "系统将在{$time}秒之后自动跳转到{$url}！";
+    }
     // 如果报头未发送，则发送
     if (!headers_sent()) {// redirect
         if (0 === $time) {
             header('Location: ' . $url);
+            $msg = '';
         } else {
             header("refresh:{$time};url={$url}");
-            echo($msg);
         }
-        exit();
     } else {
-        $str    = "<meta http-equiv='Refresh' content='{$time};URL={$url}'>";
-        if ($time != 0) $str .= $msg;
-        exit($str);
+        $msg = "<meta http-equiv='Refresh' content='{$time};URL={$url}'>" . $msg;
     }
+    exit($msg);
 }
 
 /**
@@ -362,7 +361,7 @@ function ShowMsg($message, $url='', $info='', $time = 2) {
     }
     if(ob_get_length() !== false) ob_clean();//清除页面
 
-    echo '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8" /><title></title><script type="text/javascript">var pgo=0;function jumpUrl(){if(!pgo){'. $js .'; pgo=1;}}setTimeout("jumpUrl()",'. $time*1000 .');var t,s;function time(){var time = document.getElementById("time");s = parseInt(time.innerHTML)-1;time.innerHTML=s;if(s<=0) clearInterval(t);}t=setInterval("time()",1000);</script>
+    $out_html = '<!doctype html><html><head><meta charset="utf-8"><title>信息提示</title><script type="text/javascript">var pgo=0;function jumpUrl(){if(!pgo){'. $js .'; pgo=1;}}setTimeout("jumpUrl()",'. ($time*1000) .');var t,s;function time(){var time = document.getElementById("time");s = parseInt(time.innerHTML)-1;time.innerHTML=s;if(s<=0) clearInterval(t);}t=setInterval("time()",1000);</script>
 <style type="text/css">
 body {background-color:#FFF;font-size:12px;font-family: SimSun,Arial; color:#555;}
 body, ul, ol, li, dl, dd, p, h1, h2, h3, h4, h5, h6, form, fieldset, hr {margin: 0; padding: 0; border:0;}
@@ -376,7 +375,8 @@ a {color: #5f5f5f; text-decoration: none;}a:hover {text-decoration: underline;}
 .msg .z{padding-bottom:15px; font-family:Verdana, Geneva, sans-serif;}
 .msg .z a{text-decoration: underline; }.tabmsg .z a:hover{color:#f30;}
 </style></head><body><div style="padding:89px 10px 10px;"><div class="msg"><div class="t">'.$message.'</div><div class="g">'.$info.'</div><div class="z"><a href="'. $jumpUrl . '"><span id="time">'.$time.'</span> 秒后自动跳转，如未跳转请点击此处手工跳转。</a></div></div></div></body></html>';
-    exit;
+    if(IS_CLI) return $out_html;
+    exit($out_html);
 }
 
 //获取用户真实地址 返回用户ip  type:0 返回IP地址 1 返回IPV4地址数字

@@ -443,13 +443,11 @@ class Http
     */
     public static function download($filename, $showname='',$expire=1800)
     {
-        if(is_file($filename))
-        {
+        if (is_file($filename)) {
             $length = filesize($filename);
-        }
-        else
-        {
-            die('下载文件不存在！');
+        } else {
+            return false;
+            throw new \Exception('下载文件不存在');
         }
 
         $type = mime_content_type($filename);

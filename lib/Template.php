@@ -85,7 +85,7 @@ class Template{
 		$content = '<?php exit;//' . serialize($this->dir['level']);
 		file_put_contents(strtr($this->cacheFile, array('.php' => '_.php')), $content);
 
-		$content = ''; // "<?php !defined('MY_PATH') && exit; /* 生成时间：" . date('Y-m-d H:i:s', time()) . " */ ? >\r\n";
+		$content = '';
 		//'从最次层开始
 		for($this->maxLevel; $this->maxLevel>0; $this->maxLevel--) {
 			//'读取当前层次的页面列表 遍历
