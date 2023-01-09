@@ -144,7 +144,6 @@ final class myphp{
             if(self::$beforeFun instanceof \Closure){ //前置处理
                 call_user_func(self::$beforeFun);
             }
-
             if(self::$authFun instanceof \Closure){ //权限验证处理
                 call_user_func(self::$authFun);
             }else{
@@ -163,14 +162,16 @@ final class myphp{
                 null!==$data && self::send($data, self::$statusCode, $instance->req_cache);
             }
         } catch (\Exception $e) {
-            if($e->getCode()==404 || $e->getCode()==200){
-                self::send($e->getMessage(), $e->getCode());
-            }else{
-                self::send($e->getMessage()."\n".'line:'.$e->getLine().', file:'.$e->getFile()."\n".$e->getTraceAsString(), 500);
+            $errCode = $e->getCode();
+            //匹配状态码时 //$errCode==404 || $errCode==200
+            if ($errCode >= 200 && $errCode < 500 && isset(self::$httpCodeStatus[$errCode])) {
+                self::send($e->getMessage(), $errCode);
+            } else {
+                self::send($e->getMessage() . (self::$cfg['debug'] ? "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : ''), 500);
                 Log::Exception($e, false);
             }
         } catch (\Error $e) {
-            self::send($e->getMessage()."\n".'line:'.$e->getLine().', file:'.$e->getFile()."\n".$e->getTraceAsString(), 500);
+            self::send($e->getMessage() . (self::$cfg['debug'] ? "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : ''), 500);
             Log::Exception($e, false);
         }
         self::$env = [];
