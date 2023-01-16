@@ -6,13 +6,16 @@ class Image
     /**
      * 取得图像信息
      * @param string $img 图像文件名
+     * @param bool $raw_string 是否原始内容
      * @return bool|array
      */
-    public static function getImageInfo($img)
+    public static function getImageInfo($img, $raw_string=false)
     {
-        $imageSize = filesize($img);
-        if ($imageSize && false !== ($imageInfo = getimagesize($img))) {
-            $imageType = strtolower(substr(image_type_to_extension($imageInfo[2]), 1));
+        $imageInfo = $raw_string ? getimagesizefromstring($img) : getimagesize($img);
+        if ($imageInfo) {
+            $imageSize = $raw_string ? strlen($img) : filesize($img);
+            if (!$imageSize) return false;
+            $imageType = strtolower(image_type_to_extension($imageInfo[2], false));
             return array(
                 "width" => $imageInfo[0],
                 "height" => $imageInfo[1],
@@ -20,9 +23,8 @@ class Image
                 "size" => $imageSize,
                 "mime" => $imageInfo['mime']
             );
-        } else {
-            return false;
         }
+        return false;
     }
 
     /**

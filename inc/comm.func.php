@@ -1343,7 +1343,7 @@ function price_format($price, $price_format=0, $currency_format='￥%s元') {
  * @param $num
  * @return array
  */
-function power2split($num){
+function pow2split($num){
     $ret = [];
     $n = 0;
     while ($num) {
