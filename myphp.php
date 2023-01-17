@@ -179,14 +179,12 @@ final class myphp{
         self::$header = [];
         self::$statusCode = 200;
     }
-    //闭包
-    public static function url($url, $func, $type='get'){
-        //todo
-    }
+
     /** 输出数据到页面
      * @param $data
      * @param int $code
      * @param null $req_cache //缓存配置[键名,缓存时间]
+     * @throws Exception
      */
     public static function send($data, $code=200, $req_cache=null){
         // 监听res_send
@@ -217,7 +215,15 @@ final class myphp{
         // 监听res_end
         \myphp\Hook::listen('res_end', $data);
     }
-    //请求缓存处理
+
+    /**
+     * 请求缓存处理
+     * @param $req_cache
+     * @param null $expire
+     * @param array $except
+     * @return bool
+     * @throws Exception
+     */
     private static function reqCache($req_cache, $expire = null, $except = []){
         self::$req_cache = null;
         if(!Helper::isGet()) return false;
@@ -245,25 +251,25 @@ final class myphp{
 
         //使用缓存
         if (true === $req_cache) {
-            $ca = '/'.self::$env['c'].'/'.self::$env['a'];
+            $ca = '/' . self::$env['c'] . '/' . self::$env['a'];
             foreach ($except as $rule) {
                 if (0 === stripos($ca, $rule)) {
                     return false;
                 }
             }
-            if(!isset($reqKey)){
+            if (!isset($reqKey)) {
                 // 缓存key名
                 $reqKey = 'req';
-                foreach ($_GET as $v){
-                    $reqKey .= '_'.str_replace(['\\','/',':','*','?','"','<','>','|'],'',$v);
+                foreach ($_GET as $v) {
+                    $reqKey .= '_' . str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], '', $v);
                 }
             }
-        }
-        elseif ($req_cache instanceof \Closure) {
+        } elseif ($req_cache instanceof \Closure) {
             $reqKey = call_user_func_array($req_cache, $_GET);
         }
-
-        self::$req_cache = array($reqKey, $expire); //记录缓存键名 过期时间 用于send
+        if (isset($reqKey)) {
+            self::$req_cache = array($reqKey, $expire); //记录缓存键名 过期时间 用于send
+        }
         return false;
     }
     public static $httpCodeStatus = array(
@@ -749,7 +755,7 @@ final class myphp{
     }
 
     public static function runTime(){
-        return '页面耗时'.run_time().'秒, 内存占用'.run_mem().', 执行'.Db::$times.'次SQL';
+        return '页面耗时'.run_time().'秒, 内存占用'.run_mem().', 执行'.\myphp\Db::$times.'次SQL';
     }
 
     //url地址转换对应的模块/控制/方法
