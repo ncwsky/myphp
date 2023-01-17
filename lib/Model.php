@@ -11,6 +11,7 @@
  * @method null|static idx(string $val)
  * @method null|static join(string $tb, string|array $on, $joinWay='inner')
  * @method null|static where(string|array $val, $bind=null)
+ * @method null|static whereOr(string|array $val, $bind=null)
  * @method int update(array $post, string $table='', string|array $where = '')
  * @method int del(string $table='', string|array $where = '')
  * @method array|false|\PDOStatement|static[] select(bool|string $table='');

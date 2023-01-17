@@ -1338,22 +1338,26 @@ function price_format($price, $price_format=0, $currency_format='￥%s元') {
     }
     return sprintf($currency_format, $price);
 }
-//2次方和反解析
-function sum2pow($num){
-    $bin = decbin($num);
-    $pow = [];
-    while($num){
-        if($num==1){
-            $pow[]=$num; break;
+/**
+ * 2幂拆分 2次方和反解析
+ * @param $num
+ * @return array
+ */
+function pow2split($num){
+    $ret = [];
+    $n = 0;
+    while ($num) {
+        if ($num % 2) {
+            $ret[] = 2 ** $n;
+            $num = ($num - 1) >> 1; // 除2
+        } else {
+            $num = $num >> 1; // 除2
         }
-        $bin = substr($bin,1);
-        //if($bin===false) break;
-        $v = bindec($bin); //剩余数
-        if(($num-$v)>0)
-            $pow[]=$num - $v;
-        $num = $v;
+        //echo $num . ' ';
+        $n++;
+        if ($num == 0) break;
     }
-    return $pow;
+    return $ret;
 }
 //输入2位小数的数字
 function num2fixed($number){
