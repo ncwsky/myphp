@@ -582,7 +582,7 @@ class MyRedis
         } else {
             //Log::ERROR("Failed to open redis connection ($connection): $errorNumber - $errorDescription");
             $message = 'Failed to open redis connection.';
-            throw new Exception($message, $errorDescription, $errorNumber);
+            throw new Exception($message.$errorDescription, $errorNumber);
         }
     }
 
