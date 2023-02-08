@@ -585,7 +585,7 @@ class Redis
             }
         } else {
             $message = 'Failed to open redis connection.';
-            throw new \Exception($message, $errorDescription, $errorNumber);
+            throw new \Exception($message.$errorDescription, $errorNumber);
         }
     }
 
