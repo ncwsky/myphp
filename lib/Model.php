@@ -453,6 +453,7 @@ class Model implements \ArrayAccess
                 }
                 foreach ($post as &$data) {
                     if (!Helper::validAll($data, $model->fieldRule, true)) {
+                        static::err(\myphp::err());
                         return false;
                     }
                 }
@@ -462,6 +463,7 @@ class Model implements \ArrayAccess
                 }
                 //验证数据
                 if (!Helper::validAll($post, $model->fieldRule, true)) {
+                    static::err(\myphp::err());
                     return false;
                 }
             }
