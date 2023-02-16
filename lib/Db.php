@@ -306,7 +306,7 @@ class Db {
             }
         }
 
-        if (!$isMysql && stripos($sql, 'CONCAT')!==false) { //连接处理
+        if (!$isMysql && stripos($sql, 'CONCAT(')!==false) { //连接处理
             switch($this->config['dbms']){
                 case 'mssql'://mssql2005及以上版本
                 case 'oracle':
@@ -371,14 +371,31 @@ class Db {
 	}
     private function _where($case, $bind=null, $and=true){ //and[true:and,false:or]
 	    $where = $this->makeWhere($case, $bind);
-        if($where!=''){
-            $this->options['where'] = empty($this->options['where']) ? $where : ($and ? '('.$this->options['where'].') and ('.$where.')' : '('.$this->options['where'].') or ('.$where.')');
+        if($where!==''){
+            if (isset($this->options['where'])) {
+                $where = '(' . $where . ')';
+                $_where = '(' . $this->options['where'] . ')';
+                //排除重复条件
+                if (strpos($_where, $where) === false) {
+                    $this->options['where'] = $_where . ($and ? ' and ' : ' or ') . $where;
+                    //'('.$this->options['where'].') and ('.$where.')' : '('.$this->options['where'].') or ('.$where.')';
+                }
+            } else {
+                $this->options['where'] = $where;
+            }
+            //$this->options['where'] = empty($this->options['where']) ? $where : ($and ? '('.$this->options['where'].') and ('.$where.')' : '('.$this->options['where'].') or ('.$where.')');
         }
     }
-    public function makeWhere($case, $bind=null){
+
+    /**
+     * @param array|string $case
+     * @param null|array|string $args
+     * @return string|string[]
+     */
+    public function makeWhere($case, $args=null){
 		$where = '';
 		if(is_array($case)){ //数组组合条件
-			$bind = (string)$bind=='or'?'or':'and';
+			$args = (string)$args=='or'?'or':'and';
 			foreach($case as $k=>$v){
 			    if(is_int($k)){ // '1=1'
                     $field = $v;
@@ -415,10 +432,10 @@ class Db {
                             break;
                     }
                 }
-                $where .= $where == '' ? $field : ' ' . $bind . ' ' . $field;
+                $where .= ($where == '' ? $field : ' ' . $args . ' ' . $field);
 			}
 		}elseif(is_string($case)){ //参数绑定方式条件
-			$where = is_array($bind)?$this->get_real_sql($case, $bind):$case;
+			$where = is_array($args)?$this->get_real_sql($case, $args):$case;
 		}
 		return $where;
 	}
