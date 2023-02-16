@@ -336,10 +336,17 @@ class Model implements \ArrayAccess
         //$methods = 'find,select,getCount,add,update,del';
         //if (strpos($methods, $method) === false) return;
         if ($method == 'del') {
+            if ($this->prikey && $this->_oldData) { //有主键 有单条查询
+                if (isset($this->_oldData[$this->prikey])) {
+                    $this->db->where([$this->prikey => $this->_oldData[$this->prikey]]);
+                } else {
+                    $this->db->where('1=0'); //没有主键值
+                }
+            }
+
             if(!$this->db->where){
                 throw new \Exception("请指定删除条件");
             }
-            $this->_data = $this->_oldData = [];
         }
         if ($this->tbName && strpos($this->db->table,$this->tbName)!==0) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
         if ($method == 'one' || $method == 'all' || $method == 'find' || $method == 'select') {
@@ -451,6 +458,7 @@ class Model implements \ArrayAccess
                 }
                 foreach ($post as &$data) {
                     if (!Helper::validAll($data, $model->fieldRule, true)) {
+                        static::err(\myphp::err());
                         return false;
                     }
                 }
@@ -460,6 +468,7 @@ class Model implements \ArrayAccess
                 }
                 //验证数据
                 if (!Helper::validAll($post, $model->fieldRule, true)) {
+                    static::err(\myphp::err());
                     return false;
                 }
             }
