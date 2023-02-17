@@ -100,7 +100,7 @@ class Value{
                 $type=substr($type,-1);
             }
         } else {
-            $type = $rule;
+            $type = 's';
         }
     }
 
@@ -136,8 +136,8 @@ class Value{
             //规则处理
             self::parseType($rule, $type, $min, $max, $filter, $digit);
         }
-        #var_dump($type, $min, $max, $digit);
-        #filter过滤验证
+
+        //filter过滤验证
         if($errCode==0 && $filter && !self::filter($val, $filter)) $errCode = 2;
 
         if($errCode==0){
