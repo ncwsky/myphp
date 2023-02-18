@@ -393,8 +393,12 @@ final class myphp{
                 }
                 $url = substr($url, 0, $pos);
             }
-            //分解m c a
-            self::deMCA($url);
+            if (self::$cfg['url_rewrite'] && isset($_GET['c']) && strpos($url, '.htm')) {
+                //是伪静态地址
+            } else {
+                //分解m c a
+                self::deMCA($url);
+            }
         }
         //控制器和方法是否为空，为空则使用默认
         if (empty($_GET['c'])) {
