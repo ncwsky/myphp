@@ -97,11 +97,11 @@ class db_pdo extends \myphp\DbBase{
                 $this->rs = $this->conn->prepare($sql); //PDOStatement 对象
                 $this->rs->execute();
                 if ($this->rs->errorCode() != '00000') {
-                    throw new PDOException("SQL exec: {$sql} | " . implode('|', $this->rs->errorInfo()));
+                    throw new PDOException(implode('|', $this->rs->errorInfo())."; SQL exec: " . $sql);
                 }
                 $affected = $this->rs->rowCount();
             } else {
-                throw new PDOException("SQL exec: {$sql} | " . $errInfo);
+                throw new PDOException($errInfo."; SQL exec: " . $sql);
             }
         }
         return $affected;
@@ -126,7 +126,7 @@ class db_pdo extends \myphp\DbBase{
                     return $this->query($sql, 1);
                 }
             }
-            throw new PDOException("SQL query: {$sql} | " . $errInfo);
+            throw new PDOException($errInfo . "; SQL query: " . $sql);
         }
         return $this->rs;
     }

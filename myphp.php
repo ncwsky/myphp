@@ -354,6 +354,10 @@ final class myphp{
     */
     //解析URL获得控制器的与方法
     public static function Analysis($isCLI = IS_CLI){
+        $module_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
+        //引入app下的配置文件
+        self::loadConfig($module_path);
+
         $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //获取当前执行文件名
         $app_root = IS_CLI ? DS : APP_ROOT . DS; //app_url根路径
         $url_mode = isset(self::$cfg['url_mode']) ? self::$cfg['url_mode'] : -1;
@@ -418,13 +422,10 @@ final class myphp{
         if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
             self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
         }
-        $module = isset($_GET['m']) ? $_GET['m'] : ''; //self::$env['m'] =
         //var_dump($_GET);
+        $module = isset($_GET['m']) ? $_GET['m'] : ''; //self::$env['m'] =
         //指定项目模块
-        $module_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
         if ($module != '') {
-            //引入模块上级app下的配置文件
-            self::loadConfig($module_path);
             if (isset(self::$cfg['module_maps'][$module])) {
                 if(substr(self::$cfg['module_maps'][$module], 0, 1) == DS){
                     $module_path = ROOT . ROOT_DIR . self::$cfg['module_maps'][$module];
@@ -437,9 +438,9 @@ final class myphp{
                 $module_path = APP_PATH . DS . $module;
                 self::$env['app_namespace'] .= '\\'.$module;
             }
+            //引入模块配置
+            self::loadConfig($module_path);
         }
-        //引入模块配置
-        self::loadConfig($module_path);
 
         //是否开启模板主题
         $view_path = $module_path . DS . 'view' . (self::$cfg['tmp_theme'] ? DS . self::$cfg['site_template'] : '');
