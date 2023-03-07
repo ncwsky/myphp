@@ -43,7 +43,7 @@ class db_mysqli extends DbBase{
 				Log::write('重连 '.$this->conn->error, 'db_connect');
 				return $this->exec($sql);
 			}
-			throw new Exception("SQL exec: {$sql} | {$this->conn->errno} | {$this->conn->error}");
+            throw new Exception($this->conn->errno . " | " . $this->conn->error . "; SQL exec: " . $sql);
 		}
 		return $result?$this->conn->affected_rows:$result;
 	}
@@ -61,7 +61,7 @@ class db_mysqli extends DbBase{
 				Log::write('重连 '.$this->conn->error, 'db_connect');
                 return $this->query($sql);
 			}
-			throw new Exception("SQL query: {$sql} | {$this->conn->errno} | {$this->conn->error}");
+            throw new Exception($this->conn->errno . " | " . $this->conn->error . "; SQL query: " . $sql);
 		}
 		return $this->rs;
 	}

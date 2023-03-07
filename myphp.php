@@ -350,6 +350,10 @@ final class myphp{
     */
     //解析URL获得控制器的与方法
     public static function Analysis($isCLI = IS_CLI){
+        $module_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
+        //引入app下的配置文件
+        self::loadConfig($module_path);
+
         $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //获取当前执行文件名
         $app_root = IS_CLI ? DS : APP_ROOT . DS; //app_url根路径
         $url_mode = isset(self::$cfg['url_mode']) ? self::$cfg['url_mode'] : -1;
@@ -393,8 +397,12 @@ final class myphp{
                 }
                 $url = substr($url, 0, $pos);
             }
-            //分解m c a
-            self::deMCA($url);
+            if (self::$cfg['url_rewrite'] && isset($_GET['c']) && strpos($url, '.htm')) {
+                //是伪静态地址
+            } else {
+                //分解m c a
+                self::deMCA($url);
+            }
         }
         //控制器和方法是否为空，为空则使用默认
         if (empty($_GET['c'])) {
@@ -406,13 +414,10 @@ final class myphp{
         self::$env['c'] = $_GET['c'];
         self::$env['a'] = $_GET['a'];
         self::$env['app_namespace'] = basename(APP_PATH);
-        $module = isset($_GET['m']) ? $_GET['m'] : ''; //self::$env['m'] =
         //var_dump($_GET);
+        $module = isset($_GET['m']) ? $_GET['m'] : ''; //self::$env['m'] =
         //指定项目模块
-        $module_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
         if ($module != '') {
-            //引入模块上级app下的配置文件
-            self::loadConfig($module_path);
             if (isset(self::$cfg['module_maps'][$module])) {
                 if(substr(self::$cfg['module_maps'][$module], 0, 1) == DS){
                     $module_path = ROOT . ROOT_DIR . self::$cfg['module_maps'][$module];
@@ -425,9 +430,9 @@ final class myphp{
                 $module_path = APP_PATH . DS . $module;
                 self::$env['app_namespace'] .= '\\'.$module;
             }
+            //引入模块配置
+            self::loadConfig($module_path);
         }
-        //引入模块配置
-        self::loadConfig($module_path);
 
         //是否开启模板主题
         $view_path = $module_path . DS . 'view' . (self::$cfg['tmp_theme'] ? DS . self::$cfg['site_template'] : '');
