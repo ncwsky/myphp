@@ -77,7 +77,7 @@ final class myphp{
                 } else {
                     $path = self::$rootPath . DIRECTORY_SEPARATOR . self::$namespaceMap[$namespace];
                 }
-                self::load($path . ($end == '/' ? '' : DIRECTORY_SEPARATOR) . substr($class_name, $len) . '.php');
+                self::load($path . ($end == '/' ? '' : DIRECTORY_SEPARATOR) . strtr(substr($class_name, $len), '\\', DIRECTORY_SEPARATOR) . '.php');
                 return;
             }
             self::load(self::$rootPath . DIRECTORY_SEPARATOR . strtr($class_name, '\\', DIRECTORY_SEPARATOR) . '.php');
@@ -627,7 +627,7 @@ final class myphp{
         }
 
         //注册类的自动加载
-        spl_autoload_register('self::autoload', true, true);
+        spl_autoload_register('myphp::autoload', true, true);
         // 设定错误和异常处理
         Log::register();
         //日志记录初始
