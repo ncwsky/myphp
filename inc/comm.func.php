@@ -25,6 +25,7 @@ function redirect($url, $time=0, $msg='') {
     } else {
         $msg = "<meta http-equiv='Refresh' content='{$time};URL={$url}'>" . $msg;
     }
+    if(IS_CLI) return $msg;
     exit($msg);
 }
 
@@ -515,14 +516,8 @@ function sys_auth($string, $operation = 'ENCODE', $key = '', $expiry = 0) {
 args: allow_num|filetype|allow_del|
 $sp:参数分隔符
 */
-function setargs($args,$base=false){
-    $a = '/';//url参数分隔符
-    if($base){
-        $qstr = '&args='.$args.'&key='.getMd5($args.my_hash());
-    }else{
-        $qstr = 'args'. $a . $args . $a .'key'. $a .getMd5($args.my_hash());
-    }
-    return $qstr;
+function setargs($args){
+    return '&args='.$args.'&key='.getMd5($args.my_hash());
 }
 function return_args($args){
     $para = array();
@@ -534,12 +529,12 @@ function return_args($args){
 function getargs($args_item='',$gtype=1){
     $args_val = urldecode(Q('args',''));
     $key = Q('key','');
-    if($args_val=='' || $args_item=='' || $key=='') exit('0:args error!');
-    if(getMd5($args_val.my_hash()) != $key) exit('0:Invalid args!');//参数有效验证 $key.'!='.$args_val.'-'.my_hash()
+    if($args_val=='' || $args_item=='' || $key=='') throw new Exception('args error!');
+    if(getMd5($args_val.my_hash()) != $key) throw new Exception('Invalid args!');//参数有效验证 $key.'!='.$args_val.'-'.my_hash()
 
     $para = array('args'=>$args_val, 'key'=>$key);
     $args_val = explode('|', $args_val);$args_item = explode('|', $args_item);
-    if(count($args_val) != count($args_item)) exit('0:args num error!');//参数个数验证
+    if(count($args_val) != count($args_item)) throw new Exception('args num error!');//参数个数验证
     foreach($args_item as $key => $keyname){
         $para[$keyname] = $args_val[$key];
     }
