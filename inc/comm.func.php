@@ -207,30 +207,6 @@ function cut_html($s,$max_len=250){
     }
     return closetags($s);
 }
-/**
- * 将字符串转换为数组
- *
- * @param string $data 字符串
- * @return array 返回数组格式，如果，data为空，则返回空数组
- */
-function string2array($data) {
-    if($data == '') return array();
-    @eval('$array = $data;return $array;');
-    //return $array;
-}
-/**
- * 将数组转换为字符串
- *
- * @param array $data  数组
- * @param bool $isformdata 如果为0，则不使用new_stripslashes处理，可选参数，默认为1
- * @return string 返回字符串，如果，data为空，则返回空
- */
-function array2string($data, $is_form_data = 1) {
-    if($data == '') return '';
-    if($is_form_data) $data = new_stripslashes($data);
-    return var_export($data, true);
-    //return addslashes(var_export($data, true)); //escape_string
-}
 
 /** 递归合并数组
  * @param array $arr1 目标数组
@@ -542,18 +518,6 @@ function getargs($args_item='',$gtype=1){
 }
 
 //文件处理：目录创建，文件上传，文件读写
-
-// 数组保存到文件
-function arr2file($filename, $arr=''){
-    if(is_array($arr)){
-        $con = var_export($arr,true);
-    } else{
-        $con = $arr;
-    }
-    $data = "<?php\nreturn $con;\n?>";
-    file_put_contents($filename, $data, LOCK_EX);
-}
-
 //递归创建目录 createPath ("./NcwCms/up/img/ap")
 function createPath( $folderPath, $mode=0777 ) {
     $sParent = dirname( $folderPath );
