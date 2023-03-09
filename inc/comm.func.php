@@ -904,7 +904,7 @@ function Q($name, $defVal='', $datas=null) {
         case 'session': $input = &$_SESSION; break;
         case 'cookie' : $input = &$_COOKIE; break;
         case 'server' : $input = &$_SERVER; break;
-        case 'globals': $input = &$GLOBALS; break;
+        case 'globals': $input = $GLOBALS; break; // >=8.1为只读不可&引用
         default:
             if($type=='d' || $type=='f'){
                 $defVal = $type=='d'?(int)$defVal:(float)$defVal;
