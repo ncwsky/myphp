@@ -336,6 +336,7 @@ class Model implements \ArrayAccess
      * @param mixed $name
      * @param mixed $value
      */
+    #[\ReturnTypeWillChange] // 用于>=8.1抑制错误提示
     public function offsetSet($name, $value)
     {
         $this->__set($name, $value);
@@ -345,6 +346,7 @@ class Model implements \ArrayAccess
      * @param mixed $name
      * @return bool
      */
+    #[\ReturnTypeWillChange]
     public function offsetExists($name)
     {
         return $this->__isset($name);
@@ -353,6 +355,7 @@ class Model implements \ArrayAccess
     /**
      * @param mixed $name
      */
+    #[\ReturnTypeWillChange]
     public function offsetUnset($name)
     {
         $this->__unset($name);
@@ -362,6 +365,7 @@ class Model implements \ArrayAccess
      * @param mixed $name
      * @return mixed|null
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($name)
     {
         return $this->__get($name);
