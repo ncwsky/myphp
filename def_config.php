@@ -48,7 +48,6 @@ return array(
     'req_cache_except' => array(), //请求缓存排除项 ['/index/reg',  '/index/login']
     'jsonp_call'=>'callback', //JSONP处理方法 url请求传递此值可指定处理方法 否则默认此值
 	'root_dir' => null,//相对根目录 未设置时自动获取 结尾不要"/"
-	'admin_url' => '/admin.php',//后台执行页面
 	'class_dir'=>'',//class扩展路径 相对根目录 路径开头使用/ 多个使用,分隔 应用于myphp.php中
 	'def_filter'=>'htmlspecialchars', //默认参数过滤
 	'isGzipEnable' => false, //Gzip压缩开关

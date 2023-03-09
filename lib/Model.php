@@ -290,7 +290,11 @@ class Model implements \ArrayAccess
         return $result;
     }
 
-    // 设置数据对象属性
+    /**
+     * 设置数据对象属性
+     * @param mixed $name
+     * @param mixed $value
+     */
     public function __set($name, $value)
     {
         if($name==$this->prikey && $value!==0 && isset($this->_oldData[$name])){ //有单条且主键有值时 不能指定主键值
@@ -298,34 +302,66 @@ class Model implements \ArrayAccess
         }
         $this->_data[$name] = $value;
     }
-    // 获取数据对象的值
+
+    /**
+     * 获取数据对象的值
+     * @param mixed $name
+     * @return mixed|null
+     */
     public function __get($name)
     {
         return isset($this->_data[$name]) ? $this->_data[$name] : null;
     }
-    //检测数据对象的值
+
+    /**
+     * 检测数据对象的值
+     * @param mixed $name
+     * @return bool
+     */
     public function __isset($name)
     {
         return isset($this->_data[$name]);
     }
-    //销毁数据对象的值
+
+    /**
+     * 销毁数据对象的值
+     * @param mixed $name
+     */
     public function __unset($name)
     {
         unset($this->_data[$name]);
     }
-    // ArrayAccess
+
+    /**
+     * @param mixed $name
+     * @param mixed $value
+     */
     public function offsetSet($name, $value)
     {
         $this->__set($name, $value);
     }
+
+    /**
+     * @param mixed $name
+     * @return bool
+     */
     public function offsetExists($name)
     {
         return $this->__isset($name);
     }
+
+    /**
+     * @param mixed $name
+     */
     public function offsetUnset($name)
     {
         $this->__unset($name);
     }
+
+    /**
+     * @param mixed $name
+     * @return mixed|null
+     */
     public function offsetGet($name)
     {
         return $this->__get($name);
@@ -348,7 +384,7 @@ class Model implements \ArrayAccess
                 throw new \Exception("请指定删除条件");
             }
         }
-        if ($this->tbName && strpos($this->db->table,$this->tbName)!==0) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
+        if ($this->tbName && (!$this->db->table || strpos($this->db->table,$this->tbName)!==0)) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
         if ($method == 'one' || $method == 'all' || $method == 'find' || $method == 'select') {
             if(!$this->tbName && $this->db->table){ //未取得表名及字段时
                 $this->tbName = $this->db->table;
