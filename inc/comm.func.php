@@ -29,27 +29,6 @@ function redirect($url, $time=0, $msg='') {
     exit($msg);
 }
 
-/**
- * 返回经stripslashes处理过的字符串或数组
- * @param array|string $string 需要处理的字符串或数组
- * @return mixed
- */
-function new_stripslashes($string) {
-    if(!is_array($string)) return stripslashes($string);
-    foreach($string as $key => $val) $string[$key] = new_stripslashes($val);
-    return $string;
-}
-
-/**
- * 格式化文本域内容
- *
- * @param string $string 文本域内容
- * @return string
- */
-function trim_textarea($string) {
-    $string = nl2br ( str_replace ( ' ', '&nbsp;', $string ) );
-    return $string;
-}
 //转义 javascript 代码标记
 function trim_script($str) {
     if(is_array($str)){
@@ -116,14 +95,6 @@ if (!function_exists('mb_strlen')) {
     /* 设置内部字符编码为 UTF-8 */
     mb_internal_encoding("UTF-8");
 }
-//安全过滤函数
-function safe_replace($string) {
-    $string = trim($string);
-    $string = str_replace('<','&lt;',$string);
-    $string = str_replace('>','&gt;',$string);
-    $string = str_replace(array('%20','%27','%2527',"'",'\\'),'',$string);
-    return $string;
-}
 // 清除HTML代码
 function html_clean($str) {
     $str = htmlspecialchars($str);
@@ -149,29 +120,15 @@ function html_decode($content)
 }
 //html to txt
 function Html2Text($str){
-    //$str = preg_replace("/<sty(.*)\\/style>|<scr(.*)\\/script>|<!--(.*)-->/isU","",$str);
-    /*$alltext = '';
-    $start = 1;
-    for($i=0;$i<strlen($str);$i++){
-        if($start==0 && $str[$i]=='>'){
-            $start = 1;
-        } elseif($start==1) {
-            if($str[$i]=='<') {
-                $start = 0; $alltext .= ' ';
-            } elseif(ord($str[$i])>31) {
-                $alltext .= $str[$i];
-            }
-        }
-    }*/
     $alltext = strip_tags($str);
     $alltext = str_replace("　"," ",$alltext);
-    $alltext = preg_replace("/&([^;&]*)(;|&)/","",$alltext);
+    $alltext = preg_replace("/&[^;&]*[;&]/","",$alltext);
     $alltext = preg_replace("/[\s]+/s"," ",$alltext);
     return $alltext;
 }
 //自动闭合html标签
 function closetags($html) {
-    preg_match_all('#<([a-z]+)(?: .*)?(?<![/|/ ])>#iU', $html, $result);
+    preg_match_all('#<([a-z]+)(?: .*)?(?<!/|/ )>#iU', $html, $result);
     $openedtags = $result[1];
 
     preg_match_all('#</([a-z]+)>#iU', $html, $result);
@@ -184,6 +141,7 @@ function closetags($html) {
     $openedtags = array_reverse($openedtags);
 
     for ($i=0; $i < $len_opened; $i++) {
+        if ($openedtags[$i] == 'br') continue;
         if (!in_array($openedtags[$i], $closedtags)){
             $html .= '</'.$openedtags[$i].'>';
         } else {
@@ -235,12 +193,15 @@ function array_walk_merge(&$arr1, &$arr2, $strict=false){
         }
     }
 }
-/* 二维数组 排序
-$array_name:传入的数组；
-$row_id:数组想排序的项；
-$order_type：排序的方式，asc或者desc；
-$auto:是否开启自动键值（默认开启，字符键值时可以关闭）
-*/
+
+/**
+ * 二维数组 排序
+ * @param array $array 传入的数组
+ * @param string $row_id 数组想排序的项
+ * @param string $order_type 排序的方式，asc或者desc；
+ * @param bool $auto 是否开启自动键值（默认开启，字符键值时可以关闭）
+ * @return array
+ */
 function array_sort($array, $row_id, $order_type='asc', $auto=true){
     $array_temp=array();
     foreach($array as $key=>$value){//循环一层；
@@ -265,19 +226,20 @@ function array_sort($array, $row_id, $order_type='asc', $auto=true){
 }
 /**
  * 打乱数组,保持键值对关系
- * @param array  $array
- * @return array
+ * @param array $array
+ * @return true
  */
 function shuffle_assoc(&$array) {
-    if (!is_array($array) || empty($array)) return $array;
     $keys = array_keys($array);
     shuffle($keys);
-    $result = array();
+    $new = array();
     foreach ($keys as $key){
-        $result[$key] = $array[$key];
+        $new[$key] = $array[$key];
     }
-    return $result;
+    $array = $new;
+    return true;
 }
+
 /**
  * 将日期格式根据以下规律修改为不同显示样式
  * 小于1分钟 则显示多少秒前
@@ -285,7 +247,9 @@ function shuffle_assoc(&$array) {
  * 一天内，显示多少小时前
  * 3天内，显示前天22:23或昨天:12:23。
  * 超过3天，则显示完整日期 'Y-m-d H:i'。
- * $time 数据源日期 unix时间戳
+ * @param int $time 数据源日期 unix时间戳
+ * @param bool $hi
+ * @return false|string
  */
 function getDateStyle($time,$hi=true){
     $nowTime = time();  //获取今天时间戳
@@ -407,7 +371,7 @@ function my_hash($hash=false,$echo=true){
             $_SESSION['my_hash']=null;
             return true;
         } else {
-            if($echo) out_msg('0:[hash]数据验证失败',Helper::getReferer());
+            if($echo) out_msg('0:[hash]数据验证失败',\myphp\Helper::getReferer());
             else return false;
         }
     }else{
@@ -451,7 +415,6 @@ function CodeIsTrue($codename) {
 
 //返回经过随机串组合的加密md5  (encode_key)
 function getMd5($val,$encode = '') {
-    //if(!isset(myphp::$cfg['encode_key'])) myphp::$cfg['encode_key'] = 'myphp';
     $encode = $encode != '' ? $encode : myphp::$cfg['encode_key'];
     return md5($encode.$val);
 }
@@ -473,7 +436,7 @@ function sys_auth($string, $operation = 'ENCODE', $key = '', $expiry = 0) {
     $keys = md5(substr($runtokey, 0, 16) . substr($fixedkey, 0, 16) . substr($runtokey, 16) . substr($fixedkey, 16));
     $string = $operation == 'ENCODE' ? sprintf('%010d', $expiry ? $expiry + time() : 0).substr(md5($string.$egiskeys), 0, 16) . $string : base64_decode(substr($string, $key_length));
 
-    $i = 0; $result = '';
+    $result = '';
     $string_length = strlen($string);
     for ($i = 0; $i < $string_length; $i++){
         $result .= chr(ord($string[$i]) ^ ord($keys[$i % 32]));
@@ -496,10 +459,10 @@ function setargs($args){
     return '&args='.$args.'&key='.getMd5($args.my_hash());
 }
 function return_args($args){
-    $para = array();
-    $para['args'] = $args;
-    $para['key'] = getMd5($args.my_hash());
-    return $para;
+    return [
+        'args' => $args,
+        'key' => getMd5($args . my_hash())
+    ];
 }
 //key=args_val+my_hash
 function getargs($args_item='',$gtype=1){
@@ -530,29 +493,6 @@ function FileExt($file) {
     return strtolower(strrchr($file, '.'));
 }
 
-/**
- * 文件下载
- * @param string $filepath 文件路径
- * @param string $filename 文件名称
- * @return false|int
- */
-function FileDown($filepath, $filename = '') {
-    if(!$filename) $filename = basename($filepath);
-    if(is_ie()) $filename = rawurlencode($filename);
-    $filetype = FileExt($filename);
-    $filesize = sprintf("%u", filesize($filepath));
-    if(ob_get_length() !== false) @ob_end_clean();
-    header('Pragma: public');
-    header('Last-Modified: '.gmdate('D, d M Y H:i:s') . ' GMT');
-    header('Cache-Control: no-store, no-cache, must-revalidate');
-    header('Cache-Control: pre-check=0, post-check=0, max-age=0');
-    header('Content-Transfer-Encoding: binary');
-    header('Content-Encoding: none');
-    header('Content-type: '.$filetype);
-    header('Content-Disposition: attachment; filename="'.$filename.'"');
-    header('Content-length: '.$filesize);
-    return readfile($filepath);
-}
 //转换字节数为其他单位 $byte:字节
 function toByte($byte){
     $v = 'unknown';
@@ -664,8 +604,7 @@ function editor_fun($field,$value=''){
 // 设置config文件 $config 配属信息,$file 配置文件名(相对根目录/xxx/config.php) $allow_val 允许的值名替换 默认不限制
 // 示例 allow_val = array('js_path','css_path','img_path'); 配置值不允许有换行符、单引号 以防出错
 function set_config($config, $file="/config.php", $allow_val=null) {
-    $configfile = ROOT.ROOT_DIR.$file;
-    if(!is_writable($configfile)) ShowMsg('Please chmod '.$configfile.' to 0777 !');
+    $configFile = ROOT.ROOT_DIR.$file;
     $pattern = $replacement = array();
     foreach($config as $k=>$v) {
         if(is_array($allow_val) && !in_array($k,$allow_val)) continue;
@@ -673,9 +612,9 @@ function set_config($config, $file="/config.php", $allow_val=null) {
         $pattern[$k] = "/'".$k."'\s*=>\s*([']?)[^']*([']?)(\s*),/is"; //[^']
         $replacement[$k] = "'".$k."' => \${1}".$v."\${2}\${3},";
     }
-    $str = file_get_contents($configfile);
+    $str = file_get_contents($configFile);
     $str = preg_replace($pattern, $replacement, $str);
-    return file_put_contents($configfile, $str, LOCK_EX);
+    return file_put_contents($configFile, $str, LOCK_EX);
 }
 
 /*
@@ -782,6 +721,7 @@ function session($name='', $value='') {
  * @param array|string|null $value
  * @param array|int|null $option
  * @return mixed|\myphp\Cache
+ * @throws \Exception
  */
 function cache($name, $value='', $option=null) {
     static $cache;
@@ -893,13 +833,6 @@ function Q($name, $defVal='', $datas=null) {
     \myphp\Value::type2val($val, [$type, 'min' => $min, 'max' => $max, 'digit' => $digit, 'filter' => $filter], $defVal);
 
     return $val;
-}
-//IE浏览器判断
-function is_ie() {
-    $useragent = strtolower($_SERVER['HTTP_USER_AGENT']);
-    if((strpos($useragent, 'opera') !== false) || (strpos($useragent, 'konqueror') !== false)) return false;
-    if(strpos($useragent, 'msie ') !== false) return true;
-    return false;
 }
 //xss 过滤
 function remove_xss($val) {
@@ -1029,15 +962,16 @@ function ch2num($str) {
                 return $l * $v + $r;
             }
         }
+        return $str;
     };
     return $func_c2i($str,$plus);
 }
+
 /**
- *数字金额转换成中文大写金额的函数
- *String Int  $num  要转换的小写数字或小写字符串
- *return 大写字母
- *小数位为两位
- **/
+ * 数字金额转换成中文大写金额的函数 小数位为两位
+ * @param int $num 要转换的小写数字或小写字符串
+ * @return string
+ */
 function num_to_rmb($num){
     $c1 = "零壹贰叁肆伍陆柒捌玖";
     $c2 = "分角元拾佰仟万拾佰仟亿";
@@ -1149,132 +1083,134 @@ function luck_rand($data, $max=10000) {
 
 //参数说明：TotalResult(记录条数),Page_Size(每页记录条数),CurrentPage(当前记录页),paraUrl(URL参数)
 //分页函数1：PageList1
-function PageList1($TotalResult, $Page_Size, $CurrentPage, $paraUrl, $pageName = 'page') {
+function PageList1($TotalResult, $Page_Size, $currentPage, $paraUrl, $pageName = 'page') {
     $Page_Count=$TotalResult / $Page_Size;
     if ($Page_Count>floor($Page_Count)) $Page_Count = floor($Page_Count)+1;
-    $outstr = '共有 <span id="totalresult">'. $TotalResult .'</span> 条信息&nbsp;&nbsp';
-    if ($CurrentPage <= 1) {
-        $outstr .= '首页&nbsp;&nbsp;上一页&nbsp;&nbsp;';
+    $out = '共有 <span id="totalresult">'. $TotalResult .'</span> 条信息&nbsp;&nbsp';
+    if ($currentPage <= 1) {
+        $out .= '首页&nbsp;&nbsp;上一页&nbsp;&nbsp;';
     } else {
-        $outstr .= '<a href="'. str_replace('{'.$pageName.'}',1,$paraUrl) .'">首页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}',($CurrentPage-1),$paraUrl) .'">上一页</a>&nbsp;&nbsp;';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}',1,$paraUrl) .'">首页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}',($currentPage-1),$paraUrl) .'">上一页</a>&nbsp;&nbsp;';
     }
-    if ($CurrentPage >= $Page_Count) {
-        $outstr .= '下一页&nbsp;&nbsp;尾页&nbsp;';
+    if ($currentPage >= $Page_Count) {
+        $out .= '下一页&nbsp;&nbsp;尾页&nbsp;';
     } else {
-        $outstr .= '<a href="'. str_replace('{'.$pageName.'}',($CurrentPage+1),$paraUrl) .'">下一页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}',$Page_Count,$paraUrl) .'">尾页</a>&nbsp;';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}',($currentPage+1),$paraUrl) .'">下一页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}',$Page_Count,$paraUrl) .'">尾页</a>&nbsp;';
     }
-    $outstr .= '&nbsp;页次:'. $CurrentPage .'/'. $Page_Count .'页&nbsp;&nbsp;'. $Page_Size .'条信息/页&nbsp;&nbsp;转到<select name="select" onChange="javascript:var url=\''. $paraUrl .'\';url=url.replace(\'{'. $pageName .'}\',this.options[this.selectedIndex].value);window.location.href=url;">';
+    $out .= '&nbsp;页次:'. $currentPage .'/'. $Page_Count .'页&nbsp;&nbsp;'. $Page_Size .'条信息/页&nbsp;&nbsp;转到<select name="select" onChange="javascript:var url=\''. $paraUrl .'\';url=url.replace(\'{'. $pageName .'}\',this.options[this.selectedIndex].value);window.location.href=url;">';
     for ($ipg = 1; $ipg <= $Page_Count; $ipg++) {
-        if ($ipg == $CurrentPage) {
-            $outstr .= '<option value='. $ipg .' selected>'. $ipg .'</option>"';
+        if ($ipg == $currentPage) {
+            $out .= '<option value='. $ipg .' selected>'. $ipg .'</option>"';
         } else {
-            $outstr .= '<option value='. $ipg .'>'. $ipg .'</option>';
+            $out .= '<option value='. $ipg .'>'. $ipg .'</option>';
         }
     }
-    $outstr .= '</select>';
-    return $outstr;
+    $out .= '</select>';
+    return $out;
 }
 //分页函数2：PageList2 , 参数同上
-function PageList2($TotalResult, $Page_Size, $CurrentPage, $paraUrl, $pageName = 'page') {
+function PageList2($TotalResult, $Page_Size, $currentPage, $paraUrl, $pageName = 'page') {
     $Page_Count=$TotalResult / $Page_Size;
     if ($Page_Count>floor($Page_Count)) $Page_Count = floor($Page_Count)+1;
-    $outstr = '第 '. $CurrentPage .'页/总 '. $Page_Count .'页 | 总 <span id="totalresult">'. $TotalResult .'</span>条 | ';
-    if ($CurrentPage <= 1)
-        $outstr .= '首页 | 上页 | ';
+    $out = '第 '. $currentPage .'页/总 '. $Page_Count .'页 | 总 <span id="totalresult">'. $TotalResult .'</span>条 | ';
+    if ($currentPage <= 1)
+        $out .= '首页 | 上页 | ';
     else
-        $outstr .= '<A href="'. str_replace('{'.$pageName.'}',1,$paraUrl) .'">首页</A> | <A href="'. str_replace('{'.$pageName.'}',($CurrentPage-1),$paraUrl) .'">上页</A> | ';
+        $out .= '<A href="'. str_replace('{'.$pageName.'}',1,$paraUrl) .'">首页</A> | <A href="'. str_replace('{'.$pageName.'}',($currentPage-1),$paraUrl) .'">上页</A> | ';
 
-    if ($CurrentPage >= $Page_Count)
-        $outstr .= '下页 | 尾页';
+    if ($currentPage >= $Page_Count)
+        $out .= '下页 | 尾页';
     else
-        $outstr .= '<A href="'. str_replace('{'.$pageName.'}',($CurrentPage+1),$paraUrl) .'">下页</A> | <A href="'. str_replace('{'.$pageName.'}',$Page_Count,$paraUrl) .'">尾页</A>';
-    return $outstr;
+        $out .= '<A href="'. str_replace('{'.$pageName.'}',($currentPage+1),$paraUrl) .'">下页</A> | <A href="'. str_replace('{'.$pageName.'}',$Page_Count,$paraUrl) .'">尾页</A>';
+    return $out;
 }
 //分页函数3：PageList3 ,参数同上,InitPageNum初始显示数*2
-function PageList3($TotalResult, $Page_Size, $CurrentPage, $paraUrl, $InitPageNum, $pageName = 'page') {
+function PageList3($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNum, $pageName = 'page') {
     $Page_Count=ceil($TotalResult / $Page_Size);
 
-    $outstr = '<a class="page_total">'. $Page_Count .'页/<span id="totalresult">'. $TotalResult .'</span>条</a>';
-    if ($TotalResult <= $Page_Size) return $outstr;
-    if ($CurrentPage>$InitPageNum) {
-        $outstr .= '<a href="'. str_replace('{'.$pageName.'}',1,$paraUrl) .'">首页</a>';// <a href="'. str_replace('{'.$pageName.'}',($CurrentPage-1),$paraUrl) .'">上一页</a>
+    $out = '<a class="page_total">'. $Page_Count .'页/<span id="totalresult">'. $TotalResult .'</span>条</a>';
+    if ($TotalResult <= $Page_Size) return $out;
+    if ($currentPage>$InitPageNum) {
+        $out .= '<a href="'. str_replace('{'.$pageName.'}',1,$paraUrl) .'">首页</a>';// <a href="'. str_replace('{'.$pageName.'}',($currentPage-1),$paraUrl) .'">上一页</a>
     }
     //获取页码范围
-    if ($CurrentPage <= 1) {
+    if ($currentPage <= 1) {
         $TmpPageNo = 1;
         $TmpPageNum = $InitPageNum;
-    } elseif ($CurrentPage <= $InitPageNum) {
+    } elseif ($currentPage <= $InitPageNum) {
         $TmpPageNo = 1;
-        $TmpPageNum = $InitPageNum + $CurrentPage-1;
-    } elseif ($CurrentPage > $InitPageNum && $CurrentPage < $Page_Count) {
-        $TmpPageNo = $CurrentPage - $InitPageNum;
-        $TmpPageNum = $InitPageNum + $CurrentPage-1;
-    } elseif ($CurrentPage >= $Page_Count) {
-        $TmpPageNo = $CurrentPage - $InitPageNum;
+        $TmpPageNum = $InitPageNum + $currentPage-1;
+    } elseif ($currentPage > $InitPageNum && $currentPage < $Page_Count) {
+        $TmpPageNo = $currentPage - $InitPageNum;
+        $TmpPageNum = $InitPageNum + $currentPage-1;
+    } elseif ($currentPage >= $Page_Count) {
+        $TmpPageNo = $currentPage - $InitPageNum;
         $TmpPageNum = $Page_Count;
     }
     //页码超出范围
     if ($TmpPageNum > $Page_Count) $TmpPageNum = $Page_Count;
 
     for ($PageNo = $TmpPageNo; $PageNo <= $TmpPageNum; $PageNo++) {
-        if ($CurrentPage == $PageNo)
-            $outstr .= '<strong>'.$PageNo .'</strong>';
+        if ($currentPage == $PageNo)
+            $out .= '<strong>'.$PageNo .'</strong>';
         else
-            $outstr .= '<a href="'. str_replace('{'.$pageName.'}',$PageNo,$paraUrl) .'">'. $PageNo .'</a>';
+            $out .= '<a href="'. str_replace('{'.$pageName.'}',$PageNo,$paraUrl) .'">'. $PageNo .'</a>';
     }
 
-    if ($CurrentPage <= $Page_Count-$InitPageNum)
-        $outstr .= '<a href="'. str_replace('{'.$pageName.'}',$Page_Count,$paraUrl) .'">末页</a>';//<a href="'. str_replace('{'.$pageName.'}',($CurrentPage+1),$paraUrl) .'">下一页</a>
+    if ($currentPage <= $Page_Count-$InitPageNum)
+        $out .= '<a href="'. str_replace('{'.$pageName.'}',$Page_Count,$paraUrl) .'">末页</a>';//<a href="'. str_replace('{'.$pageName.'}',($currentPage+1),$paraUrl) .'">下一页</a>
 
-    return $outstr;
+    return $out;
 }
-function PageList4($TotalResult, $Page_Size, $CurrentPage, $paraUrl, $InitPageNum, $pageName = 'page') {
+function PageList4($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNum, $pageName = 'page') {
     $Page_Count=ceil($TotalResult / $Page_Size);
 
-    $outstr = '';//'<a class="page_total">'. $Page_Count .'页/<span id="totalresult">'. $TotalResult .'</span>条</a>';
-    if ($TotalResult <= $Page_Size) return $outstr;
-    if ($CurrentPage>1) {
-        $outstr .= '<a href="'. str_replace('{'.$pageName.'}',($CurrentPage-1),$paraUrl) .'">上一页</a>';
+    $out = '';//'<a class="page_total">'. $Page_Count .'页/<span id="totalresult">'. $TotalResult .'</span>条</a>';
+    if ($TotalResult <= $Page_Size) return $out;
+    if ($currentPage>1) {
+        $out .= '<a href="'. str_replace('{'.$pageName.'}',($currentPage-1),$paraUrl) .'">上一页</a>';
     }else{
-        $outstr .= '<a>上一页</a>';
+        $out .= '<a>上一页</a>';
     }
     //获取页码范围
-    if ($CurrentPage <= 1) {
+    if ($currentPage <= 1) {
         $TmpPageNo = 1;
         $TmpPageNum = $InitPageNum;
-    } elseif ($CurrentPage <= $InitPageNum) {
+    } elseif ($currentPage <= $InitPageNum) {
         $TmpPageNo = 1;
-        $TmpPageNum = $InitPageNum + $CurrentPage-1;
-    } elseif ($CurrentPage > $InitPageNum && $CurrentPage < $Page_Count) {
-        $TmpPageNo = $CurrentPage - $InitPageNum;
-        $TmpPageNum = $InitPageNum + $CurrentPage-1;
-    } elseif ($CurrentPage >= $Page_Count) {
-        $TmpPageNo = $CurrentPage - $InitPageNum;
+        $TmpPageNum = $InitPageNum + $currentPage-1;
+    } elseif ($currentPage > $InitPageNum && $currentPage < $Page_Count) {
+        $TmpPageNo = $currentPage - $InitPageNum;
+        $TmpPageNum = $InitPageNum + $currentPage-1;
+    } elseif ($currentPage >= $Page_Count) {
+        $TmpPageNo = $currentPage - $InitPageNum;
         $TmpPageNum = $Page_Count;
     }
     //页码超出范围
     if ($TmpPageNum > $Page_Count) $TmpPageNum = $Page_Count;
 
     for ($PageNo = $TmpPageNo; $PageNo <= $TmpPageNum; $PageNo++) {
-        if ($CurrentPage == $PageNo)
-            $outstr .= '<strong>'.$PageNo .'</strong>';
+        if ($currentPage == $PageNo)
+            $out .= '<strong>'.$PageNo .'</strong>';
         else
-            $outstr .= '<a href="'. str_replace('{'.$pageName.'}',$PageNo,$paraUrl) .'">'. $PageNo .'</a>';
+            $out .= '<a href="'. str_replace('{'.$pageName.'}',$PageNo,$paraUrl) .'">'. $PageNo .'</a>';
     }
 
-    if ($CurrentPage < $Page_Count){
-        $outstr .= '<a href="'. str_replace('{'.$pageName.'}',($CurrentPage+1),$paraUrl) .'">下一页</a>';
+    if ($currentPage < $Page_Count){
+        $out .= '<a href="'. str_replace('{'.$pageName.'}',($currentPage+1),$paraUrl) .'">下一页</a>';
     }else{
-        $outstr .= '<a>下一页</a>';
+        $out .= '<a>下一页</a>';
     }
 
-    return $outstr;
+    return $out;
 }
 
 /**
  * 格式化商品价格
- * @param   float   $price  商品价格
- * @return  string
+ * @param float $price
+ * @param int $price_format
+ * @param string $currency_format
+ * @return string
  */
 function price_format($price, $price_format=0, $currency_format='￥%s元') {
     switch ($price_format){
@@ -1284,15 +1220,11 @@ function price_format($price, $price_format=0, $currency_format='￥%s元') {
         case 1: // 不四舍五入，保留 1 位
             $price = number_format($price, 1, '.', '');
             break;
-        case 2://
+        case 2:// 不四舍五入
             $price = number_format($price, 2, '.', '');
             break;
         case 3: // 保留不为 0 的尾数
-            $price = preg_replace('/(.*)(\\.)([0-9]*?)0+$/', '\1\2\3', number_format($price, 2, '.', ''));
-            if (substr($price, -1) == '.')
-            {
-                $price = substr($price, 0, -1);
-            }
+            $price = rtrim((string)$price,'0.');
             break;
     }
     return sprintf($currency_format, $price);
@@ -1371,19 +1303,6 @@ function cn_half_replace($str){
     $a = implode('', array_slice($arr[0], 0, $offset));
     $b = implode('', array_slice($arr[0], $offset+$len));
     return $a.str_repeat('*',$len).$b;
-}
-//采集数据 缓存文件路径 采集url 超时设置  返回采集内容
-function get_data($cache,$url,$timeout=10){
-    if(!is_file($cache)){
-        $data = Http::doGet($url,$timeout);
-        if(!$data) \myphp\Log::write('ext.func.get_data fail: '.$url);//err
-        else file_put_contents($cache, $data);
-        //echo '0<br>';
-    }else{
-        $data = file_get_contents($cache);
-        //echo '1<br>';
-    }
-    return $data;
 }
 //字母数字及部分符号全角转半角
 function toSemiAngle($str){

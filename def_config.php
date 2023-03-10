@@ -51,7 +51,7 @@ return array(
 	'class_dir'=>'',//class扩展路径 相对根目录 路径开头使用/ 多个使用,分隔 应用于myphp.php中
 	'def_filter'=>'htmlspecialchars', //默认参数过滤
 	'isGzipEnable' => false, //Gzip压缩开关
-	'encode_key' => 'sys_ncw_f512',//加密串 用于cookie,api通信md5加密及rc4或其他加密
+	'encode_key' => 'D6DJPmDlBAVPvxYBVy7VvsO',//加密串 用于cookie,api通信md5加密及rc4或其他加密
     'authcode_key'=> 'oz7oQdlUdlPy3gKuBbi67mVxhh', //用于authcode加密
 	'timezone' => 'PRC', //PRC中国 Etc/GMT-8东八区  Asia/Chongqing重庆 Asia/Shanghai上海
 	'htmldir' => '/e',//默认静态目录
