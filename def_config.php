@@ -37,12 +37,13 @@ return array(
 		'prefix' => 'cache',
 		'expire' => 0, //默认有效期
 	),
-	'session' => null, // 'file'
-	'session_option' => array(
-		// 'path' => './', //可指定session存放目录
-		// 'prefix' => 'myphp', //用于内存模式
-		// 'expire' => 1440, //默认有效期
-	),
+	'session' => null, /*array(
+	    //'class'=> null|'redis', //内置处理 默认files系统 | 'redis':\myphp\session\Redis
+        // 'name'=>'sid',
+        // 'path' => './', //可指定session存放目录
+        // 'prefix' => 'my_', //用于非file方式的名前缀
+        // 'expire' => 1440, //默认有效期
+	),*/
     'req_cache' =>	 false, //请求缓存 true
     'req_cache_expire' => null, //请求缓存时间 秒 3600
     'req_cache_except' => array(), //请求缓存排除项 ['/index/reg',  '/index/login']

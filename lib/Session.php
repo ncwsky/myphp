@@ -5,62 +5,75 @@ namespace myphp;
  * Session工厂
  */
 class Session {
-	private static $instance = array();
+	private static $options = ['name'=>'sid'];
 	//初始会话
-	public static function init($type='file', $options=null){
-		$opts=array('id'=>'MYPHPSID');
-		if(is_string($options)) $opts['id'] = $options; //前缀 session cookie name
-		elseif(is_int($options)) $opts['expire'] = $options; //有效期 秒
-		elseif(is_array($options)) {
-           $opts  = array_merge($opts, $options);
-		   unset($options);
-        }
-		isset($opts['expire']) && ini_set('session.gc_maxlifetime', $opts['expire']);
-		
-		session_set_cookie_params(
-			isset($opts['expire'])?(int)$opts['expire']:0,
-			isset(\myphp::$cfg['cookie_path'])?\myphp::$cfg['cookie_path']:'/',
-			isset(\myphp::$cfg['cookie_domain'])?\myphp::$cfg['cookie_domain']:'',
-			isset(\myphp::$cfg['cookie_secure'])?\myphp::$cfg['cookie_secure']:false,
+	public static function init($opts=null){
+        if (self::isActive()) return;
+
+        if ($opts) self::$options = $opts;
+        isset(self::$options['name']) && session_name(self::$options['name']);
+        session_set_cookie_params(
+            isset(self::$options['expire']) ? (int)self::$options['expire'] : 0,
+            isset(\myphp::$cfg['cookie_path']) ? \myphp::$cfg['cookie_path'] : '/',
+            isset(\myphp::$cfg['cookie_domain']) ? \myphp::$cfg['cookie_domain'] : '',
+            isset(\myphp::$cfg['cookie_secure']) ? \myphp::$cfg['cookie_secure'] : false,
             true // HttpOnly; Yes, this is intentional and not configurable for security reasons
-		);
-		session_name($opts['id']);
+        );
+        isset(self::$options['expire']) && ini_set('session.gc_maxlifetime', self::$options['expire']);
 
-		if(isset(self::$instance[$type])) return true;
-		
-		if($type!='file'){ //linux因权限原因自定义file操作类会出现无权限的情况
-            $session_class = '\myphp\session\\'.ucfirst($type);
-			if(!class_exists($session_class)) throw new \Exception($session_class.' not found');
+        @session_start();
+        //自定义ses类
+        $session_class = isset(self::$options['class']) ? self::$options['class'] : '';
+        if ($session_class == 'redis') $session_class = '\myphp\session\Redis';
 
-			$sess = new $session_class($opts);
+        if ($session_class) {
+            $sess = new $session_class(self::$options);
             session_set_save_handler($sess, true);
-			register_shutdown_function('session_write_close');
+            register_shutdown_function('session_write_close');
         } else {
-            isset($opts['path']) && session_save_path($opts['path']);
+            isset(self::$options['path']) && session_save_path(self::$options['path']);
         }
-		self::$instance[$type] = true;
-		if(!isset($_SESSION)) session_start();
 	}
+    /**
+     * @return bool whether the session has started
+     */
+    public static function isActive()
+    {
+        return session_status() === PHP_SESSION_ACTIVE;
+    }
+
+    public static function close()
+    {
+        if (self::isActive()) @session_write_close();
+    }
 	public static function clear(){ //清除所有会话
-		!isset($_SESSION) && self::init();
-		$_SESSION = array();
+		self::init();
+        $_SESSION = [];
 	}
-	public static function destroy(){ //销毁
-		session_unset();
-		session_destroy();
-		$_SESSION = array();
-	}
-	public static function set($name, $val){ //设置 session
-		!isset($_SESSION) && self::init();
-		$_SESSION[$name] = $val;
-	}
-	public static function get($name=''){ //获取 session
-		!isset($_SESSION) && self::init();
-		if($name=='') return $_SESSION; //返回全部
-		return isset($_SESSION[$name]) ? $_SESSION[$name] : array();
-	}
-	public static function del($name){ //删除 session
-		!isset($_SESSION) && self::init();
-		unset($_SESSION[$name]);
-	}
+    //销毁
+    public static function destroy()
+    {
+        session_unset();
+        session_destroy();
+        $_SESSION = [];
+    }
+    //设置 session
+    public static function set($name, $val)
+    {
+        self::init();
+        $_SESSION[$name] = $val;
+    }
+    //获取 session
+    public static function get($name = '', $def = null)
+    {
+        self::init();
+        if ($name === '') return $_SESSION; //返回全部
+        return isset($_SESSION[$name]) ? $_SESSION[$name] : $def;
+    }
+    //删除 session
+    public static function del($name)
+    {
+        self::init();
+        unset($_SESSION[$name]);
+    }
 }
