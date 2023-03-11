@@ -698,10 +698,10 @@ function session($name='', $value='') {
         isset(myphp::$cfg['session'])?GetC('session_option'):null
     );
     if (is_null($name)) { // 清除所有session
-        if (isset($_SESSION)) $_SESSION = array();
+        if (isset($_SESSION)) $_SESSION = [];
         return null;
     }elseif($name==''){ //获取所有 session
-        return isset($_SESSION) ? $_SESSION : array();
+        return isset($_SESSION) ? $_SESSION : [];
     }
     //$name = $name.Helper::getIp(1);//ip安全限制 实现ip变了对应session也无效了
     if ('' === $value) {//获取 session
