@@ -16,7 +16,7 @@ class Upload {
     private $width = 0;
     private $height = 0;
 
-    private $defData = array('state' => '1', 'title' => null, 'url' => null, 'fileType' => null, 'fileSize' => null);
+    private $defData = ['state' => '1', 'title' => null, 'url' => null, 'fileType' => null, 'fileSize' => null];
 	// 构造函数
     public function __construct() {}
     //静态方法，返回实例
@@ -58,6 +58,53 @@ class Upload {
         }
         return true;
     }
+
+    /**
+     * 远端文件保存
+     * @param string $url
+     * @param string $path
+     * @return array
+     * @throws \Exception
+     */
+    public function remote($url, $path=''){
+        $this->fileName = md5($url);
+        $this->fileMd5 = false;
+        if ($pos = strpos($url, '?')) {
+            $url = substr($url, 0, $pos);
+        }
+        $clientFile = [
+            "tmp_name" => "",
+            "name" => basename($url),
+            "size" => 0,
+            "error" => UPLOAD_ERR_OK,
+            "type" => "raw_string",
+        ];
+        $f_name = $this->fileName . strrchr($clientFile['name'], '.');
+        if ($path === '') $path = '/' . substr($this->fileName, 0, 1) . '/' . substr($this->fileName, 1, 2) . '/';
+        $this->uploadPath = ltrim($this->uploadPath, '/') . $path;
+        $this->realPath = ltrim($this->realPath, '/') . $path;
+
+        $realFile = $this->realPath . $f_name;
+
+        if (file_exists($realFile)) {
+            $data = $this->defData;
+            $data['title'] = $clientFile['name'];
+            $data['url'] = $this->uploadPath.$f_name;
+            $data['fileType'] = strtolower(pathinfo($f_name, PATHINFO_EXTENSION));
+            $data['fileSize'] = filesize($realFile);
+            return $data;
+        } else {
+            $clientFile['tmp_name'] = Http::doGet($url);
+            if ($clientFile['tmp_name']) {
+                //上传目录创建
+                $this->createPath($this->realPath);
+                $clientFile['size'] = strlen($clientFile['tmp_name']);
+            } else {
+                $clientFile['error'] = UPLOAD_ERR_NO_FILE;
+            }
+        }
+        return $this->doupload($clientFile);
+    }
     /**
      * 返回数据格式
      * {
@@ -98,7 +145,7 @@ class Upload {
         return $data;
     }
 	//执行上传保存
-	public function doupload($clientFile){
+	private function doupload(&$clientFile){
 		//返回数组初始 文件上传状态,当成功时返回1，其余值将直接返回对应字符窜  $state = "1";
 		$data = $this->defData;
 		//判断文件上传是否出错
@@ -169,7 +216,9 @@ class Upload {
 
         //保存文件
         $fileUrl = "";
-        if (is_uploaded_file($clientFile['tmp_name'])) {//判断文件是否是上传文件
+        //是否文件流
+        $raw_string = $clientFile['type']=='raw_string';
+        if ($raw_string || is_uploaded_file($clientFile['tmp_name'])) {//判断文件是上传文件
             $tmp_file = $clientFile["name"];
             $f_name = $this->fileName!=='' ? $this->fileName : str_replace('.', '', uniqid('', true));
             $f_name = $this->fileMd5 ? md5($f_name) : $f_name;//md5文件名加密
@@ -177,19 +226,24 @@ class Upload {
             $fileUrl = $this->uploadPath . $f_name;
             $realFile = $this->realPath . $f_name;
 
+            $save = true;
             if (strpos($this->imgType, ',' . $data['fileType'] . ',') !== false && $this->width > 0 && $this->height > 0) { //指定图片大小处理 使用第三方 Image类 方式一
+                Image::$raw_string = $raw_string;
                 $result = Image::thumb($clientFile["tmp_name"], $realFile, $this->width, $this->height);
-                if ($result === 0) {
+                $save = (0 === $result);
+            }
+            if ($save) {
+                if ($raw_string) {
+                    $result = file_put_contents($realFile, $clientFile["tmp_name"]);
+                } else {
                     $result = move_uploaded_file($clientFile["tmp_name"], $realFile);
                 }
-            } else {
-                $result = move_uploaded_file($clientFile["tmp_name"], $realFile);
             }
             if (!$result) {
-                $data['state'] = "文件保存失败！";
+                $data['state'] = "文件保存失败";
             }
 		} else {
-			$data['state'] = '上传文件 '. $clientFile['tmp_name'] .' 不是一个合法文件！';
+			$data['state'] = '上传文件 '. $clientFile['tmp_name'] .' 不是一个合法文件';
 		}
 
         if ($data['state'] === '1') {
