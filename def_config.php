@@ -74,9 +74,10 @@ return array(
     'cookie_expire' => 0, //cookie有效期
     'cookie_domain' => '', //cookie作用域 如设为www.test.com,就只在www子域内有效. 跨域共享cookie的域名(例如: .test.com)
     'cookie_path' => '/', // cookie路径 '/' cookie就在整个domain内有效,如设为'/foo/',cookie就只在domain下的/foo/目录及子目录内有效.
-    'cookie_pre' => '9e', // cookie前缀 避免冲突 分站时建议在前端配置中重命名
+    'cookie_pre' => '', // cookie前缀 避免冲突 分站时建议在前端配置中重命名
     'cookie_secure' => false, // cookie安全传输
-    'cookie_httponly' => false, // cookie httponly设置
+    'cookie_httponly' => true, // httponly设置
+    'cookie_same_site' => false,
 	//权限验证
 	'auth_on' => false, //默认关闭
 	'auth_model' => 'user',//验证模块 

@@ -632,6 +632,7 @@ function cookie($name, $value='', $option=null) {
         'domain' => isset(myphp::$cfg['cookie_domain']) ? myphp::$cfg['cookie_domain'] : '', // cookie 有效域名
         'secure' => isset(myphp::$cfg['cookie_secure']) ? myphp::$cfg['cookie_secure'] : false, //  cookie 启用安全传输
         'httponly' => isset(myphp::$cfg['cookie_httponly']) ? myphp::$cfg['cookie_httponly'] : false, // httponly设置
+        'same_site' => isset(myphp::$cfg['cookie_same_site']) ? myphp::$cfg['cookie_same_site'] : false
     );
     // 参数处理
     if (!is_null($option)) {
@@ -641,29 +642,30 @@ function cookie($name, $value='', $option=null) {
             parse_str($option, $option);//解析字符串为数组
         $config = array_merge($config, $option);
     }
-    if(!empty($config['httponly'])){
-        ini_set('session.cookie_httponly', 1);
-    }
     // 清除指定前缀的所有cookie
     if (is_null($name)) {
-        if (empty($_COOKIE))
-            return null;
-        // 要删除的cookie前缀，不指定则删除config设置的指定前缀
-        $prefix = $value=='' ? $config['prefix'] : $value;
-        if ($prefix!='') {// 如果前缀为空字符串将直接清除$_COOKIE
-            foreach ($_COOKIE as $key => $val) {
-                if (0 === strpos($key, $prefix)) {
-                    setcookie($key, '', time() - 3600, $config['path'], $config['domain'], $config['secure'], $config['httponly']);
-                    unset($_COOKIE[$key]);
-                }
+        if (empty($_COOKIE)) return null;
+
+        foreach ($_COOKIE as $name => $val) {
+            if ($config['prefix']!== '' && strpos($name, $config['prefix'] . '_') !== 0) {
+                continue;
             }
-        }else{
-            unset($_COOKIE);
+            if (IS_CLI) {
+                myphp::$header['Set-Cookie'][] = $name . "=deleted; expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0"
+                    . ($config['path'] ? '; Path=' . $config['path'] : '')
+                    . ($config['domain'] ? '; Domain=' . $config['domain'] : '')
+                    . ($config['secure'] ? '; Secure' : '')
+                    . ($config['httponly'] ? '; HttpOnly' : '')
+                    . ($config['same_site'] ? '; SameSite=' . $same_site : '');
+            } else {
+                setcookie($name, '', 0, $config['path'], $config['domain'], $config['secure'], $config['httponly']);
+            }
+            unset($_COOKIE[$name]);
         }
         return null;
     }
     $encode = substr($name,0,1)=='_' ? false : true; //是否编码 以下划线开头的不编码
-    $name = $config['prefix'].'_'.$name;
+    $name = ($config['prefix'] !== '' ? $config['prefix'] . '_' : '') . $name;
     if ('' === $value) {//获取cookie值
         if(isset($_COOKIE[$name])){
             $value = $encode ? sys_auth($_COOKIE[$name], 'DECODE') : $_COOKIE[$name];
@@ -677,8 +679,18 @@ function cookie($name, $value='', $option=null) {
             return null;
         }
     } else {
+        if (!isset(myphp::$header['Set-Cookie'])) myphp::$header['Set-Cookie'] = [];
         if (is_null($value)) {//删除cookie值
-            setcookie($name, '', time() - 3600, $config['path'], $config['domain'],$config['secure'],$config['httponly']);
+            if (IS_CLI) {
+                myphp::$header['Set-Cookie'][] = $name . "=deleted; expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0"
+                    . ($config['path'] ? '; Path=' . $config['path'] : '')
+                    . ($config['domain'] ? '; Domain=' . $config['domain'] : '')
+                    . ($config['secure'] ? '; Secure' : '')
+                    . ($config['httponly'] ? '; HttpOnly' : '')
+                    . ($config['same_site'] ? '; SameSite=' . $same_site : '');
+            } else {
+                setcookie($name, '', 0, $config['path'], $config['domain'], $config['secure'], $config['httponly']);
+            }
             unset($_COOKIE[$name]); // 删除指定cookie
         } else {// 设置cookie
             if(is_array($value)) {
@@ -686,7 +698,18 @@ function cookie($name, $value='', $option=null) {
                 $value = strlen($value)>768 ? '@*'.gzcompress($value) : '@:'.$value;
             }
             $value = $encode ? sys_auth($value, 'ENCODE') : $value;
-            setcookie($name, $value, $config['expire']==0 ? 0 : time()+$config['expire'], $config['path'], $config['domain'], $config['secure'], $config['httponly']);
+            if (IS_CLI) {
+                myphp::$header['Set-Cookie'][] = $name . '=' . \rawurlencode($value)
+                    . ($config['expire'] ? '; Expires=' . \gmdate('D, d M Y H:i:s \G\M\T', time() + $config['expire']) : '')
+                    . ($config['expire'] ? '; Max-Age=' . $config['expire'] : '')
+                    . ($config['path'] ? '; Path=' . $config['path'] : '')
+                    . ($config['domain'] ? '; Domain=' . $config['domain'] : '')
+                    . ($config['secure'] ? '; Secure' : '')
+                    . ($config['httponly'] ? '; HttpOnly' : '')
+                    . ($config['same_site'] ? '; SameSite=' . $same_site : '');
+            } else {
+                setcookie($name, $value, $config['expire'], $config['path'], $config['domain'], $config['secure'], $config['httponly']);
+            }
             $_COOKIE[$name] = $value;
         }
     }
@@ -694,20 +717,20 @@ function cookie($name, $value='', $option=null) {
 // session 辅助类
 function session($name='', $value='') {
     !isset($_SESSION) && \myphp\Session::init(isset(myphp::$cfg['session']) ? myphp::$cfg['session'] : null);
-    if (is_null($name)) { // 清除所有session
-        if (isset($_SESSION)) $_SESSION = [];
+    if (is_null($name)) { //清除所有 session
+        \myphp\Session::flush();
         return null;
-    }elseif($name==''){ //获取所有 session
-        return isset($_SESSION) ? $_SESSION : [];
+    } elseif ($name == '') { //获取所有 session
+        return \myphp\Session::all();
     }
     //$name = $name.Helper::getIp(1);//ip安全限制 实现ip变了对应session也无效了
-    if ('' === $value) {//获取 session
-        return isset($_SESSION[$name]) ? $_SESSION[$name] : null;
+    if ('' === $value) { //获取 session
+        return \myphp\Session::get($name);
     } else {
-        if (is_null($value)) {//删除 session
-            if(isset($_SESSION[$name])) unset($_SESSION[$name]);
-        } else {// 设置 session
-            $_SESSION[$name] = $value;
+        if (is_null($value)) { //删除 session
+            return \myphp\Session::del($name);
+        } else { // 设置 session
+            \myphp\Session::set($name, $value);
         }
     }
 }

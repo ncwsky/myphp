@@ -319,7 +319,15 @@ final class myphp{
     public static function sendHeader(){
         if(!self::$header) return;
         foreach (self::$header as $name => $val) {
-            header($name . ':' . $val);
+            if (is_array($val)) {
+                $replace = true;
+                foreach ($val as $v) {
+                    header($name . ':' . $val, $replace);
+                    $replace = false;
+                }
+            } else {
+                header($name . ':' . $val);
+            }
         }
         self::$header = [];
     }
@@ -527,8 +535,13 @@ final class myphp{
         //仅登陆验证
         if(strpos( self::$cfg['auth_login_model'] , ','.$c.',')!==false || strpos( self::$cfg['auth_login_action'] , ','.$c.'/'.$a.',')!==false){
             if(!$auth->$auth_login()) {
-                if($c==self::$cfg['def_control']) redirect(ROOT_DIR .self::$cfg['auth_gateway']);
-                else Helper::outMsg('你未登录,请先登录!', ROOT_DIR .self::$cfg['auth_gateway']);
+                $redirect = (strpos(self::$cfg['auth_gateway'], 'http') === 0 ? '' : ROOT_DIR) . self::$cfg['auth_gateway'];
+                if (!Helper::isAjax() || $c == self::$cfg['def_control']) {
+                    //\myphp::$statusCode = 302;
+                    \myphp::setHeader('Location', $redirect);
+                    throw new \Exception('', 302);
+                }
+                throw new \Exception(Helper::outMsg('你未登录,请先登录!', $redirect), 200);
             }
             //验证此模块中需要验证的动作
             if(self::$cfg['auth_login_M_A']=='') return;
