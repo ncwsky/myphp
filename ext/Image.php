@@ -3,14 +3,16 @@
 //GD库 - 生成图像缩略图和生成验证码
 class Image
 {
+    public static $raw_string = false;
     /**
      * 取得图像信息
      * @param string $img 图像文件名
      * @param bool $raw_string 是否原始内容
      * @return bool|array
      */
-    public static function getImageInfo($img, $raw_string=false)
+    public static function getImageInfo($img, $raw_string=null)
     {
+        if ($raw_string === null) $raw_string = self::$raw_string;
         $imageInfo = $raw_string ? getimagesizefromstring($img) : getimagesize($img);
         if ($imageInfo) {
             $imageSize = $raw_string ? strlen($img) : filesize($img);
@@ -78,8 +80,13 @@ class Image
         }
 
         //载入原图
-        $imagecreatefrom = 'imagecreatefrom' . $type;
-        $srcImg = function_exists($imagecreatefrom) ? $imagecreatefrom($image) : imagecreatefromjpeg($image);
+        if (self::$raw_string) {
+            self::$raw_string = false; //Reset
+            $srcImg = imagecreatefromstring($image); //从字符串的图像流中新建图像
+        } else {
+            $imagecreatefrom = 'imagecreatefrom' . $type;
+            $srcImg = function_exists($imagecreatefrom) ? $imagecreatefrom($image) : imagecreatefromjpeg($image);
+        }
 
         //创建缩略图
         $thumbImg = imagecreatetruecolor($w, $h);
