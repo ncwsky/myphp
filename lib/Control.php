@@ -104,7 +104,7 @@ class Control
     }
     final static function redirect($url, $code=302){
         // 如果报头未发送，则发送
-        if (!headers_sent()) {// redirect
+        if (IS_CLI || !headers_sent()) {// redirect
             \myphp::$statusCode = $code;
             \myphp::setHeader('Location', $url);
             return '';

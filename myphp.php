@@ -315,7 +315,15 @@ final class myphp{
     public static function sendHeader(){
         if(!self::$header) return;
         foreach (self::$header as $name => $val) {
-            header($name . ':' . $val);
+            if (is_array($val)) {
+                $replace = true;
+                foreach ($val as $v) {
+                    header($name . ':' . $val, $replace);
+                    $replace = false;
+                }
+            } else {
+                header($name . ':' . $val);
+            }
         }
         self::$header = [];
     }
@@ -519,8 +527,13 @@ final class myphp{
         //仅登陆验证
         if(strpos( self::$cfg['auth_login_model'] , ','.$c.',')!==false || strpos( self::$cfg['auth_login_action'] , ','.$c.'/'.$a.',')!==false){
             if(!$auth->$auth_login()) {
-                if($c==self::$cfg['def_control']) redirect(ROOT_DIR .self::$cfg['auth_gateway']);
-                else Helper::outMsg('你未登录,请先登录!', ROOT_DIR .self::$cfg['auth_gateway']);
+                $redirect = (strpos(self::$cfg['auth_gateway'], 'http') === 0 ? '' : ROOT_DIR) . self::$cfg['auth_gateway'];
+                if (!Helper::isAjax() || $c == self::$cfg['def_control']) {
+                    //myphp::$statusCode = 302;
+                    myphp::setHeader('Location', $redirect);
+                    throw new \Exception('', 302);
+                }
+                throw new \Exception(Helper::outMsg('你未登录,请先登录!', $redirect), 200);
             }
             //验证此模块中需要验证的动作
             if(self::$cfg['auth_login_M_A']=='') return;
@@ -569,13 +582,15 @@ final class myphp{
         #self::$cfg['APP_ROOT'] = $appRoot;
         define('APP_ROOT', $appRoot);
         //引入默认配置文件
-        self::set(include __DIR__ . '/def_config.php');
-        if(is_array($cfg)){ //组合参数配置
-            self::set($cfg);
+        self::$cfg = require(__DIR__ . '/def_config.php');
+        if (is_array($cfg)) { //组合参数配置
+            self::$cfg = array_merge(self::$cfg, $cfg);
             unset($cfg);
         }
         //引入公共配置文件
-        is_file(COMMON . '/config.php') && self::set(include COMMON . '/config.php');
+        if (is_file(COMMON . '/config.php')) {
+            self::$cfg = array_merge(self::$cfg, require(COMMON . '/config.php'));
+        }
 
         //相对根目录
         if(!isset(self::$cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
