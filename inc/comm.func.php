@@ -717,7 +717,7 @@ function cookie($name, $value='', $option=null) {
 function session($name='', $value='') {
     !isset($_SESSION) && \myphp\Session::init(isset(myphp::$cfg['session']) ? myphp::$cfg['session'] : null);
     if (is_null($name)) { //清除所有 session
-        \myphp\Session::flush();
+        \myphp\Session::destroy();
         return null;
     } elseif ($name == '') { //获取所有 session
         return \myphp\Session::all();

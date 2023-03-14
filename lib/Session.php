@@ -4,12 +4,13 @@ namespace myphp;
 /**
  * Class Session
  * @package myphp
- * @method flush() static
  * @method all() static
  * @method get($name) static
  * @method set($name, $value) static
  * @method delete($name) static
  * @method del($name) static 兼容处理
+ * @method destroy() static 销毁
+ * @method flush() static 销毁 兼容处理
  */
 class Session {
     /**
@@ -53,6 +54,8 @@ class Session {
             throw new \Exception('Session No Instance');
         }
         if ($method == 'del') $method = 'delete'; //兼容处理
+        elseif ($method == 'flush') $method = 'destroy'; //兼容处理
+
         if (method_exists(static::$instance, $method)) {
             return call_user_func_array([static::$instance, $method], $args);
         }
@@ -70,7 +73,7 @@ interface EnvSessionInterface
     public function set($name, $val);
     public function get($name, $default = null);
     public function delete($name);
-    public function flush();
+    public function destroy();
 }
 
 class EnvSession implements EnvSessionInterface
@@ -150,8 +153,14 @@ class EnvSession implements EnvSessionInterface
     //销毁 todo test
     public function destroy()
     {
-        session_unset();
-        session_destroy();
+        if ($this->isActive()) {
+            $sessionId = $this->getId();
+            $this->close();
+            $this->open();
+            session_unset();
+            session_destroy();
+            $this->setId($sessionId);
+        }
         $_SESSION = [];
     }
 
@@ -180,12 +189,5 @@ class EnvSession implements EnvSessionInterface
     {
         $this->open();
         unset($_SESSION[$name]);
-    }
-
-    //清除所有会话
-    public function flush()
-    {
-        $this->open();
-        $_SESSION = [];
     }
 }
