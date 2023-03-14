@@ -17,32 +17,39 @@ class Session {
      * @var null|EnvSessionInterface
      */
     private static $instance = null;
+    /**
+     * @var null|callable
+     */
+    private static $callable = null;
 
     /**
-     * 默认的session处理
-     * @param null $opts
-     * @return EnvSession|null
+     * 注入指定的session处理方式
+     * @param callable|string $sess
      */
-    public static function init($opts = null)
+    public static function on($sess)
     {
-        return self::load('\myphp\EnvSession', $opts);
+        self::$callable = $sess;
+        self::$instance = null;
     }
 
     /**
-     * 载入其他定义的session
-     * @param EnvSessionInterface|\Closure$sess
      * @param null $opts
-     * @return mixed|null
+     * @return mixed|EnvSessionInterface
      */
-    public static function load($sess, $opts = null)
+    public static function init($opts = null)
     {
         if (!self::$instance) {
-            if ($sess instanceof \Closure) {
-                self::$instance = call_user_func($sess);
-            } elseif (is_string($sess)) {
-                self::$instance = new $sess($opts);
+            if (self::$callable) {
+                $class = self::$callable;
             } else {
-                self::$instance = $sess;
+                $class = empty($opts['class']) ? '\myphp\EnvSession' : $opts['class'];
+            }
+            if ($class instanceof \Closure) {
+                self::$instance = call_user_func($class);
+            } elseif (is_string($class)) {
+                self::$instance = new $class($opts);
+            } else {
+                self::$instance = $class;
             }
         }
         return self::$instance;
