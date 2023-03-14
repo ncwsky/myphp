@@ -137,6 +137,7 @@ final class myphp{
      * @throws \Exception
      */
     public static function Run($sendFun=null, $isCli=IS_CLI){
+        $_init_cfg = self::$cfg; //全局配置
         self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法
         self::init_app($isCli);
         self::$sendFun = $sendFun;
@@ -174,6 +175,8 @@ final class myphp{
             self::send($e->getMessage() . (self::$cfg['debug'] ? "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : ''), 500);
             Log::Exception($e, false);
         }
+        //重置处理
+        self::$cfg = $_init_cfg;
         self::$env = [];
         self::$lang = [];
         self::$header = [];
@@ -492,12 +495,8 @@ final class myphp{
      * @param $module_path
      */
     private static function loadConfig($module_path){
-        static $hasAppConfig = [];
-        if(isset($hasAppConfig[$module_path])) return;
         if(!is_file($module_path . '/config.php')) return;
 
-        //引入配置
-        $hasAppConfig[$module_path] = 1; //标识已引入
         $config = require($module_path . '/config.php');
         if(isset($config['class_dir'])){
             $classDir = is_array($config['class_dir']) ? $config['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, $config['class_dir']));
