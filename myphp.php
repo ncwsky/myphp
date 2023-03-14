@@ -590,13 +590,15 @@ final class myphp{
         #self::$cfg['APP_ROOT'] = $appRoot;
         define('APP_ROOT', $appRoot);
         //引入默认配置文件
-        self::set(include __DIR__ . '/def_config.php');
-        if(is_array($cfg)){ //组合参数配置
-            self::set($cfg);
+        self::$cfg = require(__DIR__ . '/def_config.php');
+        if (is_array($cfg)) { //组合参数配置
+            self::$cfg = array_merge(self::$cfg, $cfg);
             unset($cfg);
         }
         //引入公共配置文件
-        is_file(COMMON . '/config.php') && self::set(include COMMON . '/config.php');
+        if (is_file(COMMON . '/config.php')) {
+            self::$cfg = array_merge(self::$cfg, require(COMMON . '/config.php'));
+        }
 
         //相对根目录
         if(!isset(self::$cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
