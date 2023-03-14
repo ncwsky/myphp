@@ -617,16 +617,17 @@ function set_config($config, $file="/config.php", $allow_val=null) {
     return file_put_contents($configFile, $str, LOCK_EX);
 }
 
-/*
+/**
  * 安全cookie md5加密
- * @param     string  $name   名
- * @param     string  $value  值
- * @param     string  $option cookie参数  可数字、字符串、数组
-*/
+ * @param string|null $name 名|null清空所有
+ * @param string|null $value 值|null删除
+ * @param null|array|int $option cookie参数 可数字、数组
+ * @return mixed|string|null
+ */
 function cookie($name, $value='', $option=null) {
+    $prefix = isset(myphp::$cfg['cookie_pre']) ? myphp::$cfg['cookie_pre'] : ''; // cookie 名称前缀
     // 默认设置
     $config = array(
-        'prefix' => isset(myphp::$cfg['cookie_pre']) ? myphp::$cfg['cookie_pre'] : '', // cookie 名称前缀
         'expire' => isset(myphp::$cfg['cookie_expire']) ? myphp::$cfg['cookie_expire'] : 0, // cookie 保存时间
         'path' => isset(myphp::$cfg['cookie_path']) ? myphp::$cfg['cookie_path'] : '/', // cookie 保存路径
         'domain' => isset(myphp::$cfg['cookie_domain']) ? myphp::$cfg['cookie_domain'] : '', // cookie 有效域名
@@ -637,17 +638,16 @@ function cookie($name, $value='', $option=null) {
     // 参数处理
     if (!is_null($option)) {
         if (is_numeric($option))
-            $option = array('expire' => $option);
-        elseif (is_string($option))
-            parse_str($option, $option);//解析字符串为数组
-        $config = array_merge($config, $option);
+            $config['expire'] = (int)$option;
+        elseif (is_array($option))
+            $config = array_merge($config, $option);
     }
     // 清除指定前缀的所有cookie
     if (is_null($name)) {
         if (empty($_COOKIE)) return null;
 
         foreach ($_COOKIE as $name => $val) {
-            if ($config['prefix']!== '' && strpos($name, $config['prefix'] . '_') !== 0) {
+            if ($prefix!== '' && strpos($name, $prefix . '_') !== 0) {
                 continue;
             }
             if (IS_CLI) {
@@ -656,7 +656,7 @@ function cookie($name, $value='', $option=null) {
                     . ($config['domain'] ? '; Domain=' . $config['domain'] : '')
                     . ($config['secure'] ? '; Secure' : '')
                     . ($config['httponly'] ? '; HttpOnly' : '')
-                    . ($config['same_site'] ? '; SameSite=' . $same_site : '');
+                    . ($config['same_site'] ? '; SameSite=' . $config['same_site'] : '');
             } else {
                 setcookie($name, '', 0, $config['path'], $config['domain'], $config['secure'], $config['httponly']);
             }
@@ -665,7 +665,7 @@ function cookie($name, $value='', $option=null) {
         return null;
     }
     $encode = substr($name,0,1)=='_' ? false : true; //是否编码 以下划线开头的不编码
-    $name = ($config['prefix'] !== '' ? $config['prefix'] . '_' : '') . $name;
+    $name = ($prefix !== '' ? $prefix . '_' : '') . $name;
     if ('' === $value) {//获取cookie值
         if(isset($_COOKIE[$name])){
             $value = $encode ? sys_auth($_COOKIE[$name], 'DECODE') : $_COOKIE[$name];
@@ -675,8 +675,6 @@ function cookie($name, $value='', $option=null) {
                 $value = json_decode($flag == '@*'?gzuncompress($value) : $value, true);
             }
             return $value;
-        }else{
-            return null;
         }
     } else {
         if (!isset(myphp::$header['Set-Cookie'])) myphp::$header['Set-Cookie'] = [];
@@ -687,7 +685,7 @@ function cookie($name, $value='', $option=null) {
                     . ($config['domain'] ? '; Domain=' . $config['domain'] : '')
                     . ($config['secure'] ? '; Secure' : '')
                     . ($config['httponly'] ? '; HttpOnly' : '')
-                    . ($config['same_site'] ? '; SameSite=' . $same_site : '');
+                    . ($config['same_site'] ? '; SameSite=' . $config['same_site'] : '');
             } else {
                 setcookie($name, '', 0, $config['path'], $config['domain'], $config['secure'], $config['httponly']);
             }
@@ -706,13 +704,14 @@ function cookie($name, $value='', $option=null) {
                     . ($config['domain'] ? '; Domain=' . $config['domain'] : '')
                     . ($config['secure'] ? '; Secure' : '')
                     . ($config['httponly'] ? '; HttpOnly' : '')
-                    . ($config['same_site'] ? '; SameSite=' . $same_site : '');
+                    . ($config['same_site'] ? '; SameSite=' . $config['same_site'] : '');
             } else {
                 setcookie($name, $value, $config['expire'], $config['path'], $config['domain'], $config['secure'], $config['httponly']);
             }
             $_COOKIE[$name] = $value;
         }
     }
+    return null;
 }
 // session 辅助类
 function session($name='', $value='') {
