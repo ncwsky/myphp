@@ -16,7 +16,7 @@ class Session {
     /**
      * @var null|EnvSessionInterface
      */
-    private static $instance = null;
+    public static $instance = null;
     /**
      * @var null|callable
      */
