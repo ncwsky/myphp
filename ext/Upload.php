@@ -22,7 +22,7 @@ class Upload {
     //静态方法，返回实例
     public static function getInstance() {
         if (self::$instance == null) {
-            self::$instance = new Upload();
+            self::$instance = new self();
         }
         return self::$instance;
     }
@@ -218,7 +218,9 @@ class Upload {
         $fileUrl = "";
         //是否文件流
         $raw_string = $clientFile['type']=='raw_string';
-        if ($raw_string || is_uploaded_file($clientFile['tmp_name'])) {//判断文件是上传文件
+        $cli = PHP_SAPI == 'cli';
+        //cli模式is_uploaded_file无效
+        if ($cli || $raw_string || is_uploaded_file($clientFile['tmp_name'])) {//判断文件是上传文件
             $tmp_file = $clientFile["name"];
             $f_name = $this->fileName!=='' ? $this->fileName : str_replace('.', '', uniqid('', true));
             $f_name = $this->fileMd5 ? md5($f_name) : $f_name;//md5文件名加密
@@ -236,7 +238,7 @@ class Upload {
                 if ($raw_string) {
                     $result = file_put_contents($realFile, $clientFile["tmp_name"]);
                 } else {
-                    $result = move_uploaded_file($clientFile["tmp_name"], $realFile);
+                    $result = $cli ? rename($clientFile["tmp_name"], $realFile) : move_uploaded_file($clientFile["tmp_name"], $realFile);
                 }
             }
             if (!$result) {
