@@ -6,7 +6,7 @@ class Redis extends \myphp\CacheAbstract{
     private $handler;
 	//配置
     protected $options = array(
-        'prefix' => 'cache',
+        'prefix' => '_',
 		'host' => '127.0.0.1',
 		'port' => 6379,
 		'password'=>'',

@@ -8,7 +8,7 @@ class File extends \myphp\CacheAbstract{
 	//配置
     protected $options = array(
         'path' => "./",
-        'prefix' => 'cache',
+        'prefix' => '_',
     	'mode' => 1, //mode 1 为serialize model 2为保存为可执行文件
 		'expire' => 0, //有效期
         'dir_level'=>0 //缓存层级
@@ -46,7 +46,7 @@ class File extends \myphp\CacheAbstract{
     public function buildKey($key){
         if (is_scalar($key)) {
             $key = str_replace(['\\','/',':','*','?','"','<','>','|'],'',$key);
-            $key = strlen($key) <= 32 ? $key : md5($key); //ctype_alnum($key)
+            $key = strlen($key) <= 128 ? $key : md5($key); //ctype_alnum($key)
         } else {
             $key = md5(json_encode($key));
         }

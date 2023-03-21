@@ -482,19 +482,6 @@ function getargs($args_item='',$gtype=1){
     return $para;
 }
 
-//文件处理：目录创建，文件上传，文件读写
-//递归创建目录 createPath ("./NcwCms/up/img/ap")
-function createPath( $folderPath, $mode=0777 ) {
-    $sParent = dirname( $folderPath );
-    //Check if the parent exists, or create it.
-    if ( !is_dir($sParent)) createPath( $sParent, $mode );
-    if ( !is_dir($folderPath)) mkdir($folderPath, $mode) or ShowMsg('创建目录（'. $folderPath .'）失败！');
-}
-//取得文件扩展 $file 文件名
-function FileExt($file) {
-    return strtolower(strrchr($file, '.'));
-}
-
 //转换字节数为其他单位 $byte:字节
 function toByte($byte){
     $v = 'unknown';
