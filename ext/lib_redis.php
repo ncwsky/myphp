@@ -313,9 +313,12 @@ class lib_redis{
      */
     public function get($name, $json=true){
         $val = $this->handler->get($name);
-        if(!$json) return $val;
-        $jsonData = json_decode($val, true);
-        return ($jsonData === null) ? $val : $jsonData;    //检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
+        if (self::$isExRedis && $val === false) return null; //redis扩展兼容处理
+        if ($json) {
+            $jsonData = json_decode($val, true);
+            return ($jsonData === null) ? $val : $jsonData;    //检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
+        }
+        return $val;
     }
     /**
      * 写入缓存
