@@ -360,36 +360,39 @@ my_hash
 @echo 为真直接返回错误信息，为假直接输出错误提示
 按需求调用执行
 */
-function my_hash($hash=false,$echo=true){
-    if(!isset($_SESSION)) session_start();
-    $val = !empty($_SESSION['my_hash']) ? $_SESSION['my_hash'] : $_SESSION['my_hash']=random(6,'abcdefghigklmnopqrstuvwxwyABCDEFGHIGKLMNOPQRSTUVWXWY0123456789');
-    if($hash){
-        if(isset($_GET['my_hash']) && $_SESSION['my_hash'] != '' && ($_SESSION['my_hash'] == $_GET['my_hash'])) {
-            $_SESSION['my_hash']=null;
+function my_hash($verify=false, $echo=true){
+    $my_hash = session('my_hash');
+    if ($verify) {
+        if ($my_hash && isset($_GET['my_hash']) && $my_hash == $_GET['my_hash']) {
+            session('my_hash', null);
             return true;
-        } elseif(isset($_POST['my_hash']) && $_SESSION['my_hash'] != '' && ($_SESSION['my_hash'] == $_POST['my_hash'])) {
-            $_SESSION['my_hash']=null;
+        } elseif ($my_hash && isset($_POST['my_hash']) && $my_hash == $_POST['my_hash']) {
+            session('my_hash', null);
             return true;
         } else {
-            if($echo) out_msg('0:[hash]数据验证失败',Helper::getReferer());
+            if ($echo) return out_msg('0:[hash]数据验证失败', \myphp\Helper::getReferer());
             else return false;
         }
-    }else{
-        return $val;
+    } else {
+        if (!$my_hash) {
+            $my_hash = random(6, 'abcdefghigklmnopqrstuvwxwyABCDEFGHIGKLMNOPQRSTUVWXWY0123456789');
+            session('my_hash', $my_hash);
+        }
+        return $my_hash;
     }
 }
-function my_hash_md5($val,$hash=false){
-    if(!isset($_SESSION)) session_start();
-    if($hash){
-        if(isset($_GET['my_hash_md5']) && $_SESSION['my_hash'] != '' && (md5(getMd5($val.$_SESSION['my_hash'])) == $_GET['my_hash_md5'])) {
+function my_hash_md5($val,$verify=false){
+    $my_hash = my_hash();
+    if ($verify) {
+        if ($my_hash && isset($_GET['my_hash_md5']) && md5(getMd5($val . $my_hash) == $_GET['my_hash_md5'])) {
             return true;
-        } elseif(isset($_POST['my_hash_md5']) && $_SESSION['my_hash'] != '' && (md5(getMd5($val.$_SESSION['my_hash'])) == $_POST['my_hash_md5'])) {
+        } elseif ($my_hash && isset($_POST['my_hash_md5']) && md5(getMd5($val . $my_hash)) == $_POST['my_hash_md5']) {
             return true;
         } else {
             return false;//'[hash]数据验证失败'
         }
-    }else{
-        return md5(getMd5($val.my_hash()));
+    } else {
+        return md5(getMd5($val . $my_hash));
     }
 }
 //验证码
@@ -402,13 +405,12 @@ function GetCode($w=80, $h=36, $fontsize=18, $len = 4, $reurl=false,$number=fals
 //检查验证码
 function CodeIsTrue($codename) {
     if(!isset($_POST[$codename])) return false;
-    $CodeStr = strtolower(trim($_POST[$codename]));
-    if(!isset($_SESSION)) session_start();
-    if (isset($_SESSION[$codename]) && $_SESSION[$codename] == $CodeStr && $CodeStr!='' ) {
-        $_SESSION[$codename]='';
+    $codeStr = strtolower(trim($_POST[$codename]));
+    $code = session($codename);
+    if ($code && $codeStr && $code == $codeStr) {
+        session($codename, null);
         return true;
     } else {
-        //$_SESSION[$codename]='';
         return false;
     }
 }
@@ -478,19 +480,6 @@ function getargs($args_item='',$gtype=1){
         $para[$keyname] = $args_val[$key];
     }
     return $para;
-}
-
-//文件处理：目录创建，文件上传，文件读写
-//递归创建目录 createPath ("./NcwCms/up/img/ap")
-function createPath( $folderPath, $mode=0777 ) {
-    $sParent = dirname( $folderPath );
-    //Check if the parent exists, or create it.
-    if ( !is_dir($sParent)) createPath( $sParent, $mode );
-    if ( !is_dir($folderPath)) mkdir($folderPath, $mode) or ShowMsg('创建目录（'. $folderPath .'）失败！');
-}
-//取得文件扩展 $file 文件名
-function FileExt($file) {
-    return strtolower(strrchr($file, '.'));
 }
 
 //转换字节数为其他单位 $byte:字节
@@ -715,7 +704,7 @@ function cookie($name, $value='', $option=null) {
 }
 // session 辅助类
 function session($name='', $value='') {
-    !isset($_SESSION) && Session::init(isset(myphp::$cfg['session']) ? myphp::$cfg['session'] : null);
+    !Session::$instance && Session::init(isset(myphp::$cfg['session']) ? myphp::$cfg['session'] : null);
     if (is_null($name)) { //清除所有 session
         Session::destroy();
         return null;
@@ -823,9 +812,6 @@ function Q($name, $defVal='', $datas=null) {
             }
             $input = &$_PUT; break;
         case 'files': $input = &$_FILES; break;
-        case 'session': $input = &$_SESSION; break;
-        case 'cookie' : $input = &$_COOKIE; break;
-        case 'server' : $input = &$_SERVER; break;
         case 'globals': $input = $GLOBALS; break; // >=8.1为只读不可&引用
         default:
             if($type=='d' || $type=='f'){
@@ -1272,22 +1258,22 @@ function pow2split($num){
 function num2fixed($number){
     return sprintf('%.2f', $number);
 }
+
 /**
  * 表单重复提交限制 默认10秒内
  * @param string $url 跳转网址
  * @param int $limit 限制时间 单位秒
  * @param int $time
+ * @return string
  */
 function form_token($url='',$limit=10, $time=3){
-    //表单重复提交限制 10秒内
-    //if(!isset($_SESSION)) session_start();
-    $token = isset($_SESSION['token']) ? $_SESSION['token'] : 0;
-    if(!empty($token)){
+    $token = (int)session('form_limit');
+    if($token){
         $token = time()-$token;
         $token = $token<=$limit ? $token : 0;
     }
-    if(!empty($token)) ShowMsg('表单 '. ($limit-$token) .' 秒内限制提交',$url,'',$time);
-    $_SESSION['token'] = time();
+    if(!empty($token)) return ShowMsg('表单 '. ($limit-$token) .' 秒内限制提交',$url,'',$time);
+    session('form_limit', time());
 }
 //AES 128位加密
 function aes($string, $operation = 'ENCODE', $key = ''){

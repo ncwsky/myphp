@@ -277,11 +277,11 @@ class Image
      * @param int $fontsize
      * @param int $len
      * @param int $type  0数字大小字母 1数字 2大小字母 3小字母 4大字母 5汉字
-     * @param string $codename
+     * @param null|\Closure $callable 自定义处理code及font字体
      * @param string $code
      * @return false|string|null
      */
-    public static function code($w=80, $h=36, $fontsize=18, $len = 4, $type=0, $codename = 'code', &$code='') {
+    public static function code($w=80, $h=36, $fontsize=18, $len = 4, $type=0, $callable = null, &$code='') {
         //生成随机字符
         $chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHIJKLMNPRSTUVWXYZ0123456789';//0123456789
         $font = __DIR__ . '/../inc/ggbi.ttf';
@@ -319,8 +319,10 @@ class Image
             $rndChars = $matches[0];
         }
 
-        if(!isset($_SESSION)) session_start();//如果没有开启，session，则开启session
-        $_SESSION[$codename] = strtolower($code);//小写
+        if ($callable) {
+            call_user_func($callable, $code);
+            //call_user_func_array($callable, [$code, &$font]);
+        }
 
         //imagecreate($w, $h) 返回一个白色图像的标识符
         $img = imagecreatetruecolor($w, $h);//创建指定wh的黑色图像并返回一个图像标识符

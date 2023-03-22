@@ -74,28 +74,40 @@ class db_pdo extends DbBase{
      * @return false|int
      */
 	public function exec($sql, $run=0){
-        $affected = $this->conn->exec($sql);
-        if (false===$affected) { //$this->conn->errorCode() != '00000'
+        try {
+            $affected = $this->conn->exec($sql);
+            if (false===$affected) {
+                $errorInfo = $this->conn->errorInfo();
+                throw new PDOException(implode('|', $errorInfo), $errorInfo[1]);
+            }
+        } catch (PDOException $e) { //兼容>=8.0处理
             $errorInfo = $this->conn->errorInfo();
-            $errInfo = implode('|', $errorInfo);
-            if ($run == 0 && $this->transCounter==0) { //重连1次处理 非事务时允许重连
-                #MySQL server has gone away
-                if ($this->config['dbms'] == 'mysql' && ($errorInfo[1] == 2006 || $errorInfo[1] == 2013)) {
-                    $this->connect();
-                    Log::write('重连 ' . $errInfo, 'db_connect');
-                    return $this->exec($sql, 1);
-                }
+            if (empty($errorInfo[1]) && is_int($e->getCode())) {
+                $errorInfo[1] = $e->getCode();
+                $errorInfo[2] = $e->getMessage();
             }
-            if (strpos($errInfo, 'Function sequence error')) { //linux下因驱动原因的错误
-                $this->rs = $this->conn->prepare($sql); //PDOStatement 对象
-                $this->rs->execute();
-                if ($this->rs->errorCode() != '00000') {
-                    throw new PDOException(implode('|', $this->rs->errorInfo())."; SQL exec: " . $sql);
+            if ($errorInfo[1]) {
+                $errInfo = implode('|', $errorInfo);
+                if ($run == 0 && $this->transCounter==0) { //重连1次处理 非事务时允许重连
+                    #MySQL server has gone away
+                    if ($this->config['dbms'] == 'mysql' && ($errorInfo[1] == 2006 || $errorInfo[1] == 2013)) {
+                        $this->connect();
+                        Log::write($errInfo . ' 重连', 'db_exec');
+                        return $this->exec($sql, 1);
+                    }
                 }
-                $affected = $this->rs->rowCount();
+                if (strpos($errInfo, 'Function sequence error')) { //linux下因驱动原因的错误
+                    $this->rs = $this->conn->prepare($sql); //PDOStatement 对象
+                    $this->rs->execute();
+                    if ($this->rs->errorCode() != '00000') {
+                        throw new PDOException(implode('|', $this->rs->errorInfo())."; SQL exec: " . $sql);
+                    }
+                    $affected = $this->rs->rowCount();
+                }
             } else {
-                throw new PDOException($errInfo."; SQL exec: " . $sql);
+                $errInfo = $e->getCode() . ':' . $e->getMessage();
             }
+            throw new PDOException($errInfo . "; SQL exec: " . $sql);
         }
         return $affected;
 	}
@@ -107,17 +119,30 @@ class db_pdo extends DbBase{
      * @throws PDOException
      */
     public function query($sql, $run = 0){
-        $this->rs = $this->conn->query($sql);
-        if (false===$this->rs) { //$this->conn->errorCode() != '00000'
+        try {
+            $this->rs = $this->conn->query($sql);
+            if (false === $this->rs) {
+                $errorInfo = $this->conn->errorInfo();
+                throw new PDOException(implode('|', $errorInfo), $errorInfo[1]);
+            }
+        } catch (PDOException $e) {
             $errorInfo = $this->conn->errorInfo();
-            $errInfo = implode('|', $errorInfo);
-            if ($run == 0 && $this->transCounter==0) { //重连1次处理 非事务时允许重连
-                #MySQL server has gone away
-                if ($this->config['dbms'] == 'mysql' && ($errorInfo[1] == 2006 || $errorInfo[1] == 2013)) {
-                    $this->connect();
-                    Log::write('重连 ' . $errorInfo[2], 'db_connect');
-                    return $this->query($sql, 1);
+            if (empty($errorInfo[1]) && is_int($e->getCode())) {
+                $errorInfo[1] = $e->getCode();
+                $errorInfo[2] = $e->getMessage();
+            }
+            if ($errorInfo[1]) {
+                $errInfo = implode('|', $errorInfo);
+                if ($run == 0 && $this->transCounter == 0) { //重连1次处理 非事务时允许重连
+                    #MySQL server has gone away
+                    if ($this->config['dbms'] == 'mysql' && ($errorInfo[1] == 2006 || $errorInfo[1] == 2013)) {
+                        $this->connect();
+                        Log::write($errInfo. ' 重连', 'db_query');
+                        return $this->query($sql, 1);
+                    }
                 }
+            } else {
+                $errInfo = $e->getCode() . ':' . $e->getMessage();
             }
             throw new PDOException($errInfo . "; SQL query: " . $sql);
         }
