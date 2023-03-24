@@ -259,6 +259,9 @@ class Http
         if(curl_errno($ch)){
             self::$curlErr = curl_error($ch);
             \myphp\Log::write('err:'. self::$curlErr."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):toJson($data)):''), 'curl');
+            //\myphp\Log::write($options, 'options');
+            //\myphp\Log::write($opt, 'opt');
+            //重试
             if (self::_curlIsRetry($url, self::$curlErr)) {
                 $runRetry = true;
                 if (preg_match('/_retry=(\d)/', $url, $retryMatch)) {
