@@ -3,6 +3,7 @@
 class Http
 {
     public static $way = 0;
+    public static $protocol = '1.1';
     public static $curlOpt = []; //curl配置 ssl cookie header redirect opts[curl_opt=>value,..]
     public static $curlProxy = []; //代理 [user,pass,host,port]
     public static $curlBeforeCall = null; //curl前置处理 function($url, $type, $data, $timeout, $header, $opt):void
@@ -109,24 +110,37 @@ class Http
         HEAD：获取资源的元数据。
         */
         $connect_timeout = isset($opt['connect_timeout']) ? $opt['connect_timeout'] : $timeout;
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
+        $options = [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => $connect_timeout,
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_TIMEOUT_MS => $timeout * 1000,
+            CURLOPT_CONNECTTIMEOUT_MS => $connect_timeout * 1000,
+            //CURLOPT_ENCODING => ''
+        ];
+
+        //$timeoutRequiresNoSignal = false; $timeoutRequiresNoSignal |= $timeout < 1;
+        if ($timeout < 1 && strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+            $options[CURLOPT_NOSIGNAL] = true;
+        }
+
         if(substr($url,0,5)=='https'){ //ssl
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0); //检查服务器SSL证书 正式环境中使用 2
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); //取消验证证书
+            $options[CURLOPT_SSL_VERIFYHOST] = 0; //检查服务器SSL证书 正式环境中使用 2
+            $options[CURLOPT_SSL_VERIFYPEER] = false; //取消验证证书
 
             if(isset($opt['cert']) && isset($opt['key'])){
                 $opt['type'] = isset($opt['type']) ? $opt['type'] : 'PEM';
-                curl_setopt($ch, CURLOPT_SSLCERTTYPE, $opt['type']);
-                curl_setopt($ch, CURLOPT_SSLKEYTYPE, $opt['type']);
-                curl_setopt($ch, CURLOPT_SSLCERT, $opt['cert']);
-                curl_setopt($ch, CURLOPT_SSLKEY, $opt['key']);
+                $options[CURLOPT_SSLCERTTYPE] = $opt['type'];
+                $options[CURLOPT_SSLKEYTYPE] = $opt['type'];
+                $options[CURLOPT_SSLCERT] = $opt['cert'];
+                $options[CURLOPT_SSLKEY] = $opt['key'];
             }
             if(isset($opt['cainfo']) || isset($opt['capath'])){
-                isset($opt['cainfo']) && curl_setopt($ch, CURLOPT_CAINFO , $opt['cainfo']);
-                isset($opt['capath']) && curl_setopt($ch, CURLOPT_CAPATH , $opt['capath']);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+                isset($opt['cainfo']) && $options[CURLOPT_CAINFO] = $opt['cainfo'];
+                isset($opt['capath']) && $options[CURLOPT_CAPATH] = $opt['capath'];
+                $options[CURLOPT_SSL_VERIFYHOST] = 2;
+                $options[CURLOPT_SSL_VERIFYPEER] = true;
             }
         }
 
@@ -135,24 +149,32 @@ class Http
             if (!empty(self::$curlProxy['port'])) {
                 $host .= ':' . self::$curlProxy['port'];
             }
-            curl_setopt($ch, CURLOPT_PROXY, $host);
+            $options[CURLOPT_PROXY] = $host;
             if (isset(self::$curlProxy['user']) && isset(self::$curlProxy['pass'])) {
-                curl_setopt($ch, CURLOPT_PROXYUSERPWD, self::$curlProxy['user'] . ':' . self::$curlProxy['pass']);
+                $options[CURLOPT_PROXYUSERPWD] = self::$curlProxy['user'] . ':' . self::$curlProxy['pass'];
             }
         }
 
+        if (self::$protocol == 1.1) {
+            $options[CURLOPT_HTTP_VERSION] = CURL_HTTP_VERSION_1_1;
+        } elseif (self::$protocol == 2.0) {
+            $options[CURLOPT_HTTP_VERSION] = CURL_HTTP_VERSION_2_0;
+        } else {
+            $options[CURLOPT_HTTP_VERSION] = CURL_HTTP_VERSION_1_0;
+        }
+        if(!empty($opt['redirect'])){ #是否重定向
+            $options[CURLOPT_FOLLOWLOCATION] = true; #302 redirect
+            $options[CURLOPT_MAXREDIRS] = (int)$opt['redirect']; #次数
+        }
+
         $type = strtoupper($type);
+        $options[CURLOPT_CUSTOMREQUEST] = $type;
         switch ($type) {
             case 'GET':
                 if ( $data ) {
                     $data = is_array($data) ? http_build_query($data) : $data;
                     $url = strpos($url, '?') === false ? ($url . '?' . $data) : ($url . '&' . $data);
-                    curl_setopt($ch, CURLOPT_URL, $url);
-                }
-                curl_setopt($ch, CURLOPT_HTTPGET, true);
-                if(!empty($opt['redirect'])){ #是否重定向
-                    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); #302 redirect
-                    curl_setopt($ch, CURLOPT_MAXREDIRS, (int)$opt['redirect']); #次数
+                    $options[CURLOPT_URL] = $url;
                 }
                 break;
             case 'POST':
@@ -171,51 +193,44 @@ class Http
                     }
                     if($toBuild) $data = http_build_query($data);*/
                 }
-                curl_setopt($ch, CURLOPT_POST, true);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+                $options[CURLOPT_POSTFIELDS] = $data;
+                /*
+                //header没有配置Expect时添加 'Expect:' todo
                 //取消 100-continue应答
                 if (is_array($header)) {
                     $header[] = "Expect:";
                 } else {
                     $header .= "\r\nExpect:";
-                }
+                }*/
                 break;
             case 'PATCH':
             case 'PUT':
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $type);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+                $options[CURLOPT_POSTFIELDS] = $data;
                 break;
             case 'DELETE':
-                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
                 break;
             case 'HEAD':
-                curl_setopt($ch, CURLOPT_NOBODY, true); //将不对HTML中的BODY部分进行输出
+                $options[CURLOPT_NOBODY] = true; //将不对HTML中的BODY部分进行输出
                 break;
         }
 
         if(isset($opt['referer'])){
-            curl_setopt($ch, CURLOPT_REFERER, $opt['referer']);
+            $options[CURLOPT_REFERER] = $opt['referer'];
         }
 
-        if (isset($opt['cookie'])) curl_setopt($ch, CURLOPT_COOKIE, $opt['cookie']);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connect_timeout);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, is_string($header) ? explode("\r\n", $header) : $header);
-        curl_setopt($ch, CURLOPT_TIMEOUT_MS, $timeout * 1000);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, $connect_timeout * 1000);
-        //$timeoutRequiresNoSignal = false; $timeoutRequiresNoSignal |= $timeout < 1;
-        if ($timeout < 1 && strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
-            curl_setopt($ch, CURLOPT_NOSIGNAL, true);
-        }
+        $options[CURLOPT_HTTPHEADER] = is_string($header) ? explode("\r\n", $header) : $header;
+        if (isset($opt['cookie'])) $options[CURLOPT_COOKIE] = $opt['cookie'];
 
+        $ch = curl_init();
+        curl_setopt_array($ch, $options);
         //批量配置
         if (isset($opt['opts']) && is_array($opt['opts'])) {
+            curl_setopt_array($ch, $opt['opts']);
+            /*
             foreach ($opt['opts'] as $option => $value) {
                 curl_setopt($ch, $option, $value);
-            }
+            }*/
         }
-        //header没有配置Expect时添加 'Expect:' todo
 
         $result = false;
         if(isset($opt['res'])){
@@ -243,7 +258,10 @@ class Http
         self::$curlErr = '';
         if(curl_errno($ch)){
             self::$curlErr = curl_error($ch);
-            Log::write('err:'. self::$curlErr."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):json_encode($data)):''), 'curl');
+            Log::write('err:'. self::$curlErr."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):toJson($data)):''), 'curl');
+            //Log::write($options, 'options');
+            //Log::write($opt, 'opt');
+            //重试
             if (self::_curlIsRetry($url, self::$curlErr)) {
                 $runRetry = true;
                 if (preg_match('/_retry=(\d)/', $url, $retryMatch)) {
@@ -278,7 +296,9 @@ class Http
             return call_user_func(self::$curlRetryCond, $url, $err);
         }
         //Connection timed out | Operation timed out
-        return strpos($err, ' timed out')!==false || strpos($err, 'Failed to connect') !== false || strpos($err, 'Unknown SSL protocol') !== false;
+        //err:Unknown SSL protocol error in connection to xx.xxx.com:443
+        //SSL read: error:00000000:lib(0):func(0):reason(0), errno 10054
+        return strpos($err, ' timed out') !== false || strpos($err, 'Failed to connect') !== false || strpos($err, 'Unknown SSL protocol') !== false || strpos($err, 'SSL read') !== false;
     }
     //通过socket get数据
     public static function socketGet($url,$timeout=30,$header='')

@@ -488,6 +488,11 @@ class MyRedis
      */
     public $beautify = true;
 
+    //集群配置
+    const REDIS_CLUSTER = 1; //todo 通过redis服务数自动计算槽点  'cluster slots'槽节点信息
+    const PHP_HASH = 2; //todo crc32(key)%n[redis服务数]
+    public $cluster = 0;
+
     /**
      * @var resource redis socket connection
      */
@@ -495,8 +500,10 @@ class MyRedis
     private $_is_mb = false;
     private $_lastCmd = null;
     private $_lastArgs = null;
+    private $_pool = []; //集群时记录的连接
+    private $_connId = null; //指定当前连接id IP:PORT
     /**
-     * @var SplQueue
+     * @var \SplQueue
      */
     private $_commands;
     private $_mode = 0;
@@ -553,16 +560,20 @@ class MyRedis
     /**
      * Establishes a DB connection.
      * It does nothing if a DB connection has already been established.
-     * @throws Exception if connection fails
+     * @throws \Exception if connection fails
      */
     public function open()
     {
+        if ($this->cluster) {
+            if (!$this->_connId) $this->_connId = $this->host . ':' . $this->port;
+            $this->_socket = isset($this->_pool[$this->_connId]) ? $this->_pool[$this->_connId] : false;
+        }
         if ($this->_socket !== false) {
             return;
         }
         set_error_handler(function(){});
         $this->_socket = @stream_socket_client(
-            $this->unixSocket ? 'unix://' . $this->unixSocket : 'tcp://' . $this->host . ':' . $this->port,
+            $this->unixSocket ? 'unix://' . $this->unixSocket : 'tcp://' . ($this->_connId ?: $this->host . ':' . $this->port),
             $errorNumber,
             $errorDescription,
             $this->timeout ? $this->timeout : ini_get('default_socket_timeout'),
@@ -570,6 +581,10 @@ class MyRedis
         );
         restore_error_handler();
         if ($this->_socket) {
+            //集群连接加入连接池
+            if ($this->cluster) {
+                $this->_pool[$this->_connId] = $this->_socket;
+            }
             if ($this->dataTimeout !== null) {
                 stream_set_timeout($this->_socket, $timeout = (int) $this->dataTimeout, (int) (($this->dataTimeout - $timeout) * 1000000));
             }
@@ -580,9 +595,8 @@ class MyRedis
                 $this->executeCommand('SELECT', [$this->database]);
             }
         } else {
-            //Log::ERROR("Failed to open redis connection ($connection): $errorNumber - $errorDescription");
             $message = 'Failed to open redis connection.';
-            throw new Exception($message.$errorDescription, $errorNumber);
+            throw new \Exception($message.$errorDescription, $errorNumber);
         }
     }
 
@@ -592,16 +606,22 @@ class MyRedis
      */
     public function close()
     {
+        //Log::trace('close:'.$this->_connId.'-'.$this->cluster);
         if ($this->_socket !== false) {
             $connection = ($this->unixSocket ?: $this->host . ':' . $this->port) . ', database=' . $this->database;
             Log::trace('Closing DB connection: ' . $connection, __METHOD__);
             try {
                 $this->executeCommand('QUIT');
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 // ignore errors when quitting a closed connection
             }
             fclose($this->_socket);
             $this->_socket = false;
+
+            if ($this->cluster) {
+                unset($this->_pool[$this->_connId]);
+                $this->_connId = null;
+            }
         }
     }
 
@@ -615,7 +635,7 @@ class MyRedis
      * @param string $name name of the missing method to execute
      * @param array $params method call arguments
      * @return array|bool|null|string
-     * @throws Exception
+     * @throws \Exception
      */
     public function __call($name, $params)
     {
@@ -624,7 +644,7 @@ class MyRedis
             $this->_lastArgs = $params;
             return $this->executeCommand($redisCommand, $params);
         } else {
-            throw new Exception('Calling unknown method: ' . get_class($this) . "::$name()");
+            throw new \Exception('Calling unknown method: ' . get_class($this) . "::$name()");
         }
     }
 
@@ -653,7 +673,7 @@ class MyRedis
      *
      * See [redis protocol description](http://redis.io/topics/protocol)
      * for details on the mentioned reply types.
-     * @throws Exception for commands that return [error reply](http://redis.io/topics/protocol#error-reply).
+     * @throws \Exception for commands that return [error reply](http://redis.io/topics/protocol#error-reply).
      */
     public function executeCommand($name, $params = [])
     {
@@ -662,7 +682,7 @@ class MyRedis
         if ($this->_lastCmd == 'MULTI') {
             if (isset($params[0]) && $params[0] == self::PIPELINE) { //管道兼容redis扩展
                 $this->_mode = self::PIPELINE;
-                if (!$this->_commands) $this->_commands = new SplQueue();
+                if (!$this->_commands) $this->_commands = new \SplQueue();
                 return null;
             }
             $this->_mode = self::MULTI;
@@ -719,8 +739,8 @@ class MyRedis
             while ($tries-- > 0) {
                 try {
                     return $this->sendCommandInternal($command, $srcCommand);
-                } catch (Exception $e) {
-                    Log::trace('retries' . $tries . ', ' . $srcCommand . ', ' . $e->getMessage(), 'MyRedis');
+                } catch (\Exception $e) {
+                    Log::trace('retries' . $tries . ', ' . $srcCommand . ', ' . $e->getMessage(), 'Redis');
                     // backup retries, fail on commands that fail inside here
                     $retries = $this->retries;
                     $this->retries = 0; //close方法有调用executeCommand 不设置0会有死循环
@@ -733,11 +753,11 @@ class MyRedis
         return $this->sendCommandInternal($command, $srcCommand);
     }
 
-    private function retryOnceSendCommand($command, $srcCommand, $response=true){
+    private function retryOnceSendCommand(&$command, &$srcCommand, $response=true){
         try {
             return $this->sendCommandInternal($command, $srcCommand, $response);
-        } catch (Exception $e) {
-            Log::trace('retries:' . $e->getMessage(), 'MyRedis');
+        } catch (\Exception $e) {
+            Log::trace('retries:' . $e->getMessage(), 'Redis');
             $this->close();
             $this->open();
         }
@@ -750,29 +770,30 @@ class MyRedis
      * @param $srcCommand
      * @param bool $response
      * @return array|bool|mixed|null
-     * @throws Exception
+     * @throws \Exception
      */
-    private function sendCommandInternal($command, $srcCommand, $response=true)
+    private function sendCommandInternal(&$command, &$srcCommand, $response=true)
     {
         $written = @fwrite($this->_socket, $command);
         if ($written === false) {
-            throw new Exception("Failed to write to socket.\nRedis command was: " . $command);
+            throw new \Exception("Failed to write to socket.\nRedis command was: " . $command);
         }
         if ($written !== ($len = $this->len($command))) {
-            throw new Exception("Failed to write to socket. $written of $len bytes written.\nRedis command was: " . $command);
+            throw new \Exception("Failed to write to socket. $written of $len bytes written.\nRedis command was: " . $command);
         }
-        return $response ? $this->parseResponse($srcCommand) : true;
+        return $response ? $this->parseResponse($command, $srcCommand) : true;
     }
 
     /**
-     * @param string $command
+     * @param $command
+     * @param string $srcCommand
      * @return mixed
-     * @throws Exception on error
+     * @throws \Exception on error
      */
-    public function parseResponse($command='read')
+    public function parseResponse(&$command, &$srcCommand='read')
     {
         if (($line = fgets($this->_socket)) === false) {
-            throw new Exception("Failed to read from socket.\nRedis command was: " . $command);
+            throw new \Exception("Failed to read from socket.\nRedis command was: " . $srcCommand);
         }
         $type = $line[0];
         $line = $this->substr($line, 1, -2);
@@ -784,7 +805,27 @@ class MyRedis
                     return $line;
                 }
             case '-': // Error reply
-                throw new Exception("Redis error: " . $line . "\nRedis command was: " . $command);
+                if (!$this->cluster) {
+                    throw new \Exception("Redis error: " . $line . "\nRedis command was: " . $srcCommand);
+                }
+                Log::trace($line);
+                $details = explode(' ', $line, 2);
+                switch ($details[0]) {
+                    case 'MOVED': //MOVED 7638[slot] 192.168.0.246:6579[connection]
+                        list($slot, $this->_connId) = explode(' ', $details[1], 2);
+                        //连接新节点重新发送命令
+                        $this->open();
+                        return $this->sendCommandInternal($command, $srcCommand);
+                    case 'ASK':
+                        //接到ASK，转向至正在导入槽的目标节点，然后首先向目标节点发送一个ASKING命令，之后再重新发送原本想要执行的命令
+                        list($slot, $this->_connId) = explode(' ', $details[1], 2);
+                        //连接新节点重新发送命令
+                        $this->open();
+                        $this->executeCommand('ASKING');
+                        return $this->sendCommandInternal($command, $srcCommand);
+                    default:
+                        throw new \Exception("Redis error: " . $line . "\nRedis command was: " . $srcCommand);
+                }
             case ':': // Integer reply
                 // no cast to int as it is in the range of a signed 64 bit integer
                 return $line;
@@ -796,7 +837,7 @@ class MyRedis
                 $data = '';
                 while ($length > 0) {
                     if (($block = fread($this->_socket, $length)) === false) {
-                        throw new Exception("Failed to read from socket.\nRedis command was: " . $command);
+                        throw new \Exception("Failed to read from socket.\nRedis command was: " . $srcCommand);
                     }
                     $data .= $block;
                     $length -= $this->len($block);
@@ -813,19 +854,19 @@ class MyRedis
                 if($this->beautify){
                     if($this->_lastCmd=='HGETALL' || ($this->_lastCmd=='ZRANGE' && !empty($this->_lastArgs[3]))){
                         for ($i = 0; $i < $count; $i++) {
-                            $data[$this->parseResponse($command)] = $this->parseResponse($command);
+                            $data[$this->parseResponse($command, $srcCommand)] = $this->parseResponse($command, $srcCommand);
                             $i++;
                         }
                         return $data;
                     }
                 }
-                $data = new SplFixedArray($count);
+                $data = new \SplFixedArray($count);
                 for ($i = 0; $i < $count; $i++) {
-                    $data[$i] = $this->parseResponse($command);
+                    $data[$i] = $this->parseResponse($command, $srcCommand);
                 }
                 return $data;
             default:
-                throw new Exception('Received illegal data from redis: ' . $line . "\nRedis command was: " . $command);
+                throw new \Exception('Received illegal data from redis: ' . $line . "\nRedis command was: " . $srcCommand);
         }
     }
 }
