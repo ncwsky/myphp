@@ -2,6 +2,7 @@
 
 /**
  * Class DecConvert 十进制转换 2-62
+ * 支持 bigint [0-9223372036854775807]，>9223372036854775807的数字需要使用字符串形式
  */
 class DecConvert
 {
@@ -59,7 +60,7 @@ class DecConvert
         }*/
         $ret = '';
         do {
-            #$ret = $dict[$number%$toBase] . $ret;
+            #$ret = $this->dict[$number%$toBase] . $ret;
             #$number = (int)($number/$toBase);
             $ret = $this->dict[bcmod($number, $toBase)] . $ret;
             $number = bcdiv($number, $toBase);
