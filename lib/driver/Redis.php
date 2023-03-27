@@ -493,8 +493,8 @@ class Redis
     public $beautify = true;
 
     //集群配置
-    const REDIS_CLUSTER = 1; //todo 通过redis服务数自动计算槽点
-    const PHP_HASH = 2; //todo crc16(key)%n[redis服务数]
+    const REDIS_CLUSTER = 1; //todo 通过redis服务数自动计算槽点  'cluster slots'槽节点信息
+    const PHP_HASH = 2; //todo crc32(key)%n[redis服务数]
     public $cluster = 0;
 
     /**
@@ -809,10 +809,9 @@ class Redis
                     return $line;
                 }
             case '-': // Error reply
-                /*
                 if (!$this->cluster) {
                     throw new \Exception("Redis error: " . $line . "\nRedis command was: " . $srcCommand);
-                }*/
+                }
                 Log::trace($line);
                 $details = explode(' ', $line, 2);
                 switch ($details[0]) {
@@ -822,10 +821,10 @@ class Redis
                         $this->open();
                         return $this->sendCommandInternal($command, $srcCommand);
                     case 'ASK':
+                        //接到ASK，转向至正在导入槽的目标节点，然后首先向目标节点发送一个ASKING命令，之后再重新发送原本想要执行的命令
                         list($slot, $this->_connId) = explode(' ', $details[1], 2);
                         //连接新节点重新发送命令
                         $this->open();
-                        //接到ASK错误的客户端会根据错误提供的IP地址和端口号，转向至正在导入槽的目标节点，然后首先向目标节点发送一个ASKING命令，之后再重新发送原本想要执行的命令
                         $this->executeCommand('ASKING');
                         return $this->sendCommandInternal($command, $srcCommand);
                     default:
