@@ -187,6 +187,7 @@ class File {
                 foreach ($array as $element) {
                     $columns[] = $element[$column];
                 }
+                return $columns;
             }
         };
 

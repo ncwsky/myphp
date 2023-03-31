@@ -740,8 +740,7 @@ class Db {
 			$bind && $type = $bind;
 			$result = $this->query($sql);
 		}
-		$row = $this->db->fetch_array($result, $type);//无记录返回false
-		return $row;
+		return $this->db->fetch_array($result, $type);//无记录返回false
 	}
 
     /**
@@ -825,9 +824,7 @@ class Db {
         if(strpos($val,' ')){ //有别名
             $val = str_replace(' ',$this->endSpec.' '.$this->startSpec, $val);
         }
-        // ( )
-        $val = $this->startSpec . $val . $this->endSpec;
-        return $val;
+        return $this->startSpec . $val . $this->endSpec;
     }
 
 	//是否给表名增加关键字冲突处理符号
@@ -895,7 +892,7 @@ abstract class TbBase{
         'bit'=>'%b'
     );
 
-    protected  function toType($type){
+    protected function toType($type){
         if(strpos($type,'int')){
             $unsigned = strpos($type, 'un') === 0;
             switch ($type){
