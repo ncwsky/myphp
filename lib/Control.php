@@ -133,8 +133,7 @@ class Control
             throw new \Exception('to json fail');
         }
 
-        $data = $jsonp_call . '(' . $data . ');';
-        return $data;
+        return $jsonp_call . '(' . $data . ');';
     }
     //xml类型输出
     final static function xml($data){
