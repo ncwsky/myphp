@@ -63,6 +63,7 @@ myphp::$classMap = [
     'myphp\Hook' => __DIR__ . '/lib/Hook.php',
     'myphp\Log' => __DIR__ . '/lib/Log.php',
     'myphp\Model' => __DIR__ . '/lib/Model.php',
+    'myphp\Pipeline' => __DIR__ . '/lib/Pipeline.php',
     'myphp\Session' => __DIR__ . '/lib/Session.php',
     'myphp\Template' => __DIR__ . '/lib/Template.php',
     'myphp\View' => __DIR__ . '/lib/View.php',
