@@ -331,8 +331,8 @@ class Db {
             $where = $on;
         }
         $this->_table($tb);
-        if(!$this->fields){
-            $this->fields = '*'; //联合查询 直接使用星号显示所有字段
+        if(!isset($this->options['fields'])){
+            $this->options['fields'] = '*'; //联合查询 直接使用星号显示所有字段
         }
         /*
         $joinTb = $tb;

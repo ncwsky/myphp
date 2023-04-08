@@ -169,7 +169,12 @@ class Helper{
         if ($cPage > $pCount) $cPage = $pCount;
         $prev = $cPage > 1 ? $cPage - 1 : ''; //上一页
         $next = $cPage < $pCount ? $cPage + 1 : ''; //下一页
-        $path = \myphp::env('BASE_URL', '');
+        if (isset($_SERVER['REQUEST_URI'])) {
+            $pos = strpos($_SERVER['REQUEST_URI'], '?');
+            $path = $pos ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI'];
+        } else {
+            $path = isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '');
+        }
         $path = $path != '/' ? rtrim($path, '/') : $path;
         $qstr = !empty($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
         if (strpos($qstr, $pName) !== false) {
