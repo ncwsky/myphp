@@ -387,10 +387,9 @@ final class myphp{
         $uri = $app_root . $basename; //当前URL路径
         //echo 'uri=',$uri,PHP_EOL;
         if ($url_mode == 2) {
-            $_url = $_app = (self::$cfg['url_rewrite'] && $uri == self::$cfg['url_index'] ? '' : $uri) . '/';
+            $_app = (self::$cfg['url_rewrite'] && $uri == self::$cfg['url_index'] ? '' : $uri) . '/';
         } else {
             $_app = $uri;
-            $_url = $_app . '?c=';
         }
         if(!$hasMatch && $url_mode == 2){	//如果Url模式为2，那么就是使用PATH_INFO模式
             $url = $_SERVER["REQUEST_URI"];//获取完整的路径，包含"?"之后的字
@@ -466,12 +465,25 @@ final class myphp{
             self::$cfg['app_res_path'] = $path;
         }
 
+        $_url = $_app;
+        if ($url_mode == 2) {
+            if ($module) $_url .= $module . '/';
+            $_url .= self::$env['c'];
+            $_base_url = $_url . '/' . self::$env['a'];
+        } else {
+            if ($module) {
+                $_url = $_app . '?m=' . $module . '&c=' . self::$env['c'];
+            } else {
+                $_url = $_app . '?c=' . self::$env['c'];
+            }
+            $_base_url = $_url . '&a=' . self::$env['a'];
+        }
         //运行变量
         self::setEnv([
             'URI'=> $uri,
             'APP' => $_app, //相对当前地址的应用入口
-            'URL' => $_url . self::$env['c'], //相对当前地址的url控制
-            'BASE_URL' => $_url . self::$env['c'] . '/' . self::$env['a'],
+            'URL' => $_url, //相对当前地址的url控制
+            'BASE_URL' => $_base_url,
             'CONTROL' => (strpos(self::$env['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['c']), ' ')) : ucfirst(self::$env['c'])) . 'Act',
             'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰  lcfirst首字母转小写
             'MODULE' => $module,
