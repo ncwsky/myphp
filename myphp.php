@@ -175,6 +175,8 @@ final class myphp{
             self::send($e->getMessage() . (self::$cfg['debug'] ? "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : ''), 500);
             Log::Exception($e, false);
         }
+        self::req()->clear();
+        self::res()->clear();
         //重置处理
         self::$cfg = $_init_cfg;
         self::$env = [];
@@ -184,7 +186,7 @@ final class myphp{
     }
 
     /** 输出数据到页面
-     * @param $data
+     * @param mixed|\myphp\Response $data
      * @param int $code
      * @param null $req_cache //缓存配置[键名,缓存时间]
      * @throws Exception
@@ -205,13 +207,17 @@ final class myphp{
             self::conType(Helper::isAjax() ? 'application/json' : 'text/html'); //默认输出类型设置
         }
         if(self::$sendFun===null){
-            if (!IS_CLI) {
-                // 发送状态码
-                self::httpCode($code); #http_response_code($code); #>=5.4
-                // 发送头部信息
-                self::sendHeader();
+            if ($data instanceof \myphp\Response) {
+                $data->send();
+            } else {
+                if (!IS_CLI) {
+                    // 发送状态码
+                    self::httpCode($code); #http_response_code($code); #>=5.4
+                    // 发送头部信息
+                    self::sendHeader();
+                }
+                echo is_string($data) ? $data : Helper::toJson($data);
             }
-            echo is_string($data) ? $data : Helper::toJson($data);
         }else{
             call_user_func(self::$sendFun, $code, $data, self::$header);
         }
@@ -335,22 +341,33 @@ final class myphp{
         self::$header = [];
     }
     //输出头设置
-    public static function setHeader($name, $val=null){
+    public static function setHeader($name, $val=null, $append=false){
         if (is_array($name)) {
             self::$header = array_merge(self::$header, $name);
         } else {
-            self::$header[$name] = $val;
+            if ($val === null) {
+                unset(self::$header[$name]);
+            } else {
+                if ($append) {
+                    if (isset(self::$header[$name])) {
+                        if (!is_array(self::$header[$name])) {
+                            self::$header[$name] = (array)self::$header[$name];
+                        }
+                    } else {
+                        self::$header[$name] = [];
+                    }
+                    self::$header[$name][] = $val;
+                } else {
+                    self::$header[$name] = $val;
+                }
+            }
         }
     }
     public static function rawBody(){
-        if(isset(self::$env['rawBody'])){
-            return self::$env['rawBody'];
-        }
-        self::$env['rawBody'] = file_get_contents("php://input");
-        return self::$env['rawBody'];
+        return self::req()->rawBody();
     }
     public static function setRawBody($rawBody){
-        self::setEnv('rawBody', $rawBody);
+        self::req()->setRawBody($rawBody);
     }
     //输出类型设置
     public static function conType($conType, $charset = '')
@@ -515,7 +532,7 @@ final class myphp{
             self::class_dir($classDir);
             unset($config['class_dir']);
         }
-        self::$cfg = array_merge(self::$cfg, $config);
+        self::$cfg = array_merge(self::$cfg, $config); //array_merge_recursive 可考虑递归合并
     }
 
     // 权限验证处理 在config.php配置中设置开启
@@ -723,6 +740,15 @@ final class myphp{
     public static function app($name, $option=null){
         if(isset(self::$container[$name])) return self::$container[$name];
 
+        $coreApp = [
+            'request' => 'myphp\Request',
+            'response' => 'myphp\Response',
+        ];
+        if (isset($coreApp[$name])) {
+            self::$container[$name] = new $coreApp[$name]();
+            return self::$container[$name];
+        }
+
         $appConf = null;
         $class = $name;
         if($option){
@@ -741,6 +767,32 @@ final class myphp{
 
         self::$container[$name] = $appConf ? new $class($appConf) : new $class();
         return self::$container[$name];
+    }
+
+    /**
+     * @param bool $force
+     * @return \myphp\Request
+     */
+    public static function req($force = false)
+    {
+        $k = 'request';
+        if ($force || !isset(self::$container[$k])) {
+            self::$container[$k] = new \myphp\Request();
+        }
+        return self::$container[$k];
+    }
+
+    /**
+     * @param bool $force
+     * @return \myphp\Response
+     */
+    public static function res($force = false)
+    {
+        $k = 'response';
+        if ($force || !isset(self::$container[$k])) {
+            self::$container[$k] = new \myphp\Response();
+        }
+        return self::$container[$k];
     }
 
     /**
@@ -1130,5 +1182,66 @@ trait MyMsg
             self::msg($msg, $code);
             return false;
         }
+    }
+}
+
+/**
+ * Trait MyBaseObj 基础对象复用
+ */
+trait MyBaseObj{
+    /**
+     * @var array 附加属性
+     */
+    protected $_behavior = [];
+
+    /**
+     * @param $name
+     * @param $value
+     */
+    public function __set($name, $value)
+    {
+        $this->_behavior[$name] = $value;
+    }
+
+    /**
+     * @param $name
+     * @return mixed|null
+     */
+    public function __get($name)
+    {
+        return isset($this->_behavior[$name]) ? $this->_behavior[$name] : null;
+    }
+
+    /**
+     * @param $name
+     * @return bool
+     */
+    public function __isset($name)
+    {
+        return isset($this->_behavior[$name]);
+    }
+
+    /**
+     * @param $name
+     */
+    public function __unset($name)
+    {
+        unset($this->_behavior[$name]);
+    }
+
+    /**
+     * @var static
+     */
+    public static $instance = null;
+
+    /**
+     * @return static
+     */
+    public static function instance()
+    {
+        if (!static::$instance) {
+            self::$instance = new static();
+        }
+        return static::$instance;
     }
 }

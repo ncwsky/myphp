@@ -278,58 +278,26 @@ class Helper{
         return false;
     }
     public static function getSiteUrl(){
-        $scheme = 'http';
-        if (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] == 'https') {
-            $scheme = 'https';
-        } elseif (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
-            $scheme = 'https';
-        }
-        return $scheme . '://' . self::getHost();
+        return Request::siteUrl();
     }
     public static function getHost(){
-        return isset($_SERVER['HTTP_X_FORWARDED_HOST']) ? $_SERVER['HTTP_X_FORWARDED_HOST'] : (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : $_SERVER['SERVER_NAME'] . ($_SERVER['SERVER_PORT'] == '80' || $_SERVER['SERVER_PORT'] == '443' ? '' : ':' . $_SERVER['SERVER_PORT']));
+        return Request::host();
     }
     //获得当前的脚本网址  如/ab.php?b=1
     public static function getUri() {
-        return isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : (isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '')) . (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING']!=='' ? '?' . $_SERVER['QUERY_STRING'] : '');
+        return Request::uri();
     }
     //获取当前页面完整URL地址 如http://xx/a.php?b=1
     public static function getUrl() {
-        return self::getSiteUrl() . self::getUri();
+        return Request::url();
     }
     //来源获取
     public static function getReferer(){
-        return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+        return Request::referer();
     }
     //获取用户真实地址 返回用户ip  type:0 返回IP地址 1 返回IPV4地址数字
     public static function getIp($type=0) {
-        /*static $realIP;
-        if (!IS_CLI && isset($realIP)) {
-            return $realIP[$type == 0 ? 0 : 1];
-        }*/
-        //重置ipv6
-        //if(isset($_SERVER['REMOTE_ADDR']) && filter_var($_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)){
-        //  $_SERVER['REMOTE_ADDR']='127.0.0.1';
-        //}
-        $realIP = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
-        if(self::$isProxy){
-            if (isset($_SERVER['HTTP_X_REAL_IP'])) {
-                $realIP = $_SERVER['HTTP_X_REAL_IP'];
-            } elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) { //有可能被伪装
-                $arr = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-                foreach ($arr as $ip) { //取X-Forwarded-For中第x个非unknown的有效IP字符?
-                    $ip = trim($ip);
-                    if ($ip != 'unknown') {
-                        $realIP = $ip;
-                        break;
-                    }
-                }
-            }
-        }
-        return $type ? sprintf("%u", ip2long($realIP)) : $realIP;
-        //$long = sprintf("%u", ip2long($realIP));
-        //$realIP = $long ? [$realIP, $long] : ['0.0.0.0', 0];
-        //return $realIP[$type == 0 ? 0 : 1];
+        return Request::ip($type ? true : false);
     }
     /**
      * 当前的请求类型
@@ -337,20 +305,20 @@ class Helper{
      */
     public static function getMethod()
     {
-        return isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) ? strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) : (isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET');
+        return Request::method();
     }
     public static function isPost(){
-        return self::getMethod() == 'POST';
+        return Request::isPost();
     }
     public static function isGet(){
-        return self::getMethod() == 'GET';
+        return Request::isGet();
     }
     // 当前是否Ajax请求
     public static function isAjax()
     {
         //跨域情况  // javascript 或 JSONP 格式    //  JSON 格式
         //isset($_SERVER['HTTP_ACCEPT']) && ( $_SERVER['HTTP_ACCEPT']=='text/javascript, application/javascript, */*' || $_SERVER['HTTP_ACCEPT']=='application/json, text/javascript, */*')
-        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+        return Request::isAjax();
     }
     //json_encode 缩写
     public static function toJson($res, $option=0){

@@ -1,40 +1,97 @@
 <?php
 
+/**
+ * Class HttpReqInfo
+ */
 class HttpReqInfo
 {
-    public static $req_header = null;
-    public static $isProxy = false;
+    use MyBaseObj;
 
-    public static function getMethod()
+    /**
+     * @var null|array
+     */
+    public $headers = null;
+
+    public static $isProxy = false;
+    public static $ipHeaders = ['HTTP_X_REAL_IP', 'HTTP_X_FORWARDED_FOR'];
+
+    /**
+     * @var null|string
+     */
+    protected $_rawBody = null;
+
+    /**
+     * 请求方法
+     * @return mixed|string
+     */
+    public static function method()
     {
         return isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) ? strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) : (isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET');
     }
-    public static function isPost(){
-        return self::getMethod() == 'POST';
+
+    /**
+     * @return bool
+     */
+    public static function isPost()
+    {
+        return self::method() == 'POST';
     }
-    public static function isGet(){
-        return self::getMethod() == 'GET';
+
+    /**
+     * @return bool
+     */
+    public static function isGet()
+    {
+        return self::method() == 'GET';
     }
-    // 当前是否Ajax请求
+
+    /**
+     * 当前是否Ajax请求
+     * @return bool
+     */
     public static function isAjax()
     {
         return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
     }
 
-    public static function getSiteUrl(){
+    /**
+     * 获取当前站点地址
+     * @return string
+     */
+    public static function siteUrl()
+    {
         $scheme = 'http';
         if (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] == 'https') {
             $scheme = 'https';
         } elseif (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
             $scheme = 'https';
         }
-        return $scheme . '://' . self::getHost();
+        return $scheme . '://' . self::host();
     }
-    public static function getHost(){
+
+    /**
+     * 获取当前页面完整URL地址 如 http://xxx/a.php?b=1
+     * @return string
+     */
+    public static function url()
+    {
+        return self::siteUrl() . self::uri();
+    }
+
+    /**
+     * 获取主机地址
+     * @return mixed|string
+     */
+    public static function host()
+    {
         return isset($_SERVER['HTTP_X_FORWARDED_HOST']) ? $_SERVER['HTTP_X_FORWARDED_HOST'] : (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : $_SERVER['SERVER_NAME'] . ($_SERVER['SERVER_PORT'] == '80' || $_SERVER['SERVER_PORT'] == '443' ? '' : ':' . $_SERVER['SERVER_PORT']));
     }
 
-    public static function getPathInfo()
+    /**
+     * 获取当前请求路径 如 /ab.php
+     * @return false|mixed|string
+     */
+    public static function pathInfo()
     {
         if (isset($_SERVER['REQUEST_URI'])) {
             $pos = strpos($_SERVER['REQUEST_URI'], '?');
@@ -43,79 +100,178 @@ class HttpReqInfo
         return isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '');
     }
 
-    public static function getUri()
+    /**
+     * 获得当前请求地址  如 /ab.php?b=1
+     * @return mixed|string
+     */
+    public static function uri()
     {
-        return isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : (isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '')) . (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING']!=='' ? '?' . $_SERVER['QUERY_STRING'] : '');
+        return isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : (isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '')) . (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
     }
 
-    public static function getReqHeader($header_name = null, $default = null)
+    /**
+     * 来源获取
+     * @return mixed|string
+     */
+    public static function referer()
     {
-        if (self::$req_header === null) {
-            if (function_exists('getallheaders')) {
-                self::$req_header = getallheaders();
-            } else {
-                foreach ($_SERVER as $name => $value) {
-                    if (strncmp($name, 'HTTP_', 5) === 0) {
-                        $_name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
-                        self::$req_header[$_name] = $value;
-                    } elseif (strncmp($name, 'CONTENT_', 8) === 0) {
-                        $_name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 8)))));
-                        self::$req_header[$_name] = $value;
-                    }
-                }
-                if (!isset(self::$req_header['Authorization'])) {
-                    if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-                        self::$req_header['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
-                    } elseif (isset($_SERVER['PHP_AUTH_DIGEST'])) {
-                        self::$req_header['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
-                    } elseif (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
-                        self::$req_header['Authorization'] = base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $_SERVER['PHP_AUTH_PW']);
+        return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+    }
+
+
+    /**
+     * @return mixed|string
+     */
+    public static function remoteIP()
+    {
+        //重置ipv6
+        //if(isset($_SERVER['REMOTE_ADDR']) && filter_var($_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)){
+        //  $_SERVER['REMOTE_ADDR']='127.0.0.1';
+        //}
+        return isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
+    }
+
+    /**
+     * @return mixed|string
+     */
+    public static function userIP()
+    {
+        //HTTP_X_REAL_IP HTTP_X_FORWARDED_FOR 可能被伪装
+        foreach (self::$ipHeaders as $name) {
+            if (isset($_SERVER[$name])) {
+                $arr = explode(',', $_SERVER[$name]);
+                foreach ($arr as $ip) {
+                    $ip = trim($ip);
+                    if ($ip != 'unknown') {
+                        return $ip;
                     }
                 }
             }
         }
 
-        if ($header_name === null) return self::$req_header;
+        return self::remoteIP();
+    }
+
+    /**
+     * 获取ip
+     * @param bool $number 返回IP地址 true返回IPV4地址数字
+     * @return mixed|string
+     */
+    public static function ip($number = false)
+    {
+        $realIP = self::$isProxy ? self::userIP() : self::remoteIP();
+        return $number ? sprintf("%u", ip2long($realIP)) : $realIP;
+    }
+
+    public function clear()
+    {
+        $this->_rawBody = null;
+        $this->headers = null;
+    }
+
+    /**
+     * @return false|string|null
+     */
+    public function rawBody()
+    {
+        if ($this->_rawBody === null) {
+            $this->_rawBody = file_get_contents("php://input");
+        }
+        return $this->_rawBody;
+    }
+
+    /**
+     * @param null|string $rawBody
+     */
+    public function setRawBody($rawBody)
+    {
+        $this->_rawBody = $rawBody;
+    }
+
+    /**
+     * @param null|string $header_name
+     * @param null|string $default
+     * @return array|false|mixed|null
+     */
+    public function header($header_name = null, $default = null)
+    {
+        if ($this->headers === null) {
+            foreach ($_SERVER as $name => $value) {
+                if (strncmp($name, 'HTTP_', 5) === 0) {
+                    $_name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
+                    $this->headers[$_name] = $value;
+                } elseif (strncmp($name, 'CONTENT_', 8) === 0) {
+                    $_name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 8)))));
+                    $this->headers[$_name] = $value;
+                }
+            }
+            if (!isset($this->headers['Authorization'])) {
+                if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+                    $this->headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+                } elseif (isset($_SERVER['PHP_AUTH_DIGEST'])) {
+                    $this->headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
+                } elseif (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
+                    $this->headers['Authorization'] = base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $_SERVER['PHP_AUTH_PW']);
+                }
+            }
+        }
+
+        if ($header_name === null) return $this->headers;
         if (is_array($header_name)) {
             $values = [];
             foreach ($header_name as $item) {
-                $values[$item] = isset(self::$req_header[$item]) ? self::$req_header[$item] : $default;
+                $values[$item] = isset($this->headers[$item]) ? $this->headers[$item] : $default;
             }
             return $values;
         }
-        return isset(self::$req_header[$header_name]) ? self::$req_header[$header_name] : $default;
+        return isset($this->headers[$header_name]) ? $this->headers[$header_name] : $default;
     }
 
-    public static function getRawBody()
+    /**
+     * @param array $headers
+     */
+    public function setHeaders($headers)
     {
-        static $rawBody;
-        if (isset($rawBody)) {
-            return $rawBody;
-        }
-        $rawBody = file_get_contents("php://input");
-        return $rawBody;
+        $this->headers = $headers;
     }
-    //获取用户真实地址 返回用户ip  type:0 返回IP地址 1 返回IPV4地址数字
-    public static function getIp($type=0){
-        $realIP = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
-        if(self::$isProxy){
-            if (isset($_SERVER['HTTP_X_REAL_IP'])) {
-                $realIP = $_SERVER['HTTP_X_REAL_IP'];
-            } elseif (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) { //有可能被伪装
-                $arr = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-                foreach ($arr as $ip) { //取X-Forwarded-For中第x个非unknown的有效IP字符?
-                    $ip = trim($ip);
-                    if ($ip != 'unknown') {
-                        $realIP = $ip;
-                        break;
-                    }
-                }
-            }
-        }
-        return $type ? sprintf("%u", ip2long($realIP)) : $realIP;
+
+    /**
+     * @param null|string $name
+     * @param null|mixed $default
+     * @return array|mixed|null
+     */
+    public function post($name=null, $default = null)
+    {
+        if ($name === null) return $_POST ?? [];
+        return $_POST[$name] ?? $default;
     }
-    //来源获取
-    public static function getReferer(){
-        return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+
+    /**
+     * @param string $name
+     * @param mixed $val
+     */
+    public function setPost($name, $val)
+    {
+        $_POST[$name] = $val;
+    }
+
+    /**
+     * @param null|string $name
+     * @param null|mixed $default
+     * @return array|mixed|null
+     */
+    public function get($name=null, $default = null)
+    {
+        if ($name === null) return $_GET ?? [];
+        return $_GET[$name] ?? $default;
+    }
+
+    /**
+     * @param string $name
+     * @param mixed $val
+     */
+    public function setGet($name, $val)
+    {
+        $_GET[$name] = $val;
     }
 }

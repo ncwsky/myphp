@@ -96,35 +96,6 @@ myphp::$classMap = [
 //初始框架
 myphp::init(isset($cfg) ? $cfg : null);
 /*---------- 辅助方法 ----------*/
-//获取终端发送的HTTP请求头
-if (!function_exists('getallheaders')) {
-    function getallheaders() {
-        $headers = array();
-        $copy_server = array(
-            'CONTENT_TYPE'   => 'Content-Type',
-            'CONTENT_LENGTH' => 'Content-Length',
-            'CONTENT_MD5'    => 'Content-Md5',
-        );
-        foreach ($_SERVER as $name => $value) {
-            if (strncmp($name, 'HTTP_', 5) === 0) {
-                $_name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
-                $headers[$_name] = $value;
-            } elseif (isset($copy_server[$name])) {
-                $headers[$copy_server[$name]] = $value;
-            }
-        }
-        if(!isset($headers['Authorization'])){
-            if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-                $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
-            } elseif (isset($_SERVER['PHP_AUTH_DIGEST'])) {
-                $headers['Authorization'] = $_SERVER['PHP_AUTH_DIGEST'];
-            } elseif (isset($_SERVER['PHP_AUTH_USER']) && isset($_SERVER['PHP_AUTH_PW'])) {
-                $headers['Authorization'] = base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $_SERVER['PHP_AUTH_PW']);
-            }
-        }
-        return $headers;
-    }
-}
 /**
  * 统计程序运行时间 秒
  * @return string

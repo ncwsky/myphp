@@ -218,6 +218,7 @@ use myphp\Log;
  * @property string $driverName Name of the DB driver. This property is read-only.
  * @property bool $isActive Whether the DB connection is established. This property is read-only.
  */
+#[\AllowDynamicProperties] //自 PHP 8.2.0 起弃用动态属性,可注解标记此类
 class Redis
 {
     /**
