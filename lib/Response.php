@@ -23,6 +23,12 @@ class Response
      */
     public $file = [];
 
+    /**
+     * Response constructor.
+     * @param int $statusCode
+     * @param array $headers
+     * @param mixed|string $body
+     */
     public function __construct($statusCode=200, $headers=[], $body='')
     {
         $this->setStatusCode($statusCode);
@@ -276,8 +282,7 @@ class Response
     protected function sendContent()
     {
         if ($this->stream === null) {
-            echo $this->content;
-
+            echo is_scalar($this->content) ? $this->content : Helper::toJson($this->content);
             return;
         }
 

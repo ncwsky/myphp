@@ -160,7 +160,12 @@ final class myphp{
                  */
                 $instance = new $control();
                 $data = $instance->_run(self::$env['ACTION']);
-                null!==$data && self::send($data, self::$statusCode, $instance->req_cache);
+                if (null !== $data) {
+                    if (!($data instanceof \myphp\Response)) {
+                        //self::res()->withBody($data);
+                    }
+                    self::send($data, self::$statusCode, $instance->req_cache);
+                }
             }
         } catch (\Exception $e) {
             $errCode = $e->getCode();
@@ -216,7 +221,7 @@ final class myphp{
                     // 发送头部信息
                     self::sendHeader();
                 }
-                echo is_string($data) ? $data : Helper::toJson($data);
+                echo is_scalar($data) ? $data : Helper::toJson($data);
             }
         }else{
             call_user_func(self::$sendFun, $code, $data, self::$header);
