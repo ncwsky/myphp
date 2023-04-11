@@ -16,6 +16,8 @@ class Response
      */
     public $stream;
 
+    public $isSent = false;
+
     /**
      * @var array 发送文件信息 [文件路径,起始位置,读取长度]
      */
@@ -247,11 +249,9 @@ class Response
     {
         $this->stream = null;
         $this->content = null;
+        $this->isSent = false;
         $this->file = [];
     }
-
-    public $isSent = false;
-
 
     public function send()
     {
