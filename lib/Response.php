@@ -9,7 +9,7 @@ class Response
     /**
      * @var mixed
      */
-    public $content;
+    public $body;
 
     /**
      * @var resource|array 文件指针资源|[文件指针资源,起始位置,结束位置]
@@ -23,22 +23,37 @@ class Response
      */
     public $file = [];
 
+    const CONTENT_TYPE_JSON = 'application/json';
+    const CONTENT_TYPE_JSONP = 'application/javascript';
+    const CONTENT_TYPE_XML = 'application/xml';
+    const CONTENT_TYPE_HTML = 'text/html';
+
     /**
      * Response constructor.
-     * @param int $statusCode
+     * @param int $code
      * @param array $headers
      * @param mixed|string $body
      */
-    public function __construct($statusCode=200, $headers=[], $body='')
+    public function __construct($code=200, $headers=[], $body='')
     {
-        $this->setStatusCode($statusCode);
-        $this->withHeader($headers);
-        $this->content = $body;
+        $this->setStatusCode($code);
+        $this->withHeaders($headers);
+        $this->body = $body;
     }
 
     public function __toString()
     {
-        return $this->content;
+        return $this->body;
+    }
+
+    /**
+     * @param array $headers
+     * @return $this
+     */
+    public function withHeaders($headers)
+    {
+        \myphp::$header = \array_merge_recursive(\myphp::$header, $headers);
+        return $this;
     }
 
     /**
@@ -124,12 +139,12 @@ class Response
     }
 
     /**
-     * @param mixed $content
+     * @param mixed $body
      * @return $this
      */
-    public function withBody($content)
+    public function withBody($body)
     {
-        $this->content = $content;
+        $this->body = $body;
         return $this;
     }
 
@@ -138,7 +153,7 @@ class Response
      */
     public function getBody()
     {
-        return $this->content;
+        return $this->body;
     }
 
     /**
@@ -241,6 +256,32 @@ class Response
     }
 
     /**
+     * 重定向
+     * @param string $url
+     * @param int $code
+     * @param array $headers
+     * @return $this
+     */
+    public function redirect($url, $code = 302, $headers = [])
+    {
+        if ($url === '') {
+            $url = Request::siteUrl();
+        } elseif ($url[0] === '/') {
+            $url = Request::siteUrl() . $url;
+        } elseif (strpos($url, 'http://') === false || strpos($url, 'https://') === false) {
+            $url = Request::siteUrl() . '/' . $url;
+        }
+
+        //if (IS_CLI || !headers_sent()) { // 如果报头未发送，则发送
+            $headers['Location'] = $url;
+            $this->setStatusCode($code)->withHeaders($headers);
+        /*} else {
+            $this->withBody("<meta http-equiv='Refresh' content='0;URL={$url}'>");
+        }*/
+        return $this;
+    }
+
+    /**
      * @param string $name
      * @param string $value
      * @return $this
@@ -254,7 +295,7 @@ class Response
     public function clear()
     {
         $this->stream = null;
-        $this->content = null;
+        $this->body = null;
         $this->isSent = false;
         $this->file = [];
     }
@@ -269,7 +310,7 @@ class Response
             \myphp::httpCode(\myphp::$statusCode);
             $this->sendHeaders();
         }
-        $this->sendContent();
+        $this->sendBody();
         $this->clear();
         $this->isSent = true;
     }
@@ -279,10 +320,10 @@ class Response
         \myphp::sendHeader();
     }
     //输出内容
-    protected function sendContent()
+    protected function sendBody()
     {
         if ($this->stream === null) {
-            echo is_scalar($this->content) ? $this->content : Helper::toJson($this->content);
+            echo is_scalar($this->body) ? $this->body : Helper::toJson($this->body);
             return;
         }
 

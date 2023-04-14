@@ -44,8 +44,8 @@ return array(
         // 'prefix' => 'my_', //用于非file方式的名前缀
         // 'expire' => 1440, //默认有效期
 	),*/
-    'req_cache' =>	 false, //请求缓存 true
-    'req_cache_expire' => null, //请求缓存时间 秒 3600
+    'req_cache' => false, //请求缓存 true
+    'req_cache_expire' => 3600, //请求缓存时间 默认过期时间 秒
     'req_cache_except' => array(), //请求缓存排除项 ['/index/reg',  '/index/login']
     'jsonp_call'=>'callback', //JSONP处理方法 url请求传递此值可指定处理方法 否则默认此值
 	'root_dir' => null,//相对根目录 未设置时自动获取 结尾不要"/"
@@ -78,12 +78,16 @@ return array(
     'cookie_secure' => false, // cookie安全传输
     'cookie_httponly' => true, // httponly设置
     'cookie_same_site' => false,
+    //中间件
+    'middleware' => [
+        //'xx::class', ...
+    ],
 	//权限验证
 	'auth_on' => false, //默认关闭
-	'auth_model' => 'user',//验证模块 
+	'auth_model' => '\myphp\BaseAuth',//验证模块
 	'auth_action' => 'check',//验证动作方法
-	'auth_login' => 'chkLogin',//登陆验证的动作方法
-	'auth_gateway'=> '/admin.php/index/login',//默认验证网关    ------------ 以下权限设置 优先级从上到下 ------------------------
+	'auth_login' => 'isLogin',//登陆验证的动作方法
+	'auth_gateway'=> '',//默认登录网关 如/index/login    ------------ 以下权限设置 优先级从上到下 ------------------------
 	'auth_model_not' => '',//无需验证的模块，多个","分隔  用前后布置，包含  ,index,
 	'auth_model_action' => '',//无需验证的模块中需要验证的动作  //,index/index,index/info,
 	'auth_action_not' => '',//无需验证的动作，多个","分隔 格式：控制器/方法名

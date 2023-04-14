@@ -5,7 +5,8 @@ namespace myphp;
 class Control
 {
     protected $view = null; //模板实例
-    public $req_cache = null; //输出缓存配置 见myphp->req_cache
+    public $response = null;
+    public $request = null;
 
     const CODE_OK = 0; //成功
     const CODE_FAIL = 1; //失败
@@ -44,6 +45,8 @@ class Control
     //构造方法，实例化视图
     public function __construct()
     {
+        $this->response = \myphp::res();
+        $this->request = \myphp::req();
         $this->view = View::getInstance(\myphp::env('VIEW_PATH'), \myphp::env('CACHE_PATH'));
         $this->_init();
     }
@@ -73,9 +76,7 @@ class Control
     {
         //判断实例中是否存在action方法，不存在则提示错误
         if (!method_exists($this, $action)) throw new \Exception('method not exists ' . $action, 404);
-        //todo 前置操作定义处理
-        $this->req_cache = null;
-
+        //前后置操作处理
         return $this->_before() ? $this->_after($this->$action()) : null;
     }
 
@@ -86,9 +87,9 @@ class Control
     }
     //启用输出缓存
     final function cache($expire=0){
-        if($expire!==null){ //如果req_cache_except设置项包含此请求则缓存无效
-            if($expire==0) $expire = 2592000; //客户端缓存一月
-            $this->req_cache = array(true,(int)$expire);
+        if ($expire !== null) { //如果req_cache_except设置项包含此请求则缓存无效
+            if ($expire == 0) $expire = 2592000; //客户端缓存一月
+            $this->request->expire = (int)$expire;
         }
         return $this;
     }
@@ -98,48 +99,76 @@ class Control
         \myphp::conType('text/html');
         $this->view->display($file, $var);
     }
-    //在子类控制器及方法中调用 取得页面内容
+
+    /**
+     * 在子类控制器及方法中调用 取得页面内容
+     * @param string $file
+     * @param null $var
+     * @return Response
+     */
     final function fetch($file = '', $var=null)
     {
-        \myphp::conType('text/html');
-        return $this->view->fetch($file, $var);
+        $this->response->body = $this->view->fetch($file, $var);
+        return $this->response->setContentType(Response::CONTENT_TYPE_HTML);
+        //\myphp::conType('text/html');
+        //return $this->view->fetch($file, $var);
     }
     final static function redirect($url, $code=302){
-        // 如果报头未发送，则发送
-        if (IS_CLI || !headers_sent()) {// redirect
-            \myphp::$statusCode = $code;
-            \myphp::setHeader('Location', $url);
-            return '';
-        } else {
-            return "<meta http-equiv='Refresh' content='0;URL={$url}'>";
-        }
+        return \myphp::res()->redirect($url, $code);
     }
-    //在子类控制器及方法中调用 取得页面内容
+
+    /**
+     * html内容
+     * @param $data
+     * @return Response
+     */
     final static function html($data)
     {
-        \myphp::conType('text/html');
-        return $data;
+        \myphp::res()->body = $data;
+        return \myphp::res()->setContentType(Response::CONTENT_TYPE_HTML);
+        //\myphp::conType('text/html');
+        //return $data;
     }
-    //json类型输出
-    final static function json($data){
-        \myphp::conType('application/json');
-        return Helper::toJson($data);
-    }
-    //jsonp类型输出
-    final static function jsonp($data){
-        \myphp::conType('application/javascript');
 
+    /**
+     * json类型输出
+     * @param $data
+     * @return Response
+     */
+    final static function json($data){
+        \myphp::res()->body = Helper::toJson($data);
+        return \myphp::res()->setContentType(Response::CONTENT_TYPE_JSON);
+        //\myphp::conType('application/json');
+        //return Helper::toJson($data);
+    }
+
+    /**
+     * jsonp类型输出
+     * @param $data
+     * @return Response
+     * @throws \Exception
+     */
+    final static function jsonp($data){
         $jsonp_call = isset($_GET[\myphp::$cfg['jsonp_call']])?$_GET[\myphp::$cfg['jsonp_call']]:\myphp::$cfg['jsonp_call'];
         $data = Helper::toJson($data);
         if ($data === false) {
-            throw new \Exception('to json fail');
+            throw new \Exception('Invalid JSONP');
         }
-
-        return $jsonp_call . '(' . $data . ');';
+        \myphp::res()->body = $jsonp_call . '(' . $data . ');';
+        return \myphp::res()->setContentType(Response::CONTENT_TYPE_JSONP);
+        //\myphp::conType('application/javascript');
+        //return $jsonp_call . '(' . $data . ');';
     }
-    //xml类型输出
+
+    /**
+     * xml类型输出
+     * @param $data
+     * @return Response
+     */
     final static function xml($data){
-        \myphp::conType('application/xml');
-        return Helper::toXml($data);
+        \myphp::res()->body = Helper::toXml($data);
+        return \myphp::res()->setContentType(Response::CONTENT_TYPE_XML);
+        //\myphp::conType('application/xml');
+        //return Helper::toXml($data);
     }
 }

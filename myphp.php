@@ -5,14 +5,18 @@ use myphp\Log;
 
 final class myphp{
     use MyMsg;
-    public static $beforeFun = null; //Control_run之前的前置处理回调 \Closure()
+    public static $beforeFun = null; //Control_run之前的处理回调 \Closure()
     public static $authFun = null; //验证回调方法 \Closure
     public static $sendFun = null; //自定义输出处理 \Closure($code, $data, $header)
     public static $lang = [];
     public static $env = []; //Run执行时的环境值 array
     public static $header = [];
     public static $statusCode = 200;
-    private static $req_cache = null;
+    /**
+     * @var \myphp\Pipeline
+     */
+    public static $pipe = null;
+    private static $req_cache = null; //请求缓存配置 [key,expire]
     private static $container = []; //容器
 
     //自动载入配置项
@@ -142,31 +146,43 @@ final class myphp{
         self::init_app($isCli);
         self::$sendFun = $sendFun;
         try {
-            if(self::$beforeFun instanceof \Closure){ //前置处理
-                call_user_func(self::$beforeFun);
+            //前置处理
+            if(self::$beforeFun instanceof \Closure){
+                array_unshift(self::$cfg['middleware'], function($request, $next){
+                    $data = call_user_func(self::$beforeFun);
+                    if ($data instanceof \myphp\Response) return $data;
+                    return $next($request);
+                });
+                //$data = call_user_func(self::$beforeFun);
             }
-            if(self::$authFun instanceof \Closure){ //权限验证处理
-                call_user_func(self::$authFun);
-            }else{
-                self::Auth();
-            }
-            //转驼峰 控制器的类名
-            $control = self::$env['app_namespace'] . '\\control\\' . self::$env['CONTROL'];
-            if (!class_exists($control)) throw new \Exception('class not exists ' . $control, 404);
-            // 请求缓存检查
-            if(!self::reqCache(self::$cfg['req_cache'], self::$cfg['req_cache_expire'], self::$cfg['req_cache_except'])){
-                /**
-                 * @var \myphp\Control $instance
-                 */
-                $instance = new $control();
-                $data = $instance->_run(self::$env['ACTION']);
-                if (null !== $data) {
-                    if (!($data instanceof \myphp\Response)) {
-                        //self::res()->withBody($data);
-                    }
-                    self::send($data, self::$statusCode, $instance->req_cache);
+            //权限验证处理
+            array_unshift(self::$cfg['middleware'], function($request, $next){
+                $data = self::$authFun instanceof \Closure ? call_user_func(self::$authFun) : self::Auth();
+                if ($data instanceof \myphp\Response) return $data;
+                return $next($request);
+            });
+            //$data = self::$authFun instanceof \Closure ? call_user_func(self::$authFun) : self::Auth();
+            self::$cfg['middleware'][] = function () {
+                // 请求缓存处理
+                $data = self::reqCache();
+                if (false === $data) {
+                    //转驼峰 控制器的类名
+                    $control = self::$env['app_namespace'] . '\\control\\' . self::$env['CONTROL'];
+                    if (!class_exists($control)) throw new \Exception('class not exists ' . $control, 404);
+                    /**
+                     * @var \myphp\Control $instance
+                     */
+                    $instance = new $control();
+                    $data = $instance->_run(self::$env['ACTION']);
                 }
-            }
+                null !== $data && self::send($data, self::$statusCode, self::req()->expire);
+                return;
+            };
+            self::$pipe->send(self::req())->through(self::$cfg['middleware'])->then(function ($data){
+                if ($data instanceof \myphp\Response) {
+                    self::send($data, self::$statusCode);
+                }
+            });
         } catch (\Exception $e) {
             $errCode = $e->getCode();
             //匹配状态码时 //$errCode==404 || $errCode==200
@@ -193,38 +209,35 @@ final class myphp{
     /** 输出数据到页面
      * @param mixed|\myphp\Response $data
      * @param int $code
-     * @param null $req_cache //缓存配置[键名,缓存时间]
+     * @param int $expire //请求缓存时间
      * @throws Exception
      */
-    public static function send($data, $code=200, $req_cache=null){
+    public static function send($data, $code=200, $expire=0){
+        //非response处理
+        if (!($data instanceof \myphp\Response)) {
+            self::$statusCode = $code;
+            self::res()->body = $data;
+            $data = self::res();
+        }
+        //有请求缓存设置
+        if (200 == $code && self::$req_cache) {
+            if ($expire > 0) self::$req_cache[1] = $expire;
+            self::$header['Cache-Control'] = 'max-age=' . self::$req_cache[1] . ',must-revalidate';
+            self::$header['Last-Modified'] = gmdate('D, d M Y H:i:s') . ' GMT';
+            self::$header['Expires'] = gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME'] + self::$req_cache[1]) . ' GMT';
+            //缓存内容和输出头
+            self::$cfg['cache'] && self::cache()->set(self::$req_cache[0], [$data->body, self::$header], self::$req_cache[1]);
+        }
+        //默认输出类型设置
+        if(!isset(self::$header['Content-Type'])){
+            self::conType(Helper::isAjax() ? 'application/json' : 'text/html');
+        }
         // 监听res_send
         \myphp\Hook::listen('res_send', $data);
-        if (200 == $code) {
-            if($req_cache===null) $req_cache = self::$req_cache;
-            if ($req_cache) {
-                self::$header['Cache-Control'] = 'max-age=' . $req_cache[1] . ',must-revalidate';
-                self::$header['Last-Modified'] = gmdate('D, d M Y H:i:s') . ' GMT';
-                self::$header['Expires'] = gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME'] + $req_cache[1]) . ' GMT';
-                self::$cfg['cache'] && self::cache()->set($req_cache[0], [$data, self::$header], $req_cache[1]); //缓存内容和输出头
-            }
-        }
-        if(!isset(self::$header['Content-Type'])){
-            self::conType(Helper::isAjax() ? 'application/json' : 'text/html'); //默认输出类型设置
-        }
-        if(self::$sendFun===null){
-            if ($data instanceof \myphp\Response) {
-                $data->send();
-            } else {
-                if (!IS_CLI) {
-                    // 发送状态码
-                    self::httpCode($code); #http_response_code($code); #>=5.4
-                    // 发送头部信息
-                    self::sendHeader();
-                }
-                echo is_scalar($data) ? $data : Helper::toJson($data);
-            }
-        }else{
-            call_user_func(self::$sendFun, $code, $data, self::$header);
+        if (self::$sendFun === null) {
+            $data->send();
+        } else {
+            call_user_func_array(self::$sendFun, [$code, &$data, &self::$header]);
         }
         // 监听res_end
         \myphp\Hook::listen('res_end', $data);
@@ -232,22 +245,18 @@ final class myphp{
 
     /**
      * 请求缓存处理
-     * @param $req_cache
-     * @param null $expire
-     * @param array $except
-     * @return bool
+     * @return false|\myphp\Response
      * @throws Exception
      */
-    private static function reqCache($req_cache, $expire = null, $except = []){
+    private static function reqCache(){
         self::$req_cache = null;
         if(!Helper::isGet()) return false;
 
         //有客户端缓存
-        if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) && (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) + $expire > $_SERVER['REQUEST_TIME'])) {
-            self::send('',304);
-            return true;
+        if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) && (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) + self::$cfg['req_cache_expire'] > $_SERVER['REQUEST_TIME'])) {
+            return new \myphp\Response(304);
         }
-        //有启用缓存
+        //有启用缓存配置
         if (self::$cfg['cache']){
             $reqKey = 'req';
             foreach ($_GET as $v){
@@ -256,17 +265,19 @@ final class myphp{
             //有页面缓存
             if($res = self::cache()->get($reqKey)) {
                 if($res[1]) self::setHeader($res[1]);
-                self::send($res[0],200);
-                return true;
+                self::res()->body = $res[0];
+                return self::res()->setStatusCode(200);
             }
         }
-        //不使用缓存
-        if (false === $req_cache || false === $expire) return false;
+
+        //不使用请求缓存
+        if(false === self::$cfg['req_cache']) return false;
 
         //使用缓存
-        if (true === $req_cache) {
+        if (true === self::$cfg['req_cache']) {
             $ca = '/' . self::$env['c'] . '/' . self::$env['a'];
-            foreach ($except as $rule) {
+            //需要排除的请求项
+            foreach (self::$cfg['req_cache_except'] as $rule) {
                 if (0 === stripos($ca, $rule)) {
                     return false;
                 }
@@ -278,11 +289,11 @@ final class myphp{
                     $reqKey .= '_' . str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], '', $v);
                 }
             }
-        } elseif ($req_cache instanceof \Closure) {
-            $reqKey = call_user_func_array($req_cache, $_GET);
+        } elseif (self::$cfg['req_cache'] instanceof \Closure) { //自定义请求缓存键名处理
+            $reqKey = call_user_func_array(self::$cfg['req_cache'], $_GET);
         }
         if (isset($reqKey)) {
-            self::$req_cache = array($reqKey, $expire); //记录缓存键名 过期时间 用于send
+            self::$req_cache = array($reqKey, self::$cfg['req_cache_expire']); //记录缓存键名 默认过期时间 用于send
         }
         return false;
     }
@@ -377,7 +388,7 @@ final class myphp{
     //输出类型设置
     public static function conType($conType, $charset = '')
     {
-        self::$header['Content-Type'] = $conType . '; charset=' . ($charset ? $charset : self::$cfg['charset']);
+        self::$header['Content-Type'] = $conType . '; charset=' . ($charset ?: self::$cfg['charset']);
     }
     /*
     url模式：分隔符 "-"
@@ -532,15 +543,29 @@ final class myphp{
         if(!is_file($module_path . '/config.php')) return;
 
         $config = require($module_path . '/config.php');
+        //指定目录
         if(isset($config['class_dir'])){
             $classDir = is_array($config['class_dir']) ? $config['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, $config['class_dir']));
             self::class_dir($classDir);
             unset($config['class_dir']);
         }
+        //中间件
+        if (!empty($config['middleware'])) {
+            if (!self::$cfg['middleware']) {
+                self::$cfg['middleware'] = (array)$config['middleware'];
+            } else {
+                self::$cfg['middleware'] = array_merge(self::$cfg['middleware'], (array)$config['middleware']);
+            }
+            unset($config['middleware']);
+        }
+
         self::$cfg = array_merge(self::$cfg, $config); //array_merge_recursive 可考虑递归合并
     }
 
-    // 权限验证处理 在config.php配置中设置开启
+    /**
+     * 权限验证处理 在config.php配置中设置开启
+     * @return \myphp\Response|mixed|void
+     */
     public static function Auth(){
         if(!self::$cfg['auth_on']) return;
         $auth_class = self::$cfg['auth_model'];
@@ -560,21 +585,22 @@ final class myphp{
             return;
         }
 
-        if (!class_exists($auth_class)) throw new \Exception('class not exists ' . $auth_class, 404);
+        //if (!class_exists($auth_class)) throw new \Exception('class not exists ' . $auth_class, 404);
 
         $auth = self::app($auth_class);	//引入权限验证类
-        if(!method_exists($auth, $auth_action)) throw new \Exception('auth method not found! ' . $auth_action, 404);
+        //if(!method_exists($auth, $auth_action)) throw new \Exception('auth method not found! ' . $auth_action, 404);
 
         //仅登陆验证
         if(strpos( self::$cfg['auth_login_model'] , ','.$c.',')!==false || strpos( self::$cfg['auth_login_action'] , ','.$c.'/'.$a.',')!==false){
             if(!$auth->$auth_login()) {
                 $redirect = (strpos(self::$cfg['auth_gateway'], 'http') === 0 ? '' : ROOT_DIR) . self::$cfg['auth_gateway'];
                 if (!Helper::isAjax() || $c == self::$cfg['def_control']) {
-                    //\myphp::$statusCode = 302;
-                    \myphp::setHeader('Location', $redirect);
-                    throw new \Exception('', 302);
+                    return self::res()->redirect($redirect);
+                    #\myphp::setHeader('Location', $redirect);
+                    #throw new \Exception('', 302);
                 }
-                throw new \Exception(Helper::outMsg('你未登录,请先登录!', $redirect), 200);
+                return self::res()->withBody(Helper::outMsg('你未登录,请先登录!', $redirect));
+                //throw new \Exception(Helper::outMsg('你未登录,请先登录!', $redirect), 200);
             }
             //验证此模块中需要验证的动作
             if(self::$cfg['auth_login_M_A']=='') return;
@@ -582,7 +608,7 @@ final class myphp{
                 return;
             }
         }
-        $auth->$auth_action();	//启动验证方法
+        return $auth->$auth_action(); //启动验证方法
     }
 
     // app项目初始化
@@ -697,6 +723,7 @@ final class myphp{
                 self::sendHeader();
             }
         }
+        self::$pipe = new \myphp\Pipeline();
     }
     //php代码格式化
     public static function compile($filename) {
@@ -775,26 +802,24 @@ final class myphp{
     }
 
     /**
-     * @param bool $force
      * @return \myphp\Request
      */
-    public static function req($force = false)
+    public static function req()
     {
         $k = 'request';
-        if ($force || !isset(self::$container[$k])) {
+        if (!isset(self::$container[$k])) {
             self::$container[$k] = new \myphp\Request();
         }
         return self::$container[$k];
     }
 
     /**
-     * @param bool $force
      * @return \myphp\Response
      */
-    public static function res($force = false)
+    public static function res()
     {
         $k = 'response';
-        if ($force || !isset(self::$container[$k])) {
+        if (!isset(self::$container[$k])) {
             self::$container[$k] = new \myphp\Response();
         }
         return self::$container[$k];
@@ -1145,25 +1170,6 @@ final class myphp{
 }
 //异常类
 class myException extends Exception{}
-//配置处理类
-class Config{
-    //载入配置
-    public static function load($file){
-        myphp::set(include $file);
-    }
-    //获取配置值 支持二维数组
-    public static function get($name, $defVal = null){
-        return myphp::get($name, $defVal);
-    }
-    //动态设置配置值
-    public static function set($name, $val=null){
-        myphp::set($name, $val);
-    }
-    //删除配置
-    public static function del($name){
-        myphp::del($name);
-    }
-}
 //消息复用
 trait MyMsg
 {

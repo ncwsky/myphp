@@ -73,16 +73,16 @@ class Pipeline
     {
         $pipeline = array_reduce(
             array_reverse($this->pipes),
-            function ($stack, $pipe) { //$stack上一次的迭代, $pipe当前的迭代
-                return function ($passable) use ($stack, $pipe) {
+            function ($carry, $pipe) { //$carry上一次迭代的返回值, $pipe本次迭代的值,
+                return function ($passable) use ($carry, $pipe) {
                     try {
                         if (is_callable($pipe)) {
-                            return $pipe($passable, $stack);
+                            return $pipe($passable, $carry);
                         } else {
                             if (!is_object($pipe)) {
                                 $pipe = new $pipe();
                             }
-                            return call_user_func([$pipe, $this->method], $passable, $stack);
+                            return $pipe->{$this->method}($passable, $carry);
                         }
                     } catch (\Throwable $e) {
                         return $this->handleException($passable, $e);
