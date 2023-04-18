@@ -221,7 +221,6 @@ final class myphp{
         //有请求缓存设置
         if (200 == $code && self::$req_cache) {
             if ($expire > 0) self::$req_cache[1] = $expire;
-            Log::write(self::$req_cache, 'xx');
             self::$header['Cache-Control'] = 'max-age=' . self::$req_cache[1] . ',must-revalidate';
             self::$header['Last-Modified'] = gmdate('D, d M Y H:i:s') . ' GMT';
             self::$header['Expires'] = gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME'] + self::$req_cache[1]) . ' GMT';
@@ -251,25 +250,6 @@ final class myphp{
     private static function reqCache(){
         self::$req_cache = null;
         if(!Helper::isGet()) return false;
-
-        //有客户端缓存
-        if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) && (strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) + self::$cfg['req_cache_expire'] > $_SERVER['REQUEST_TIME'])) {
-            return new \myphp\Response(304);
-        }
-        //有启用缓存配置
-        if (self::$cfg['cache']){
-            $reqKey = 'req';
-            foreach ($_GET as $v){
-                $reqKey .= '_'.str_replace(['\\','/',':','*','?','"','<','>','|'],'',$v);
-            }
-            //有页面缓存
-            if($res = self::cache()->get($reqKey)) {
-                if($res[1]) self::setHeader($res[1]);
-                self::res()->body = $res[0];
-                return self::res()->setStatusCode(200);
-            }
-        }
-
         //不使用请求缓存
         if(false === self::$cfg['req_cache']) return false;
 
@@ -293,6 +273,16 @@ final class myphp{
             $reqKey = call_user_func_array(self::$cfg['req_cache'], $_GET);
         }
         if (isset($reqKey)) {
+            //有启用缓存配置
+            if (self::$cfg['cache']){
+                //有页面缓存
+                if($res = self::cache()->get($reqKey)) {
+                    self::setHeader($res[1]);
+                    self::res()->body = $res[0];
+                    return self::res()->setStatusCode(200);
+                }
+            }
+
             self::$req_cache = array($reqKey, self::$cfg['req_cache_expire']); //记录缓存键名 默认过期时间 用于send
         }
         return false;

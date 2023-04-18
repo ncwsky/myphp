@@ -87,10 +87,7 @@ class Control
     }
     //启用输出缓存
     final function cache($expire=0){
-        if ($expire !== null) { //如果req_cache_except设置项包含此请求则缓存无效
-            if ($expire == 0) $expire = 2592000; //客户端缓存一月
-            $this->request->expire = (int)$expire;
-        }
+        $this->request->expire = (int)$expire; //0使用默认配置req_cache_expire
         return $this;
     }
     //在子类控制器及方法中调用 显示模板

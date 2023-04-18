@@ -2,8 +2,10 @@
 namespace myphp\cache;
 
 //文件缓存类
+use myphp\Log;
+
 class File extends \myphp\CacheAbstract{
-    public $gcProbability = 10; //1000000次设置有10次机率触发垃圾回收
+    public $gcProbability = 10; //100000次设置有10次机率触发垃圾回收
     public $suffix = '.php';
 	//配置
     protected $options = array(
@@ -319,7 +321,7 @@ class File extends \myphp\CacheAbstract{
 	}
     public function gc($force = false, $expiredOnly = true)
     {
-        if ($force || mt_rand(0, 1000000) < $this->gcProbability) {
+        if ($force || mt_rand(0, 100000) < $this->gcProbability) {
             Log::INFO('cache gc:' . ($force ? 'force' : 'probability'));
             $this->gcRecursive($this->options['path'], $expiredOnly);
         }
