@@ -182,10 +182,12 @@ class HttpReqInfo
 
     /**
      * @param null|string $rawBody
+     * @return $this
      */
     public function setRawBody($rawBody)
     {
         $this->_rawBody = $rawBody;
+        return $this;
     }
 
     /**
@@ -196,12 +198,15 @@ class HttpReqInfo
     public function header($header_name = null, $default = null)
     {
         if ($this->headers === null) {
+            $upper = '_ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            $lower = ' abcdefghijklmnopqrstuvwxyz';
+            //首字母大写
             foreach ($_SERVER as $name => $value) {
                 if (strncmp($name, 'HTTP_', 5) === 0) {
-                    $_name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
+                    $_name = strtr(ucwords(strtr(substr($name, 5), $upper, $lower)),' ', '-');
                     $this->headers[$_name] = $value;
                 } elseif (strncmp($name, 'CONTENT_', 8) === 0) {
-                    $_name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 8)))));
+                    $_name = strtr(ucwords(strtr(substr($name, 8), $upper, $lower)),' ', '-');
                     $this->headers[$_name] = $value;
                 }
             }
@@ -228,11 +233,40 @@ class HttpReqInfo
     }
 
     /**
-     * @param array $headers
+     * 设置指定请求头信息
+     * @param $name
+     * @param $value
+     * @return $this
+     */
+    public function setHeader($name, $value)
+    {
+        //首字母大写
+        $name = strtr(ucwords(strtr($name, '-', ' ')), ' ', '-');
+        if (isset($this->headers[$name])) {
+            if (!is_array($this->headers[$name])) {
+                $this->headers[$name] = [$this->headers[$name]];
+            }
+            $this->headers[$name][] = $value;
+        } else {
+            $this->headers[$name] = $value;
+        }
+        return $this;
+    }
+
+    /**
+     * 设置请求头信息
+     * @param $headers
+     * @return $this
      */
     public function setHeaders($headers)
     {
-        $this->headers = $headers;
+        $this->headers = [];
+        //首字母大写
+        foreach ($headers as $name => $value) {
+            $name = strtr(ucwords(strtr($name, '-', ' ')), ' ', '-');
+            $this->headers[$name] = $value;
+        }
+        return $this;
     }
 
     /**
@@ -249,10 +283,12 @@ class HttpReqInfo
     /**
      * @param string $name
      * @param mixed $val
+     * @return $this
      */
     public function setPost($name, $val)
     {
         $_POST[$name] = $val;
+        return $this;
     }
 
     /**
@@ -269,9 +305,11 @@ class HttpReqInfo
     /**
      * @param string $name
      * @param mixed $val
+     * @return $this
      */
     public function setGet($name, $val)
     {
         $_GET[$name] = $val;
+        return $this;
     }
 }

@@ -213,7 +213,7 @@ final class myphp{
      */
     public static function send($res, $code=200, $expire=0){
         //非response处理
-        if (!($res instanceof \myphp\Response)) {
+        if (! $res instanceof \myphp\Response) {
             self::$statusCode = $code;
             self::res()->body = $res;
             $res = self::res();
