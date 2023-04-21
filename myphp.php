@@ -327,7 +327,7 @@ final class myphp{
     public static function httpCode($code=200){
         if(!isset(self::$httpCodeStatus[$code])) $code=200;
         $msg = self::$httpCodeStatus[$code];
-        $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.0');
+        $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1');
         header($protocol.' '.$code.' '.$msg);
     }
     //http头输出

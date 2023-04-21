@@ -15,7 +15,7 @@ class Response
      * @var resource|array 文件指针资源|[文件指针资源,起始位置,结束位置]
      */
     public $stream;
-
+    public $steamLimit = 0; //限制每秒读取大小 单位KB 0不限制
     public $isSent = false;
 
     /**
@@ -176,7 +176,9 @@ class Response
      */
     public function sendFile($filePath, $attachmentName = null, $options = [])
     {
-        $this->file = [$filePath, 0, -1];
+        if (!is_file($filePath)) {
+            throw new \InvalidArgumentException('file does not exist', 404);
+        }
         if (!isset($options['mimeType'])) {
             $options['mimeType'] = self::minMimeType($filePath);
         }
@@ -184,8 +186,8 @@ class Response
             $attachmentName = basename($filePath);
         }
         $handle = fopen($filePath, 'rb');
+        $this->file = [$filePath, 0, -1];
         $this->sendStreamAsFile($handle, $attachmentName, $options);
-
         return $this;
     }
 
@@ -198,6 +200,9 @@ class Response
      */
     public function sendStreamAsFile($handle, $filename, $options = [])
     {
+        if (!is_resource($handle)) {
+            throw new \InvalidArgumentException('Stream must be a resource');
+        }
         if (isset($options['fileSize'])) {
             $fileSize = $options['fileSize'];
         } else {
@@ -223,8 +228,10 @@ class Response
         $this->setDownloadHeaders($filename, $mimeType, !empty($options['inline']), $length);
 
         $this->stream = [$handle, $begin, $end];
-        $this->file[1] = $begin;
-        $this->file[2] = $length;
+        if ($this->file) { //是文件 记录起始和读取长度
+            $this->file[1] = $begin;
+            $this->file[2] = $length;
+        }
         return $this;
     }
 
@@ -237,12 +244,21 @@ class Response
      */
     public function setDownloadHeaders($filename, $mimeType = null, $inline = false, $contentLength = null)
     {
-        $this->withHeader('Pragma', 'public')
-            ->withHeader('Accept-Ranges', 'bytes')
-            ->withHeader('Expires', '0')
-            ->withHeader('Cache-Control', 'must-revalidate, post-check=0, pre-check=0')
-            ->withHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . ';filename="' . $filename . '"')
-            ->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', time()) . ' GMT');
+        //$this->withHeader('Accept-Ranges', 'bytes')->withHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . ';filename="' . $filename . '"');
+        $this->withHeader('Accept-Ranges', 'bytes')
+            ->withHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . ';filename="' . $filename . '"');
+
+        if (\myphp::req()->header('Connection') == 'close') {
+            $this->withHeader('Connection', 'close');
+        } else {
+            $this->withHeader('Connection', 'keep-alive');
+        }
+/*
+        if (isset($this->file[0])) {
+            if ($mtime = \filemtime($this->file[0])) {
+                $this->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', $mtime) . ' GMT');
+            }
+        }*/
 
         if ($mimeType !== null) {
             $this->withHeader('Content-Type', $mimeType);
@@ -328,7 +344,8 @@ class Response
         }
 
         set_time_limit(0); // Reset time limit for big files
-        $chunkSize = 2 * 1024 * 1024; // 2MB per chunk
+        $perLimit = $this->steamLimit > 0; //每秒限制?
+        $chunkSize = $perLimit ? $this->steamLimit * 1024 : 2 * 1024 * 1024; // 2MB per chunk
 
         if (is_array($this->stream)) {
             list($handle, $begin, $end) = $this->stream;
@@ -339,12 +356,18 @@ class Response
                 }
                 echo fread($handle, $chunkSize);
                 flush(); // 释放缓冲内存
+                if ($perLimit) {
+                    #sleep(1); //延时
+                }
             }
             fclose($handle);
         } else {
             while (!feof($this->stream)) {
                 echo fread($this->stream, $chunkSize);
                 flush();
+                if ($perLimit) {
+                    #sleep(1); //延时
+                }
             }
             fclose($this->stream);
         }
@@ -356,24 +379,26 @@ class Response
      */
     public static function getRange($fileSize)
     {
-        if (!isset($_SERVER['HTTP_RANGE'])) return false;
-        if ($_SERVER['HTTP_RANGE'] === '-') return [0, $fileSize - 1];
+        if (!isset($_SERVER['HTTP_RANGE'])) return [0, $fileSize - 1];
+        //bytes=0-5读取开头6字节  bytes=-100读取文件尾100字节  bytes=500-读取500字节以后的; 不支持 bytes=500-600,601-999 多个
         if (strpos($_SERVER['HTTP_RANGE'], 'bytes=') !== 0) return false;
-        //bytes=0-5  bytes=-1  bytes=500-
+        $range = trim(substr($_SERVER['HTTP_RANGE'], 6));
 
-        $ranges = explode('-', substr($_SERVER['HTTP_RANGE'], 6));
+        if (strpos($range, '-') === false) return false;
+        $ranges = explode('-', $range);
+        if ($ranges[0] === '' && $ranges[1] === '') return [0, $fileSize - 1];
+
         $start = (int)$ranges[0];
         $end = (int)$ranges[1];
-        if ($ranges[0] === '') {
+        if ($ranges[0] === '') { // bytes=-100
             $start = $fileSize - $end;
             $end = $fileSize - 1;
-        } elseif ($ranges[1] === '') {
-            if ($end >= $fileSize) {
-                $end = $fileSize - 1;
-            }
-        } else {
+        } elseif ($ranges[1] === '') { // bytes=500-
             $end = $fileSize - 1;
+        } else { //bytes=0-5
+
         }
+
         if ($start < 0 || $start > $end) {
             return false;
         }
