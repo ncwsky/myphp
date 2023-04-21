@@ -244,24 +244,21 @@ class Response
      */
     public function setDownloadHeaders($filename, $mimeType = null, $inline = false, $contentLength = null)
     {
-        //$this->withHeader('Accept-Ranges', 'bytes')->withHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . ';filename="' . $filename . '"');
         $this->withHeader('Accept-Ranges', 'bytes')
-            ->withHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . ';filename="' . $filename . '"');
+            ->withHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . ';filename="' . $filename . '"')
+            ->withHeader('X-Accel-Buffering', 'no')
+            ->withHeader('Content-Type', $mimeType === null ?'application/octet-stream':$mimeType);
 
         if (\myphp::req()->header('Connection') == 'close') {
-            $this->withHeader('Connection', 'close');
+            #$this->withHeader('Connection', 'close');
         } else {
-            $this->withHeader('Connection', 'keep-alive');
+            #$this->withHeader('Connection', 'keep-alive');
         }
-/*
+
         if (isset($this->file[0])) {
             if ($mtime = \filemtime($this->file[0])) {
                 $this->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', $mtime) . ' GMT');
             }
-        }*/
-
-        if ($mimeType !== null) {
-            $this->withHeader('Content-Type', $mimeType);
         }
 
         if ($contentLength !== null) {
@@ -321,7 +318,9 @@ class Response
         if ($this->isSent) {
             return;
         }
+        #Log::write(\myphp::req()->header('Range', 'null'),'req '.$_SERVER['REMOTE_PORT']);
         if (!IS_CLI) {
+            #Log::write($this->getHeader('Content-Range').', '.$this->getHeader('Content-Length'), 'res '.\myphp::$statusCode.' '.$_SERVER['REMOTE_PORT']);
             // 发送状态码
             \myphp::httpCode(\myphp::$statusCode);
             $this->sendHeaders();
@@ -343,6 +342,8 @@ class Response
             return;
         }
 
+        ob_end_flush();//冲刷出（送出）输出缓冲区内容并关闭缓冲区
+
         set_time_limit(0); // Reset time limit for big files
         $perLimit = $this->steamLimit > 0; //每秒限制?
         $chunkSize = $perLimit ? $this->steamLimit * 1024 : 2 * 1024 * 1024; // 2MB per chunk
@@ -350,14 +351,17 @@ class Response
         if (is_array($this->stream)) {
             list($handle, $begin, $end) = $this->stream;
             fseek($handle, $begin);
+
+            #Log::write($begin, 'start '.$_SERVER['REMOTE_PORT']);
             while (!feof($handle) && ($pos = ftell($handle)) <= $end) {
                 if ($pos + $chunkSize > $end) {
                     $chunkSize = $end - $pos + 1;
                 }
+                #Log::write($pos, 'pos '.$_SERVER['REMOTE_PORT']);
                 echo fread($handle, $chunkSize);
                 flush(); // 释放缓冲内存
                 if ($perLimit) {
-                    #sleep(1); //延时
+                    sleep(1); //延时
                 }
             }
             fclose($handle);
@@ -366,7 +370,7 @@ class Response
                 echo fread($this->stream, $chunkSize);
                 flush();
                 if ($perLimit) {
-                    #sleep(1); //延时
+                    sleep(1); //延时
                 }
             }
             fclose($this->stream);
@@ -382,7 +386,7 @@ class Response
         if (!isset($_SERVER['HTTP_RANGE'])) return [0, $fileSize - 1];
         //bytes=0-5读取开头6字节  bytes=-100读取文件尾100字节  bytes=500-读取500字节以后的; 不支持 bytes=500-600,601-999 多个
         if (strpos($_SERVER['HTTP_RANGE'], 'bytes=') !== 0) return false;
-        $range = trim(substr($_SERVER['HTTP_RANGE'], 6));
+        $range = substr($_SERVER['HTTP_RANGE'], 6);
 
         if (strpos($range, '-') === false) return false;
         $ranges = explode('-', $range);

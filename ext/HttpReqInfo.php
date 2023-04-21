@@ -206,6 +206,7 @@ class HttpReqInfo
                     $_name = strtr(ucwords(strtr(substr($name, 5), $upper, $lower)),' ', '-');
                     $this->headers[$_name] = $value;
                 } elseif (strncmp($name, 'CONTENT_', 8) === 0) {
+                    if ($value === '') continue;
                     $_name = strtr(ucwords(strtr(substr($name, 8), $upper, $lower)),' ', '-');
                     $this->headers[$_name] = $value;
                 }
