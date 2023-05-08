@@ -181,13 +181,15 @@ class Model implements \ArrayAccess
         }
     }
     //获取字段数据
-    public function getData()
+    public function getData($name = null)
     {
+        if ($name !== null) return isset($this->_data[$name]) ? $this->_data[$name] : null;
         return $this->_data ?: [];
     }
     //获取字段旧数据
-    public function getOldData()
+    public function getOldData($name = null)
     {
+        if ($name !== null) return isset($this->_oldData[$name]) ? $this->_oldData[$name] : null;
         return $this->_oldData ?: [];
     }
     //格式数据
