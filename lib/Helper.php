@@ -80,7 +80,7 @@ class Helper{
      * @return array|bool|float|int|string 返回处理后的值
      * @throws \RuntimeException
      */
-    public static function valid(&$data, $name, $rule, $default=''){
+    public static function valid(&$data, $name, $rule, $default=null){
         $hasDef = true;
         $val = isset($data[$name]) ? $data[$name] : null;
 

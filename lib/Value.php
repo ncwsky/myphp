@@ -86,12 +86,25 @@ class Value{
             list($rule,$filter) = explode(':',$rule,2);
         }
         if(strpos($rule,'{')!==false && substr($rule,-1)=='}'){ // 指定长度范围 用于数字及字符串
-            list($rule,$size) = explode('{',substr($rule,0,-1),2);
-            if(strpos($size,',')){
-                list($min,$max) = explode(',',$size,2);
-                if($max==='') $max = null;
-            }else $max = $size;
-            #max min将会是数字字符串
+            list($rule, $size) = explode('{', substr($rule, 0, -1), 2);
+            if (strpos($size, ',')) {
+                list($min, $max) = explode(',', $size, 2);
+            } else {
+                $max = $size;
+            }
+            #非64位的max min将会是数字字符串
+            if(PHP_INT_SIZE === 8){
+                if ($type == 'f') {
+                    if($max!==null) $max = $max === '' ? null : (float)$max;
+                    if($min!==null) $min = $min === '' ? null : (float)$min;
+                } else {
+                    if($max!==null) $max = $max === '' ? null : (int)$max;
+                    if($min!==null) $min = $min === '' ? null : (int)$min;
+                }
+            } else {
+                if ($max === '') $max = null;
+                if ($min === '') $min = null;
+            }
         }
         if(strpos($rule,'%')!==false){ // 指定修饰符
             list($rule,$type) = explode('%',$rule,2);

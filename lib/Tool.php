@@ -64,7 +64,10 @@ class Tool
             $type = 's'; $min = $max = null;
             Value::parseType($v['rule'], $type, $min, $max);
             unset($fieldRule[$k]['null']);
-            $fieldRule[$k]['rule'] = [$type, 'min' => $min, 'max' => $max];
+            //$fieldRule[$k]['rule'] = [$type, 'min' => $min, 'max' => $max];
+            $fieldRule[$k]['rule'] = [$type];
+            if($min!==null) $fieldRule[$k]['rule']['min'] = $min;
+            if($max!==null) $fieldRule[$k]['rule']['max'] = $max;
             if(isset($fieldRule[$k]['def'])){
                 if($fieldRule[$k]['type']=='int'){
                     $fieldRule[$k]['def'] = (int)$fieldRule[$k]['def'];
@@ -100,9 +103,17 @@ class Tool
         //protected $fields = '*';
         $content = str_replace('protected $fields '.substr_cut($content, 'protected $fields ', ';', 0, false).';', "protected \$fields = '$fields';", $content);
 
-        $fieldRule = strtr(var_export($fieldRule, true), ["=> \n  " => "=> ", "array (" => "[", "  )" => "        ]", "  '" => "        '", ")" => "    ]","NULL"=>"null","\n      0 => "=>"","\n      'min'"=>"'min'","\n      'max'"=>"'max'",",\n    )"=>"]"]);
+        $fieldRule = var_export($fieldRule, true);
+        $fieldRule = strtr($fieldRule, ["=> \n  " => "=> ", "array (" => "[", "  )" => "        ]", "  '" => "        '", ")" => "    ]","NULL"=>"null","\n      0 => "=>"","\n      'min'"=>" 'min'","\n      'max'"=>" 'max'",",\n    )"=>"]"]);
         $fieldRule = str_replace("'rule' =>   ","'rule' => ", $fieldRule);
-        //$fieldRule = var_export($fieldRule, true);
+        $fieldRule = str_replace(",\n        ],\n","\n        ],\n", $fieldRule); //每字段多余的,
+        $fieldRule = str_replace("\n          '"," '", $fieldRule); //每字段子项开头,
+        $fieldRule = str_replace("\n        ],","],", $fieldRule); //每字段结尾,
+        $fieldRule = str_replace("],\n    ]","]\n    ]", $fieldRule); //结尾多余的,
+        $fieldRule = str_replace("' => [ '","' => ['", $fieldRule); //多余的空格,
+
+        #$fieldRule = preg_replace('/,\n {0,}]/',']', $fieldRule);
+        #var_dump($fieldRule);die();
         //public $fieldRule = [];
         $content = str_replace('public $fieldRule '.substr_cut($content, 'public $fieldRule ', ';', 0, false).';', "public \$fieldRule = $fieldRule;", $content);
         $content = str_replace('protected $fieldRule '.substr_cut($content, 'protected $fieldRule ', ';', 0, false).';', "protected \$fieldRule = $fieldRule;", $content);
