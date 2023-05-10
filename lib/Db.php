@@ -912,6 +912,8 @@ abstract class TbBase{
             case 'double':
             case 'unfloat':
             case 'undouble':
+            case 'decimal':
+            case 'undecimal':
                 return 'double';
         }
         return $type;
