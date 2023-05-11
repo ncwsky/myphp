@@ -15,8 +15,22 @@ class db_pdo extends \myphp\DbBase{
 	//连接数据库
     public function connect() {
 		$cfg_db = &$this->config;
-		//建立新连接 不返回已经打开的连接标识
-        $options = empty($cfg_db['options']) ? array() : $cfg_db['options']; //array( PDO::ATTR_EMULATE_PREPARES => false, PDO::ATTR_STRINGIFY_FETCHES => false);
+		//运行参数
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, //以异常的方式报错
+            PDO::ATTR_STRINGIFY_FETCHES => false, //提取的时候不将数值转换为字符串
+            PDO::ATTR_EMULATE_PREPARES => false //禁用预处理语句的模拟
+        ];
+        if (!empty($cfg_db['options'])) {
+            $options = array_merge($options, $cfg_db['options']);
+        }
+        $cfg_db['pconnect'] = isset($cfg_db['pconnect']) ? $cfg_db['pconnect'] : false;
+        if($cfg_db['pconnect']) { //持久连接开启
+            $options[PDO::ATTR_PERSISTENT] = TRUE;
+        }
+        //PDO::ATTR_TIMEOUT:30 设置连接数据库的超时秒数。
+        //PDO::MYSQL_ATTR_USE_BUFFERED_QUERY:false mysql非缓冲查询 查询大量数据时设置false不会出现内存不足的情况
+
 		if(empty($cfg_db['dsn'])){//未设置dsn时
 			switch($cfg_db['dbms']){
 				case 'mysql':// PDO_MYSQL DSN
@@ -45,17 +59,6 @@ class db_pdo extends \myphp\DbBase{
 		}else{
 			$dsn = $cfg_db['dsn'];
 		}
-		$cfg_db['pconnect'] = isset($cfg_db['pconnect']) ? $cfg_db['pconnect'] : false;
-		if($cfg_db['pconnect']) { //持久连接开启
-			$options[PDO::ATTR_PERSISTENT] = TRUE;
-		}
-		/*if(empty($options[PDO::ATTR_TIMEOUT])){ //超时设置
-            $options[PDO::ATTR_TIMEOUT] = 5;
-        }*/
-		/*if(version_compare(PHP_VERSION,'5.3.6','<=')){//禁用模拟预处理语句
-			$options[PDO::ATTR_EMULATE_PREPARES] = false;
-		}*/
-		//PDO::MYSQL_ATTR_USE_BUFFERED_QUERY:false mysql非缓冲查询 查询大量数据时设置false不会出现内存不足的情况
 
 		try {
 			$this->conn = new PDO($dsn, $cfg_db['user'], $cfg_db['pwd'], $options);
