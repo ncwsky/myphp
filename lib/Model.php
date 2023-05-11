@@ -129,7 +129,8 @@ class Model implements \ArrayAccess
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
         }
         if ($this->extRule) {
-            $this->fieldRule = array_merge($this->fieldRule, $this->extRule);
+            array_cover_merge($this->fieldRule, $this->extRule);
+            //$this->fieldRule = array_merge($this->fieldRule, $this->extRule);
         }
     }
     public function __clone(){
@@ -142,9 +143,11 @@ class Model implements \ArrayAccess
      */
     public function setRule($name, $rule=null){
         if (is_array($name)) {
-            $this->fieldRule = array_merge($this->fieldRule, $name);
+            array_cover_merge($this->fieldRule, $name);
+            //$this->fieldRule = array_merge($this->fieldRule, $name);
         } else {
-            $this->fieldRule[$name] = $rule;
+            array_cover_merge($this->fieldRule[$name], $rule);
+            //$this->fieldRule[$name] = $rule;
         }
     }
     public function rules(){

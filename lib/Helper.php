@@ -106,33 +106,26 @@ class Helper{
     public static function validAll(&$data, $rules, $exclude=false, $setDef=false){
         try{
             foreach($data as $k=>$v){ //数据验证及是否多余数据处理
-                if(isset($rules[$k])){
-                    $is_continue = $setDef === 0 || $v instanceof Expr; //禁用默认值及验证处理或表达式
-                    if (!$is_continue) {
+                if (isset($rules[$k])) {
+                    //非禁用默认值及验证处理或表达式
+                    if (!($setDef === 0 || $v instanceof Expr)) {
                         $data[$k] = self::valid($data, $k, $rules[$k]);
                     }
                     unset($rules[$k]);
-                }elseif($exclude){
+                } elseif ($exclude) {
                     unset($data[$k]);
                 }
             }
 
             if($setDef!==0){ #未指定字段默认值处理
                 foreach ($rules as $k=>$rule){ //是否可为空使用默认值
-                    if(!isset($data[$k])) {
-                        #$val = self::valid($k, $rule, $data);
-                        #if($setDef) $data[$k] = $val;
+                    if (isset($data[$k]) || !is_array($rule)) continue;
 
-                        $default = null;
-                        if(is_array($rule)){
-                            $hasDef = isset($rule['def']) || array_key_exists('def', $rule); //是否有默认值  无默认值时则不能为空
-                            if($hasDef) {
-                                $default = $rule['def'];
-                            }else{
-                                throw new \RuntimeException(isset($rule['err']) ? $rule['err'] : $k . ' is invalid');
-                            }
-                        }
-                        if($setDef) $data[$k] = $default;
+                    //是否有默认值  无默认值时则不能为空
+                    if (isset($rule['def']) || array_key_exists('def', $rule)) {
+                        if ($setDef) $data[$k] = $rule['def'];
+                    } else {
+                        throw new \RuntimeException(isset($rule['err']) ? $rule['err'] : $k . ' is invalid');
                     }
                 }
             }

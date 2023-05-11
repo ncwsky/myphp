@@ -162,6 +162,9 @@ final class myphp{
                 return $next($request);
             });
             //$data = self::$authFun instanceof \Closure ? call_user_func(self::$authFun) : self::Auth();
+            /**
+             * @var \myphp\Response|null $res
+             */
             $res = self::$pipe->send(self::req())->through(self::$cfg['middleware'])->then(function ($request){
                 // 请求缓存处理
                 $res = self::reqCache();
@@ -175,13 +178,13 @@ final class myphp{
                     $instance = new $control();
                     $res = $instance->_run(self::$env['ACTION']);
                 }
-                if(! $res instanceof \myphp\Response){
+                if ($res !== null && !$res instanceof \myphp\Response) {
                     self::res()->body = $res;
                     $res = self::res();
                 }
                 return $res;
             });
-            self::send($res, self::$statusCode, self::req()->expire);
+            $res!==null && self::send($res, self::$statusCode, self::req()->expire);
         } catch (\Exception $e) {
             $errCode = $e->getCode();
             //匹配状态码时 //$errCode==404 || $errCode==200

@@ -166,30 +166,51 @@ function cut_html($s,$max_len=250){
     return closetags($s);
 }
 
-/** 递归合并数组
+/**
+ * 递归合并数组-键不存在、类型不同或指定更新
  * @param array $arr1 目标数组
  * @param array $arr2 合并数组
  * @param bool $strict 严格验证
  */
 function array_walk_merge(&$arr1, &$arr2, $strict=false){
-    foreach ($arr2 as $k=>$v){
-        if(substr($k,0,1)=='@') continue;
-        if($strict){
-            $t1 = isset($arr1[$k])?gettype($arr1[$k]):'NULL';
+    foreach ($arr2 as $k => $v) {
+        if (substr($k, 0, 1) == '@') continue;
+        if ($strict) {
+            $t1 = isset($arr1[$k]) ? gettype($arr1[$k]) : 'NULL';
             $t2 = gettype($v);
-            if($t1!=$t2){
+            if ($t1 != $t2) { //类型不同
                 $arr1[$k] = $v;
-            }elseif($t1=='array'){
+            } elseif ($t1 == 'array') {
                 array_walk_merge($arr1[$k], $v, $strict);
             }
-        }else{
+        } else {
             $updateK = '@' . $k;
+            //键不存在、有指定更新标识或存在的更新标识不相同 覆盖值
             if (!isset($arr1[$k]) || (isset($arr2[$updateK]) && (!isset($arr1[$updateK]) || $arr1[$updateK] != $arr2[$updateK]))) {
                 $arr1[$k] = $v;
-            }
-            elseif(is_array($v) && is_array($arr1[$k])){
+            } elseif (is_array($v) && is_array($arr1[$k])) {
                 array_walk_merge($arr1[$k], $v, $strict);
             }
+        }
+    }
+}
+
+/**
+ * $arr2合并覆盖$arr1
+ * @param array $arr1
+ * @param array $arr2
+ */
+function array_cover_merge(&$arr1, &$arr2)
+{
+    foreach ($arr2 as $k => $v) {
+        if (isset($arr1[$k])) {
+            if (is_array($v) && is_array($arr1[$k])) {
+                array_cover_merge($arr1[$k], $v);
+            } else {
+                $arr1[$k] = $v;
+            }
+        } else {
+            $arr1[$k] = $v;
         }
     }
 }
