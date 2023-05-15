@@ -5,6 +5,40 @@ class Request extends \HttpReqInfo{
     use \MyBaseObj;
 
     public $expire = 0; //请求缓存过期时间 见 \myphp::$req_cache
+    public $enableCsrf = false;
+    public $csrfParam = 'csrf_token';
+    public $csrfHeader = 'X-Csrf-Token';
+
+    /**
+     * 生成csrf-token
+     * @param string $type input:隐藏表彰文本项 meta:head meta 默认:仅token
+     * @return string
+     */
+    public function csrfToken($type = '')
+    {
+        if ($this->enableCsrf) {
+            $token = random(12, '01');
+            session($this->csrfParam, $token);
+            if ($type == 'input') return '<input type="hidden" name="' . $this->csrfParam . '" value="' . $token . '">';
+            if ($type == 'meta') return '<meta name="csrf-token" tag-name="' . $this->csrfParam . '" content="' . $token . '">';
+
+            return $token;
+        }
+        return '';
+    }
+    /**
+     * 校验csrf
+     * @throws \Exception
+     */
+    public function checkCsrfToken()
+    {
+        if ($this->enableCsrf && in_array(self::method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+            $csrfToken = (string)session($this->csrfParam);
+            if ($csrfToken === '' || ($csrfToken !== ($_POST[$this->csrfParam] ?? '') && $csrfToken !== $this->header($this->csrfHeader))) {
+                throw new \Exception('Unable to verify your data submission.', 400);
+            }
+        }
+    }
 /*
     public function rawBody()
     {

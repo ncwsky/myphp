@@ -60,6 +60,7 @@ class Control
      * @return bool
      */
     protected function _before(){
+        $this->request->checkCsrfToken();
         return true;
     }
 

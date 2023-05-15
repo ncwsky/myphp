@@ -1281,22 +1281,6 @@ function num2fixed($number){
     return sprintf('%.2f', $number);
 }
 
-/**
- * 表单重复提交限制 默认10秒内
- * @param string $url 跳转网址
- * @param int $limit 限制时间 单位秒
- * @param int $time
- * @return string
- */
-function form_token($url='',$limit=10, $time=3){
-    $token = (int)session('form_limit');
-    if($token){
-        $token = time()-$token;
-        $token = $token<=$limit ? $token : 0;
-    }
-    if(!empty($token)) return ShowMsg('表单 '. ($limit-$token) .' 秒内限制提交',$url,'',$time);
-    session('form_limit', time());
-}
 //AES 128位加密
 function aes($string, $operation = 'ENCODE', $key = ''){
     $key = $key != '' ? $key : myphp::$cfg['encode_key'];//md5($key != '' ? $key : myphp::$cfg['encode_key'])
