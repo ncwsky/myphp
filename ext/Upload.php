@@ -32,7 +32,7 @@ class Upload {
 	}
 	//设置真实上传路径
 	public function setRealPath($val){
-        $this->realPath = $val;
+        $this->realPath = realpath($val);
 	}
 	//设置允许格式 格式使用,分隔
 	public function setFileType($val){
@@ -62,7 +62,7 @@ class Upload {
     /**
      * 远端文件保存
      * @param string $url
-     * @param string $path
+     * @param string $path eg. /ymd/
      * @return array
      * @throws \Exception
      */
@@ -81,8 +81,8 @@ class Upload {
         ];
         $f_name = $this->fileName . strrchr($clientFile['name'], '.');
         if ($path === '') $path = '/' . substr($this->fileName, 0, 1) . '/' . substr($this->fileName, 1, 2) . '/';
-        $this->uploadPath = ltrim($this->uploadPath, '/') . $path;
-        $this->realPath = ltrim($this->realPath, '/') . $path;
+        $this->uploadPath = rtrim($this->uploadPath, '/') . $path;
+        $this->realPath = rtrim($this->realPath, '/') . $path;
 
         $realFile = $this->realPath . $f_name;
 

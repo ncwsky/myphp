@@ -456,7 +456,7 @@ final class myphp{
         self::$env['app_namespace'] = basename(APP_PATH);
         //自动指定app命名空间目录
         if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
-            self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
+            self::$namespaceMap[self::$env['app_namespace'] . '\\'] = realpath(APP_PATH);
         }
         //var_dump($_GET);
         $module = isset($_GET['m']) ? $_GET['m'] : ''; //self::$env['m'] =
@@ -710,7 +710,7 @@ final class myphp{
         is_file(COMMON . '/common.php') && require COMMON . '/common.php';	//引入公共函数
 
         if(!defined('APP_PATH')){
-            define('APP_PATH', realpath(dirname($_SERVER['SCRIPT_FILENAME'])) . '/app');
+            define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']) . '/app');
             if (!IS_CLI) {
                 self::conType(Helper::isAjax() ? 'application/json' : 'text/html'); //默认输出类型设置
                 self::sendHeader();
