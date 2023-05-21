@@ -66,9 +66,8 @@ class File {
 	//设置路径
 	public function setDir($path){
 		//if(substr($path,-1)=='/') $path = substr($path,0, -1);
-		$path = realpath($path);
         $this->createDir($path);
-        $this->path = $path;
+        $this->path = realpath($path);
         $this->dirLen = strlen($this->path);
 		
 	}
