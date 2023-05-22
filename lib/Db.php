@@ -574,7 +574,7 @@ class Db {
      * @return mixed|null
      */
     public function val($name){
-	    $row = $this->find();
+        $row = $this->find('', '', '', $name);
         return isset($row[$name]) ? $row[$name] : null;
     }
 	//[批量]添加记录

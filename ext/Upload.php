@@ -32,7 +32,7 @@ class Upload {
 	}
 	//设置真实上传路径
 	public function setRealPath($val){
-        $this->realPath = realpath($val);
+        $this->realPath = $val;
 	}
 	//设置允许格式 格式使用,分隔
 	public function setFileType($val){
