@@ -269,8 +269,8 @@ CREATE TABLE `sys_log` (
 */
 	//以数据库方式记录 2
 	public static function sys_log($log,$des){
-		$referer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '浏览器直接输入';
-		$url = get_url();
+		$referer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '-';
+		$url = Request::url();
 		$post = array('ctime'=>time(),'log'=>$log,'des'=>$des,'url'=>substr("referer: $referer\nurl: $url",0,250),'ip'=>GetIP());
         db()->add($post, 'sys_log');
 	}
