@@ -76,7 +76,8 @@ class Control
     final function _run($action)
     {
         //判断实例中是否存在action方法，不存在则提示错误
-        if (!method_exists($this, $action)) throw new \Exception('method not exists ' . $action, 404);
+        if (!method_exists($this, $action)) return $this->response->e404('method not exists ' . $action);
+        //throw new \Exception('method not exists ' . $action, 404);
         //前后置操作处理
         return $this->_before() ? $this->_after($this->$action()) : null;
     }

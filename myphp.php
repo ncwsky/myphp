@@ -171,7 +171,8 @@ final class myphp{
                 if (false === $res) {
                     //转驼峰 控制器的类名
                     $control = self::$env['app_namespace'] . '\\control\\' . self::$env['CONTROL'];
-                    if (!class_exists($control)) throw new \Exception('class not exists ' . $control, 404);
+                    if (!class_exists($control)) return self::res()->e404('class not exists ' . $control);
+                    //throw new \Exception('class not exists ' . $control, 404);
                     /**
                      * @var \myphp\Control $instance
                      */

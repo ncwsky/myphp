@@ -294,6 +294,12 @@ class Response
         return $this;
     }
 
+    public function e404($msg = '')
+    {
+        $this->setStatusCode(404)->withBody($msg);
+        return $this;
+    }
+
     /**
      * @param string $name
      * @param string $value
@@ -338,7 +344,7 @@ class Response
     protected function sendBody()
     {
         if ($this->stream === null) {
-            echo is_scalar($this->body) ? $this->body : Helper::toJson($this->body);
+            echo is_array($this->body) ? Helper::toJson($this->body) : $this->body;
             return;
         }
 
