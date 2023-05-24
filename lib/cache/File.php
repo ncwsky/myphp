@@ -7,15 +7,19 @@ use myphp\Log;
 class File extends \myphp\CacheAbstract{
     public $gcProbability = 10; //100000次设置有10次机率触发垃圾回收
     public $suffix = '.php';
+
+    const MODE_SERIALIZE = 1;
+    const MODE_PHP = 2;
+
 	//配置
-    protected $options = array(
+    protected $options = [
         'path' => "./",
         'prefix' => '_',
-    	'mode' => 1, //mode 1 为serialize model 2为保存为可执行文件
+    	'mode' => self::MODE_SERIALIZE, //mode 1 为serialize model 2为保存为可执行文件
 		'expire' => 0, //有效期
         'dir_level'=>0 //缓存层级
-    );
-	//构造函数
+    ];
+
 	public function __construct($options = array()){
         parent::__construct($options);
 		$this->setCacheDir();
@@ -42,8 +46,8 @@ class File extends \myphp\CacheAbstract{
 	 * @param int $mode
 	 * @return self
 	 */
-	public function setCacheMode($mode = 1){
-        $this->options['mode'] = $mode == 1 ? 1 : 2;
+	public function setCacheMode($mode = self::MODE_SERIALIZE){
+        $this->options['mode'] = $mode == self::MODE_SERIALIZE ? self::MODE_SERIALIZE : self::MODE_PHP;
 	}
     public function buildKey($key){
         if (is_scalar($key)) {
@@ -392,7 +396,7 @@ class File extends \myphp\CacheAbstract{
 	 * @return bool
 	 */
 	protected function _filePutContent($file, $data){
-        $content = $this->options['mode'] == 1 ? '<?php exit;//' . serialize($data) : "<?php\n return " . var_export($data, true).';';
+        $content = $this->options['mode'] == self::MODE_SERIALIZE ? '<?php exit;//' . serialize($data) : "<?php\n return " . var_export($data, true).';';
         return @file_put_contents($file, $content, LOCK_EX);
 	}
 	/**
@@ -403,7 +407,7 @@ class File extends \myphp\CacheAbstract{
 	protected function _fileGetContent($file){
         if(!is_file($file)) return false; // || ($mTime=@filemtime($file)) && $mTime < time())
 
-        if($this->options['mode'] == 1) {
+        if($this->options['mode'] == self::MODE_SERIALIZE) {
             $content = file_get_contents($file, false, null, 13);
             return unserialize($content);
         } else {
@@ -417,7 +421,7 @@ class File extends \myphp\CacheAbstract{
 $cache = Cache::getInstance();
 $cache->setCachePrefix('core'); //设置缓存文件前缀
 $cache->setCacheDir('./app/cache/'); //设置存放缓存文件夹路径
-$cache->setCacheMode('2'); 
+$cache->setCacheMode(2); 
 */
 //模式1 缓存存储方式
 //a:3:{s:8:"contents";a:7:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:34;i:4;i:5;i:5;i:6;i:6;i:6;}s:6:"expire";i:0;s:5:"mtime";i:1318218422;}
