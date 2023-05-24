@@ -38,7 +38,6 @@ require __DIR__ . '/myphp.php';
 require __DIR__ . '/inc/comm.func.php';
 require __DIR__ . '/lib/Db.php';
 
-myphp::$rootPath = ROOT;
 myphp::$namespaceMap = [
     'myphp\\' => __DIR__ . '/lib',
     'common\\' => COMMON,

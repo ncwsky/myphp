@@ -20,7 +20,7 @@ final class myphp{
     private static $container = []; //容器
 
     //自动载入配置项
-    public static $rootPath = __DIR__;
+    public static $rootPath = '';
     public static $classDir = []; //设置可加载的目录 ['dir'=>1,....]
     public static $namespaceMap = []; // ['namespace\\'=>'src/']; //命名空间路径映射 不指定完整路径使用rootPath
     public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
@@ -702,6 +702,7 @@ final class myphp{
             self::class_dir($classDir);
         }
 
+        if (self::$rootPath === '') self::$rootPath = ROOT . ROOT_DIR;
         //注册类的自动加载
         spl_autoload_register('\myphp::autoload', true, true);
         // 设定错误和异常处理
