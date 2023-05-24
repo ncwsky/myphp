@@ -131,11 +131,12 @@ class Control
 
     /**
      * json类型输出
-     * @param $data
+     * @param mixed $data
+     * @param bool $encode
      * @return Response
      */
-    final static function json($data){
-        \myphp::res()->body = Helper::toJson($data);
+    final static function json($data, $encode=true){
+        \myphp::res()->body = $encode ? Helper::toJson($data) : $data;
         return \myphp::res()->setContentType(Response::CONTENT_TYPE_JSON);
         //\myphp::conType('application/json');
         //return Helper::toJson($data);
@@ -143,13 +144,14 @@ class Control
 
     /**
      * jsonp类型输出
-     * @param $data
+     * @param mixed $data
+     * @param bool $encode
      * @return Response
      * @throws \Exception
      */
-    final static function jsonp($data){
+    final static function jsonp($data, $encode=true){
         $jsonp_call = isset($_GET[\myphp::$cfg['jsonp_call']])?$_GET[\myphp::$cfg['jsonp_call']]:\myphp::$cfg['jsonp_call'];
-        $data = Helper::toJson($data);
+        $data = $encode ? Helper::toJson($data) : $data;
         if ($data === false) {
             throw new \Exception('Invalid JSONP');
         }
@@ -161,11 +163,12 @@ class Control
 
     /**
      * xml类型输出
-     * @param $data
+     * @param mixed $data
+     * @param bool $encode
      * @return Response
      */
-    final static function xml($data){
-        \myphp::res()->body = Helper::toXml($data);
+    final static function xml($data, $encode=true){
+        \myphp::res()->body = $encode ? Helper::toXml($data) : $data;
         return \myphp::res()->setContentType(Response::CONTENT_TYPE_XML);
         //\myphp::conType('application/xml');
         //return Helper::toXml($data);
