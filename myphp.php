@@ -464,10 +464,10 @@ final class myphp{
         //指定项目模块
         if ($module != '') {
             if (isset(self::$cfg['module_maps'][$module])) {
-                if(substr(self::$cfg['module_maps'][$module], 0, 1) == DS){
+                if(self::$cfg['module_maps'][$module][0] == DS){ //相对根目录
                     $module_path = ROOT . ROOT_DIR . self::$cfg['module_maps'][$module];
                     self::$env['app_namespace'] = strtr(substr(self::$cfg['module_maps'][$module], 1), DS, '\\');
-                } else {
+                } else { //相对项目目录
                     $module_path = APP_PATH . DS . self::$cfg['module_maps'][$module];
                     self::$env['app_namespace'] .= '\\'. strtr(self::$cfg['module_maps'][$module], DS, '\\');
                 }
