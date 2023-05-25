@@ -1,6 +1,10 @@
 <?php
 namespace myphp;
 
+use Closure;
+use Exception;
+use myphp;
+
 /**
  * Class Db 数据db类
  * @method Db group($val)
@@ -62,15 +66,15 @@ class Db {
      * Db constructor.
      * @param string|array $conf
      * @param bool $force 是否强制生成新实例
-     * @throws \Exception
+     * @throws Exception
      */
     public function __construct($conf='db', $force=false) {
         $key = '';
         if (is_string($conf)) {
-            if (!isset(\myphp::$cfg[$conf])) throw new \Exception($conf . 'DB连接配置不存在');
+            if (!isset(myphp::$cfg[$conf])) throw new Exception($conf . 'DB连接配置不存在');
 
             $key = $conf;
-            $this->config = array_merge($this->config, \myphp::$cfg[$conf]);
+            $this->config = array_merge($this->config, myphp::$cfg[$conf]);
         } else {
             $this->config = array_merge($this->config, $conf);
             $key = $this->config['dbms'] . $this->config['server'] . $this->config['name'] . $this->config['port'];
@@ -97,7 +101,7 @@ class Db {
 	//释放资源
 	public static function free($name='db'){
         unset(self::$instance[$name]);
-        \myphp::free('__db_'.$name);
+        myphp::free('__db_'.$name);
     }
 	//启用或关闭SQL记录 依赖Log类 0不记录 1仅execute的sql 2全部sql
 	public static function log_on($bool=2){
@@ -117,7 +121,7 @@ class Db {
 			$this->options[$method] = $args[0];
             return $this;
 		}else{
-            throw new \Exception(__CLASS__.':'.$method.'方法无效');
+            throw new Exception(__CLASS__.':'.$method.'方法无效');
         }
 	}
 	//获取最后执行的Sql
@@ -463,7 +467,7 @@ class Db {
     }
 
     /**
-     * @var \Closure function($db, $sql){}
+     * @var Closure function($db, $sql){}
      */
     public static $execCustom = null;
 
@@ -472,11 +476,11 @@ class Db {
      * @param $sql
      * @param null $bind
      * @return bool|int|mixed
-     * @throws \Exception
+     * @throws Exception
      */
 	public function execute($sql, $bind=null) {
 		$this->_run_init($sql, $bind, true);
-		if(self::$execCustom instanceof \Closure) { //自定义exec处理
+		if(self::$execCustom instanceof Closure) { //自定义exec处理
             return call_user_func(self::$execCustom, $this->db, $sql);
         }else{
             return $this->db->exec($sql);
@@ -610,7 +614,7 @@ class Db {
      * @param array|array[] $post 可批量
      * @param string $table
      * @return mixed|string 自动自增获取最后插入记录的id
-     * @throws \Exception
+     * @throws Exception
      */
     public function add($post, $table='') {
 		$this->execute($this->add_sql($post, $table));
@@ -644,7 +648,7 @@ class Db {
      * @param string $table
      * @param string $where
      * @return bool|int|mixed
-     * @throws \Exception
+     * @throws Exception
      */
     public function update($post, $table='', $where = '') {
 		return $this->execute($this->update_sql($post, $table, $where));
@@ -770,7 +774,7 @@ class Db {
      * 设置事务隔离等级
      * @param $level
      * @return $this
-     * @throws \Exception
+     * @throws Exception
      */
     public function setTransactionLevel($level){
         $sql = 'transaction isolationLevel '.$level;
@@ -1018,7 +1022,7 @@ abstract class DbBase{
     /**
      * 设置事务隔离等级 isolation
      * @param $level
-     * @throws \Exception
+     * @throws Exception
      */
 	public function setTransactionLevel($level){
         if ($this->config['dbms'] == 'sqlite') {
@@ -1030,7 +1034,7 @@ abstract class DbBase{
                     $this->exec('PRAGMA read_uncommitted = True;');
                     break;
                 default:
-                    throw new \Exception(get_class($this) . ' only supports transaction isolation levels READ UNCOMMITTED and SERIALIZABLE.');
+                    throw new Exception(get_class($this) . ' only supports transaction isolation levels READ UNCOMMITTED and SERIALIZABLE.');
             }
         } else {
             $this->exec("SET TRANSACTION ISOLATION LEVEL $level");

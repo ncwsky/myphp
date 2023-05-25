@@ -2,6 +2,8 @@
 namespace myphp;
 
 //控制器基类，所有的控制器需要继承此类
+use myphp;
+
 class Control
 {
     protected $view = null; //模板实例
@@ -45,9 +47,9 @@ class Control
     //构造方法，实例化视图
     public function __construct()
     {
-        $this->response = \myphp::res();
-        $this->request = \myphp::req();
-        $this->view = View::getInstance(\myphp::env('VIEW_PATH'), \myphp::env('CACHE_PATH'));
+        $this->response = myphp::res();
+        $this->request = myphp::req();
+        $this->view = View::getInstance(myphp::env('VIEW_PATH'), myphp::env('CACHE_PATH'));
         $this->_init();
     }
 
@@ -58,6 +60,7 @@ class Control
 
     /**
      * @return bool
+     * @throws \Exception
      */
     protected function _before(){
         $this->request->checkCsrfToken();
@@ -95,7 +98,7 @@ class Control
     //在子类控制器及方法中调用 显示模板
     final function display($file = '', $var = null)
     {
-        \myphp::conType('text/html');
+        myphp::conType('text/html');
         $this->view->display($file, $var);
     }
 
@@ -113,7 +116,7 @@ class Control
         //return $this->view->fetch($file, $var);
     }
     final static function redirect($url, $code=302){
-        return \myphp::res()->redirect($url, $code);
+        return myphp::res()->redirect($url, $code);
     }
 
     /**
@@ -123,8 +126,8 @@ class Control
      */
     final static function html($data)
     {
-        \myphp::res()->body = $data;
-        return \myphp::res()->setContentType(Response::CONTENT_TYPE_HTML);
+        myphp::res()->body = $data;
+        return myphp::res()->setContentType(Response::CONTENT_TYPE_HTML);
         //\myphp::conType('text/html');
         //return $data;
     }
@@ -136,8 +139,8 @@ class Control
      * @return Response
      */
     final static function json($data, $encode=true){
-        \myphp::res()->body = $encode ? Helper::toJson($data) : $data;
-        return \myphp::res()->setContentType(Response::CONTENT_TYPE_JSON);
+        myphp::res()->body = $encode ? Helper::toJson($data) : $data;
+        return myphp::res()->setContentType(Response::CONTENT_TYPE_JSON);
         //\myphp::conType('application/json');
         //return Helper::toJson($data);
     }
@@ -150,13 +153,13 @@ class Control
      * @throws \Exception
      */
     final static function jsonp($data, $encode=true){
-        $jsonp_call = isset($_GET[\myphp::$cfg['jsonp_call']])?$_GET[\myphp::$cfg['jsonp_call']]:\myphp::$cfg['jsonp_call'];
+        $jsonp_call = isset($_GET[myphp::$cfg['jsonp_call']])?$_GET[myphp::$cfg['jsonp_call']]: myphp::$cfg['jsonp_call'];
         $data = $encode ? Helper::toJson($data) : $data;
         if ($data === false) {
             throw new \Exception('Invalid JSONP');
         }
-        \myphp::res()->body = $jsonp_call . '(' . $data . ');';
-        return \myphp::res()->setContentType(Response::CONTENT_TYPE_JSONP);
+        myphp::res()->body = $jsonp_call . '(' . $data . ');';
+        return myphp::res()->setContentType(Response::CONTENT_TYPE_JSONP);
         //\myphp::conType('application/javascript');
         //return $jsonp_call . '(' . $data . ');';
     }
@@ -168,8 +171,8 @@ class Control
      * @return Response
      */
     final static function xml($data, $encode=true){
-        \myphp::res()->body = $encode ? Helper::toXml($data) : $data;
-        return \myphp::res()->setContentType(Response::CONTENT_TYPE_XML);
+        myphp::res()->body = $encode ? Helper::toXml($data) : $data;
+        return myphp::res()->setContentType(Response::CONTENT_TYPE_XML);
         //\myphp::conType('application/xml');
         //return Helper::toXml($data);
     }
