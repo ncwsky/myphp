@@ -18,18 +18,18 @@ class __c__ extends Base{
 /*
 		//可不用assign进行模板赋值
 		\myphp\View::obStart();
-		include \myphp\View::doTemp('index.html');
+		require \myphp\View::doTemp('index.html');
 
 		$this->assign('mess', '');
 		return $this->fetch();
 
 		extract($this->view->vars);
 		\myphp\View::obStart();
-		include \myphp\View::doTemp();
+		require \myphp\View::doTemp();
 
 		//还可以与assign混合使用 此处在__construct 时特别有用 可以对一些类里全局使用的模板变量进行赋值调用
 		\myphp\View::obStart();extract($this->view->vars);
-		include \myphp\View::doTemp('index.html');
+		require \myphp\View::doTemp('index.html');
 */
 	}
 }

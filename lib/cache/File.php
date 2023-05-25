@@ -411,7 +411,7 @@ class File extends \myphp\CacheAbstract{
             $content = file_get_contents($file, false, null, 13);
             return unserialize($content);
         } else {
-            return include $file;
+            return require $file;
         }
 	}
 }
