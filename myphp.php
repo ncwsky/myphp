@@ -471,9 +471,9 @@ final class myphp{
                     $module_path = APP_PATH . DS . self::$cfg['module_maps'][$module];
                     self::$env['app_namespace'] .= '\\'. strtr(self::$cfg['module_maps'][$module], DS, '\\');
                 }
-            } else {
-                $module_path = APP_PATH . DS . $module;
-                self::$env['app_namespace'] .= '\\'.$module;
+            } else { //子模块默认 module 目录下
+                $module_path = APP_PATH . DS . 'module' . DS . $module;
+                self::$env['app_namespace'] .= '\\module\\'.$module;
             }
             //引入模块配置
             self::loadConfig($module_path);
