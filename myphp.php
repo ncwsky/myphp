@@ -142,8 +142,7 @@ final class myphp{
      */
     public static function Run($sendFun=null, $isCli=IS_CLI){
         $_init_cfg = self::$cfg; //全局配置
-        self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法
-        self::init_app($isCli);
+        self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法及初始化
         self::$sendFun = $sendFun;
         try {
             //前置处理
@@ -455,10 +454,6 @@ final class myphp{
         self::$env['c'] = $_GET['c'];
         self::$env['a'] = $_GET['a'];
         self::$env['app_namespace'] = basename(APP_PATH);
-        //自动指定app命名空间目录
-        if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
-            self::$namespaceMap[self::$env['app_namespace'] . '\\'] = realpath(APP_PATH);
-        }
         //var_dump($_GET);
         $module = isset($_GET['m']) ? $_GET['m'] : ''; //self::$env['m'] =
         //指定项目模块
@@ -524,6 +519,11 @@ final class myphp{
             //相对项目的模板目录
             'APP_VIEW'=>self::$cfg['app_res_path'],
         ]);
+        self::init_app($isCLI);
+        //自动指定app命名空间目录 //realpath目录不存在时会false
+        if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
+            self::$namespaceMap[self::$env['app_namespace'] . '\\'] = realpath(APP_PATH);
+        }
         //通过命名空间加载可不需要指定目录遍历了
         //self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
         //self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
@@ -673,24 +673,6 @@ final class myphp{
         } else {
             error_reporting(E_ALL ^ E_NOTICE); #除了 E_NOTICE，报告其他所有错误
             ini_set('display_errors', 'Off');
-/*
-            $runFile = ROOT . '/~run.php';
-            if (!is_file($runFile)) {
-                $php = self::compile(__DIR__ . '/inc/comm.func.php');
-                $php .= self::compile(__DIR__ . '/lib/Cache.php');
-                $php .= self::compile(__DIR__ . '/lib/Value.php');
-                $php .= self::compile(__DIR__ . '/lib/Control.php');
-                $php .= self::compile(__DIR__ . '/lib/Db.php');
-                $php .= self::compile(__DIR__ . '/lib/Helper.php');
-                $php .= self::compile(__DIR__ . '/lib/Hook.php');
-                $php .= self::compile(__DIR__ . '/lib/Log.php');
-                $php .= self::compile(__DIR__ . '/lib/Model.php');
-                $php .= self::compile(__DIR__ . '/lib/Template.php');
-                $php .= self::compile(__DIR__ . '/lib/View.php');
-                file_put_contents($runFile, '<?php ' . $php);
-                unset($php);
-            }
-            require $runFile;*/
         }
 
         //设置本地时差
