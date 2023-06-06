@@ -391,9 +391,9 @@ final class myphp{
     */
     //解析URL获得控制器的与方法
     public static function Analysis($isCLI = IS_CLI){
-        $module_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
+        $app_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
         //引入app下的配置文件
-        self::loadConfig($module_path);
+        self::loadConfig($app_path);
 
         $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //获取当前执行文件名
         $app_root = IS_CLI ? DS : APP_ROOT . DS; //app_url根路径
@@ -460,22 +460,22 @@ final class myphp{
         if ($module != '') {
             if (isset(self::$cfg['module_maps'][$module])) {
                 if(self::$cfg['module_maps'][$module][0] == DS){ //相对根目录
-                    $module_path = ROOT . ROOT_DIR . self::$cfg['module_maps'][$module];
+                    $app_path = ROOT . ROOT_DIR . self::$cfg['module_maps'][$module];
                     self::$env['app_namespace'] = strtr(substr(self::$cfg['module_maps'][$module], 1), DS, '\\');
                 } else { //相对项目目录
-                    $module_path = APP_PATH . DS . self::$cfg['module_maps'][$module];
+                    $app_path = APP_PATH . DS . self::$cfg['module_maps'][$module];
                     self::$env['app_namespace'] .= '\\'. strtr(self::$cfg['module_maps'][$module], DS, '\\');
                 }
             } else { //子模块默认 module 目录下
-                $module_path = APP_PATH . DS . 'module' . DS . $module;
+                $app_path = APP_PATH . DS . 'module' . DS . $module;
                 self::$env['app_namespace'] .= '\\module\\'.$module;
             }
             //引入模块配置
-            self::loadConfig($module_path);
+            self::loadConfig($app_path);
         }
 
         //是否开启模板主题
-        $view_path = $module_path . DS . 'view' . (self::$cfg['tmp_theme'] ? DS . self::$cfg['site_template'] : '');
+        $view_path = $app_path . DS . 'view' . (self::$cfg['tmp_theme'] ? DS . self::$cfg['site_template'] : '');
         //自定义项目模板目录 用于模板资源路径
         if(!isset(self::$cfg['app_res_path'])){
             $path = $view_path;
@@ -509,17 +509,17 @@ final class myphp{
             'CONTROL' => (strpos(self::$env['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['c']), ' ')) : ucfirst(self::$env['c'])) . 'Act',
             'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰  lcfirst首字母转小写
             'MODULE' => $module,
-            'MODULE_PATH' => $module_path,
+            'MODULE_PATH' => $app_path,
             //路径 自动生成
-            'CACHE_PATH' => $module_path . DS . 'cache',
-            'CONTROL_PATH' => $module_path . DS . 'control',
-            'MODEL_PATH' => $module_path . DS . 'model',
-            'LANG_PATH' => $module_path . DS . 'lang',
+            'CACHE_PATH' => $app_path . DS . 'cache',
+            'CONTROL_PATH' => $app_path . DS . 'control',
+            'MODEL_PATH' => $app_path . DS . 'model',
+            'LANG_PATH' => $app_path . DS . 'lang',
             'VIEW_PATH' => $view_path,
             //相对项目的模板目录
             'APP_VIEW'=>self::$cfg['app_res_path'],
         ]);
-        self::init_app($isCLI);
+        self::init_app($app_path, $isCLI);
         //自动指定app命名空间目录 //realpath目录不存在时会false
         if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
             self::$namespaceMap[self::$env['app_namespace'] . '\\'] = realpath(APP_PATH);
@@ -531,12 +531,12 @@ final class myphp{
 
     /**
      * 引入合并配置
-     * @param $module_path
+     * @param $app_path
      */
-    private static function loadConfig($module_path){
-        if(!is_file($module_path . '/config.php')) return;
+    private static function loadConfig($app_path){
+        if(!is_file($app_path . '/config.php')) return;
 
-        $config = require($module_path . '/config.php');
+        $config = require($app_path . '/config.php');
         //指定目录
         if(isset($config['class_dir'])){
             $classDir = is_array($config['class_dir']) ? $config['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, $config['class_dir']));
@@ -606,11 +606,11 @@ final class myphp{
     }
 
     // app项目初始化
-    private static function init_app($isCLI = IS_CLI){
+    private static function init_app($path, $isCLI = IS_CLI){
         if(!$isCLI && self::$env['MODULE']!='') return; //仅cli下自动生成项目模块
-        if(is_file(self::$env['MODULE_PATH'] .'/index.htm')) return;
+        if(is_file($path .'/index.htm')) return;
         // 创建项目目录
-        if(!is_dir(self::$env['MODULE_PATH'])) mkdir(self::$env['MODULE_PATH'],0755, true);
+        if(!is_dir($path)) mkdir($path,0755, true);
         $dirs  = array(
             self::$env['CACHE_PATH'],
             self::$env['CONTROL_PATH'],
@@ -622,18 +622,18 @@ final class myphp{
             if(!is_dir($dir))  mkdir($dir,0755, true);
         }
         // 生成项目配置
-        $runConfig = self::$env['MODULE_PATH'] . '/config.php';
+        $runConfig = $path . '/config.php';
         if (!is_file($runConfig)) file_put_contents($runConfig, file_get_contents(__DIR__ . '/tpl/config.php'));
         // 写入测试Action
         if (!is_file(self::$env['CONTROL_PATH'] . '/IndexAct.php')) {
-            file_put_contents(self::$env['MODULE_PATH'] . '/index.htm', 'dir');
+            file_put_contents($path . '/index.htm', 'dir');
             file_put_contents(self::$env['CONTROL_PATH'] . '/Base.php', str_replace('__app__', self::$env['app_namespace'], file_get_contents(__DIR__ . '/tpl/Base.php')));
             file_put_contents(self::$env['CONTROL_PATH'] . '/'.self::$env['CONTROL'].'.php', str_replace(['__app__','__c__','__a__'], [self::$env['app_namespace'], self::$env['CONTROL'], self::$env['ACTION']], file_get_contents(__DIR__ . '/tpl/IndexAct.php')));
             file_put_contents(self::$env['VIEW_PATH'] . '/index.html', file_get_contents(__DIR__ . '/tpl/index.html'));
         }
         //生成git忽略文件
         file_put_contents(self::$env['CACHE_PATH'] . '/.gitignore', "*\r\n!.gitignore");
-        file_put_contents(self::$env['MODULE_PATH'] . '/.gitignore', "/config.php");
+        file_put_contents($path . '/.gitignore', "/config.php");
     }
     //初始框架
     public static function init($cfg=null){
