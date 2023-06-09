@@ -143,7 +143,7 @@ class Log{
                 $stack .= "]";
             }
         }
-        self::write('errno:'.$errno.', line:'.$errline.', file:'.$errfile.', message:'.$errstr .$stack, $level);
+        self::write('errno:'.$errno.', line:'.$errline.', file:'.$errfile.', message:'.$errstr.$stack.PHP_EOL.self::miniREQ(), $level);
 	}
 
     /** 自定义异常记录 用于 set_exception_handler
@@ -153,7 +153,7 @@ class Log{
 	public static function Exception($e, $out=true){
 		$err = $e->getMessage()."\n".'line:'.$e->getLine().', file:'.$e->getFile()."\n".$e->getTraceAsString();
 		if(IS_CLI || !$out){
-		    self::WARN($err);
+		    self::WARN($err.PHP_EOL.self::miniREQ());
 		    return;
         }
         self::$errflag=true;
@@ -161,28 +161,23 @@ class Log{
         //restore_error_handler(); restore_exception_handler(); //避免递归错误
 		if(GetC('debug')) echo '<pre>'.$err.'</pre>';
 	}
-	public static function miniREQ(){
-        $postStr = file_get_contents("php://input");
-		$_srv = 'Request: '.$_SERVER['SERVER_PROTOCOL'].' '.$_SERVER['HTTP_HOST'].' '.$_SERVER['REQUEST_METHOD'].' '.$_SERVER['REQUEST_URI'].' '.date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME'])."\n"
-		.(isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING']!==''?'Query_String: '. urldecode($_SERVER['QUERY_STRING']) ."\n":'')
-		.'Remote: '.$_SERVER['REMOTE_ADDR'].':'.$_SERVER['REMOTE_PORT'].(empty($_SERVER['HTTP_X_REAL_IP'])?'':'('.$_SERVER['HTTP_X_REAL_IP'].')')."\n";
-		$post = isset($_POST)?"POST: ".toJson($_POST):''; //."\n".file_get_contents('php://input')
+	public static function miniREQ($raw_full=false){
+        if (!isset($_SERVER['REQUEST_METHOD'])) return '';
+        $postStr =\myphp::rawBody();
+        $_srv = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'] . (strpos($_SERVER['REQUEST_URI'],'?')===false && isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . urldecode($_SERVER['QUERY_STRING']) : '') . ' ' . $_SERVER['SERVER_PROTOCOL'] . PHP_EOL . 'HOST:' . $_SERVER['HTTP_HOST'] . PHP_EOL . 'Remote: ' . $_SERVER['REMOTE_ADDR'] . ':' . $_SERVER['REMOTE_PORT'] . (empty($_SERVER['HTTP_X_REAL_IP']) ? '' : '(' . $_SERVER['HTTP_X_REAL_IP'] . ')');
 
-		return $_srv."\n".$post.($postStr?"HTTP_RAW_POST_DATA: ".substr($postStr,0,200):"");
+		return $_srv.(isset($_POST)?PHP_EOL."Form-Data: ".rawurldecode(http_build_query($_POST, null, null, PHP_QUERY_RFC3986)):'').($postStr?PHP_EOL."Raw: ".($raw_full?$postStr:substr($postStr,0,255)):'');
 	}
 	//返回请求信息
-	public static function REQ(){
-		$postStr = file_get_contents("php://input");
-		$_srv = 'Request: '.$_SERVER['SERVER_PROTOCOL'].' '.$_SERVER['HTTP_HOST'].' '.$_SERVER['REQUEST_METHOD'].' '.$_SERVER['REQUEST_URI'].' '.date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME'])."\n"
-		.(isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING']!==''?'Query_String: '. urldecode($_SERVER['QUERY_STRING']) ."\n":'')
-		.(isset($_SERVER['HTTP_ACCEPT'])?'Http_Accept: '.$_SERVER['HTTP_ACCEPT']."\n":'')
-		.(isset($_SERVER['HTTP_REFERER'])?'Http_Referer: '.$_SERVER['HTTP_REFERER']."\n":'')
-		.(isset($_SERVER['HTTP_USER_AGENT'])?'Http_User_Agent: '.$_SERVER['HTTP_USER_AGENT']."\n":'')
-		.(isset($_SERVER['HTTP_COOKIE'])?'Http_Cookie: '.$_SERVER['HTTP_COOKIE']."\n":'')
-		.'Remote: '.$_SERVER['REMOTE_ADDR'].':'.$_SERVER['REMOTE_PORT'].(empty($_SERVER['HTTP_X_REAL_IP'])?'':'('.$_SERVER['HTTP_X_REAL_IP'].')')."\n";
-
-		$post = isset($_POST)?"POST: ".toJson($_POST)."\n":'';
-		return $_srv."\n".$post.($postStr?"HTTP_RAW_POST_DATA: ".substr($postStr,0,200):"");
+	public static function REQ($raw_full=false){
+        $_srv = self::miniREQ($raw_full);
+        if ($_srv) {
+            $_srv .= PHP_EOL.(isset($_SERVER['HTTP_ACCEPT']) ? 'Http_Accept: ' . $_SERVER['HTTP_ACCEPT'] . PHP_EOL : '')
+                . (isset($_SERVER['HTTP_REFERER']) ? 'Http_Referer: ' . $_SERVER['HTTP_REFERER'] . PHP_EOL : '')
+                . (isset($_SERVER['HTTP_USER_AGENT']) ? 'Http_User_Agent: ' . $_SERVER['HTTP_USER_AGENT'] . PHP_EOL : '')
+                . (isset($_SERVER['HTTP_COOKIE']) ? 'Http_Cookie: ' . $_SERVER['HTTP_COOKIE'] . PHP_EOL : '') . PHP_EOL;
+        }
+        return $_srv;
 	}
 	//日志记录等级判断
 	private static function _level($level){
