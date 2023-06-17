@@ -488,12 +488,15 @@ class Model implements \ArrayAccess
                 if (isset($rules[$name])) {
                     //非禁用默认值及验证处理或表达式
                     if (!($setDef === 0 || $v instanceof Expr)) {
+                        $hasDef = true;
                         if (is_array($rules[$name])) {
+                            //是否有默认值 无默认值时则不能为空
+                            $hasDef = isset($rules[$name]['def']) || array_key_exists('def', $rules[$name]);
                             $rule = $rules[$name]['rule'];
                         } else {
                             $rule = $rules[$name];
                         }
-                        Value::type2val($v, $rule, null, true, $name);
+                        Value::type2val($v, $rule, '', !$hasDef, $name);
 
                         $data[$name] = $v;
                     }

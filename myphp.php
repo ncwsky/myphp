@@ -20,9 +20,9 @@ final class myphp{
     private static $container = []; //容器
 
     //自动载入配置项
-    public static $rootPath = '';
+    public static $rootPath = ''; //默认 ROOT.ROOT_DIR
     public static $classDir = []; //设置可加载的目录 ['dir'=>1,....]
-    public static $namespaceMap = []; // ['namespace\\'=>'src/']; //命名空间路径映射 不指定完整路径使用rootPath
+    public static $namespaceMap = []; // ['namespace\\'=>'src/']; //命名空间路径映射 不指定完整路径使用rootPath 仅支持"xxx\\"的映射
     public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
     public static $classOldSupport = false; //是否兼容xxx.class.php
     //配置处理 start
@@ -454,9 +454,12 @@ final class myphp{
         self::$env['c'] = $_GET['c'];
         self::$env['a'] = $_GET['a'];
         self::$env['app_namespace'] = basename(APP_PATH);
-        //var_dump($_GET);
-        $module = isset($_GET['m']) ? $_GET['m'] : ''; //self::$env['m'] =
+        //自动指定app顶层命名空间目录 //realpath目录不存在时会false
+        if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
+            self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
+        }
         //指定项目模块
+        $module = isset($_GET['m']) ? $_GET['m'] : '';
         if ($module != '') {
             if (isset(self::$cfg['module_maps'][$module])) {
                 if(self::$cfg['module_maps'][$module][0] == DS){ //相对根目录
@@ -520,10 +523,6 @@ final class myphp{
             'APP_VIEW'=>self::$cfg['app_res_path'],
         ]);
         self::init_app($app_path, $isCLI);
-        //自动指定app命名空间目录 //realpath目录不存在时会false
-        if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
-            self::$namespaceMap[self::$env['app_namespace'] . '\\'] = realpath(APP_PATH);
-        }
         //通过命名空间加载可不需要指定目录遍历了
         //self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
         //self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
