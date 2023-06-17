@@ -50,27 +50,34 @@ class Value{
     }
 
     /**
-     * @param $data
-     * @param $name
-     * @param string|array $rule
-     * @param mixed $default
-     * @param $strict
+     * @param array $data
+     * @param string $name
+     * @param string|array $rule array['rule','def'] | string %s{}:fun   %s,%b,%d,%f,%a,%date[2014-01-11 13:23:32],%his[13:23:32]  {1,20}取值范围 filter:fun1,fun2,/regx/i正则过滤
+     * @param mixed $default $rule是string时可指定默认值
+     * @param bool $strict 是否严格验证
      * @return array|bool|float|int|string
      * @throws \RuntimeException
      */
     public static function get(&$data, $name, $rule=null, $default=null, $strict=false){
-        if(strpos($name,'.')){ //多维数组
+        if (strpos($name, '.')) { //多维数组
             $val = Helper::getValue($data, $name);
-        }else{
+        } else {
             $val = isset($data[$name]) ? $data[$name] : null;
         }
+
+        if (is_array($rule)) {
+            if (isset($rule['def'])) $default = $rule['def'];
+            $rule = $rule['rule'];
+        }
+
         self::type2val($val, $rule, $default, $strict, $name);
         return $val;
     }
+
     /**
      * 规则解析
-     * @param $rule
-     * @param $type
+     * @param string $rule
+     * @param string $type
      * @param null $min
      * @param null $max
      * @param null $filter
@@ -119,7 +126,7 @@ class Value{
 
     /**
      * 指定类型取值处理
-     * @param $val
+     * @param mixed $val
      * @param string|array $rule string:%s{10,20},%s{20}|array:['s','min'=>10,'max'=>20, filter, digit, err, err2],['s','max'=>20]  取值规则
      * @param null $default 默认值
      * @param bool $strict 强验证 失败抛出异常

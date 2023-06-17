@@ -50,8 +50,6 @@ class Model implements \ArrayAccess
     protected $autoIncrement;
     //表查询的字段
     protected $fields = '*';
-    //表字段验证无效时设默认值开关
-    protected $setDef = false;
     //表字段规则
     protected $fieldRule = [];//'id'=>['rule'=>'%d{1,10}','def'=>0]
     /**
@@ -226,11 +224,11 @@ class Model implements \ArrayAccess
      * $def:false 对未设置字段not null验证(不为空验证)
      * $def:true 对未设置字段not null验证,同时有默认值时设默认值
      * @param null $data
-     * @param null $def
+     * @param null|false|true $def 是否给有默认值但未设置的字段设置默认值 0不验证|true设置默认值|false不设置
      * @return bool|int|mixed|string
      * @throws \Exception
      */
-    public function save($data = null, $def=null)
+    public function save($data = null, $def=false)
     {
         if (is_array($data)) {
             $this->_data = $this->_data ? array_merge($this->_data, $data) : $data;
@@ -250,7 +248,7 @@ class Model implements \ArrayAccess
             unset($this->_data[$this->autoIncrement], $this->fieldRule[$this->autoIncrement]);
         }
         //验证数据
-        if (!Helper::validAll($this->_data, $this->fieldRule, true, $def === null ? $this->setDef : $def)) {
+        if (!self::validate($this->_data, $this->fieldRule, true, $def, !$isUpdate)) {
             //throw new \RuntimeException('验证失败');
             $this->db->resetOptions();
             return false;
@@ -475,6 +473,52 @@ class Model implements \ArrayAccess
         return self::runCall(new static(), $method, $args);
     }
 
+    /** 数据有效性处理
+     * @param array $data 数据
+     * @param array $rules 规则
+     * @param bool $exclude 是否排除非rule规则键名的数据
+     * @param bool $setDef 是否给有默认值但未设置的字段设置默认值
+     * @param bool $all 验证所有字段
+     * @return bool
+     * @throws \RuntimeException
+     */
+    public static function validate(&$data, $rules, $exclude=false, $setDef=false, $all=true){
+        try{
+            foreach($data as $name=>$v){ //数据验证及是否多余数据处理
+                if (isset($rules[$name])) {
+                    //非禁用默认值及验证处理或表达式
+                    if (!($setDef === 0 || $v instanceof Expr)) {
+                        if (is_array($rules[$name])) {
+                            $rule = $rules[$name]['rule'];
+                        } else {
+                            $rule = $rules[$name];
+                        }
+                        Value::type2val($v, $rule, null, true, $name);
+
+                        $data[$name] = $v;
+                    }
+                    unset($rules[$name]);
+                } elseif ($exclude) {
+                    unset($data[$name]);
+                }
+            }
+
+            if($setDef!==0 && $all){ //未指定字段默认值处理
+                foreach ($rules as $name=>$rule){ //是否可为空使用默认值
+                    //是否有默认值  无默认值时则不能为空
+                    if (isset($rule['def']) || array_key_exists('def', $rule)) {
+                        if ($setDef) $data[$name] = $rule['def'];
+                    } else {
+                        throw new \RuntimeException(isset($rule['err']) ? $rule['err'] : $name . ' is invalid');
+                    }
+                }
+            }
+        } catch (\RuntimeException $e) {
+            return static::err($e->getMessage());
+        }
+        return true;
+    }
+
     /**
      * @param null $data
      * @param null $tbName
@@ -504,8 +548,7 @@ class Model implements \ArrayAccess
                     unset($model->fieldRule[$model->autoIncrement]);
                 }
                 foreach ($post as &$data) {
-                    if (!Helper::validAll($data, $model->fieldRule, true)) {
-                        static::err(\myphp::err());
+                    if (!self::validate($data, $model->fieldRule, true)) {
                         return false;
                     }
                 }
@@ -514,8 +557,7 @@ class Model implements \ArrayAccess
                     unset($model->fieldRule[$model->autoIncrement]);
                 }
                 //验证数据
-                if (!Helper::validAll($post, $model->fieldRule, true)) {
-                    static::err(\myphp::err());
+                if (!self::validate($post, $model->fieldRule, true)) {
                     return false;
                 }
             }

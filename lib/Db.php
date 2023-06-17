@@ -700,7 +700,7 @@ class Db {
         if (isset($this->options['having'])) $sql .= ' HAVING ' . $this->options['having'];
 
         $row = $this->getOne($sql, null, 'num');
-        return (int)$row[0];
+        return $row ? (int)$row[0] : 0;
 	}
 	//获取指定字段最新值
 	public function getLastId($table, $idName, $where = '', $orderByName = ''){
@@ -727,7 +727,7 @@ class Db {
 		if ($orderBy != '') $sql .= ' ORDER BY '. $orderBy;
 		
 		$row = $this->getOne($sql, null, 'num');
-		return is_array($row)?$row[0]:false;
+        return $row ? $row[0] : false;
 	}
 
     /**
