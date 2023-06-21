@@ -25,7 +25,7 @@ class Template{
      */
 	private function initFile($file){
         //判断模板文件是否存在
-        $templateFile = ($file[0] == '/' ? ROOT . ROOT_DIR : $this->view_path . DS) . $file;
+        $templateFile = ($file[0] == '/' ? ROOT : $this->view_path . DS) . $file;
         if (!is_file($templateFile)) {
             throw new Exception('模板文件' . str_replace(ROOT, '', $templateFile) . '不存在');
         }
@@ -160,8 +160,8 @@ class Template{
 	private function doTmp($tmpfile){
 		$content = file_get_contents($tmpfile);
 		//替换系统常量
-		$patt = array('__PUBLIC__', '__URL__', '__APP__');
-		$replace = array('<?php echo PUB; ?>','<?php echo \myphp::env("URL"); ?>','<?php echo \myphp::env("APP"); ?>');
+		$patt = array('__URL__', '__APP__');
+		$replace = array('<?php echo \myphp::env("URL"); ?>','<?php echo \myphp::env("APP"); ?>');
 		$content = str_replace($patt, $replace, $content);
 		$patt = preg_quote($this->leftTag) .'(\S.+?)'. preg_quote($this->rightTag);
 		$content = preg_replace_callback("/{$patt}/", array($this,'parseTag'), $content); //i 不区分大小写 s .匹配所有的字符，包括换行符 e PHP代码求值并替换
@@ -195,7 +195,7 @@ class Template{
 	//模板地址转换
     private function transPath($tagFile) {
         // 此处需要判断是否需要默认目录 '/'开头表示根目录
-		return substr($tagFile, 0, 1) =='/' ? ROOT . ROOT_DIR. $tagFile : $this->view_path . DS . $tagFile;
+		return substr($tagFile, 0, 1) =='/' ? ROOT . $tagFile : $this->view_path . DS . $tagFile;
 	}
 	//验证缓存是否有效
 	private function checkCache(){

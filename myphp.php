@@ -20,7 +20,7 @@ final class myphp{
     private static $container = []; //容器
 
     //自动载入配置项
-    public static $rootPath = ''; //默认 ROOT.ROOT_DIR
+    public static $rootPath = ''; //默认 ROOT
     public static $classDir = []; //设置可加载的目录 ['dir'=>1,....]
     public static $namespaceMap = []; // ['namespace\\'=>'src/']; //命名空间路径映射 不指定完整路径使用rootPath 仅支持"xxx\\"的映射
     public static $classMap = []; //['myphp'=>__DIR__.'/myphp.php']; //设置指定的类加载 示例 类名[命名空间]=>文件
@@ -74,6 +74,7 @@ final class myphp{
             return;
         }
 
+        #var_dump(self::$namespaceMap, $class_name);
         $name = $class_name;
         if ($len = strpos($class_name, '\\')) { //命名空间类加载
             $len += 1;
@@ -88,6 +89,7 @@ final class myphp{
                 self::load($path . ($end == '/' ? '' : DIRECTORY_SEPARATOR) . strtr(substr($class_name, $len), '\\', DIRECTORY_SEPARATOR) . '.php');
                 return;
             }
+            #var_dump(self::$rootPath . DIRECTORY_SEPARATOR . strtr($class_name, '\\', DIRECTORY_SEPARATOR) . '.php');
             self::load(self::$rootPath . DIRECTORY_SEPARATOR . strtr($class_name, '\\', DIRECTORY_SEPARATOR) . '.php');
             return;
         }
@@ -462,8 +464,8 @@ final class myphp{
         $module = isset($_GET['m']) ? $_GET['m'] : '';
         if ($module != '') {
             if (isset(self::$cfg['module_maps'][$module])) {
-                if(self::$cfg['module_maps'][$module][0] == DS){ //相对根目录
-                    $app_path = ROOT . ROOT_DIR . self::$cfg['module_maps'][$module];
+                if(self::$cfg['module_maps'][$module][0] == DS){ //项目根目录
+                    $app_path = ROOT . self::$cfg['module_maps'][$module];
                     self::$env['app_namespace'] = strtr(substr(self::$cfg['module_maps'][$module], 1), DS, '\\');
                 } else { //相对项目目录
                     $app_path = APP_PATH . DS . self::$cfg['module_maps'][$module];
@@ -538,7 +540,7 @@ final class myphp{
         $config = require($app_path . '/config.php');
         //指定目录
         if(isset($config['class_dir'])){
-            $classDir = is_array($config['class_dir']) ? $config['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, $config['class_dir']));
+            $classDir = is_array($config['class_dir']) ? $config['class_dir'] : explode(',', ROOT . str_replace(',', ',' . ROOT, $config['class_dir']));
             self::class_dir($classDir);
             unset($config['class_dir']);
         }
@@ -663,7 +665,7 @@ final class myphp{
         }
         //相对根目录
         define('ROOT_DIR', self::$cfg['root_dir']);
-        //相对公共目录
+        //相对资源公共目录
         define('PUB', ROOT_DIR . '/pub');
 
         if (self::$cfg['debug']) { //开启错误提示
@@ -679,11 +681,11 @@ final class myphp{
         //初始类的可加载目录
         self::class_dir([COMMON, COMMON . '/model']); //基础类 扩展类 公共模型
         if(self::$cfg['class_dir']){
-            $classDir = is_array(self::$cfg['class_dir']) ? self::$cfg['class_dir'] : explode(',', ROOT . ROOT_DIR . str_replace(',', ',' . ROOT . ROOT_DIR, self::$cfg['class_dir']));
+            $classDir = is_array(self::$cfg['class_dir']) ? self::$cfg['class_dir'] : explode(',', ROOT . str_replace(',', ',' . ROOT, self::$cfg['class_dir']));
             self::class_dir($classDir);
         }
 
-        if (self::$rootPath === '') self::$rootPath = ROOT . ROOT_DIR;
+        if (self::$rootPath === '') self::$rootPath = ROOT;
         //注册类的自动加载
         spl_autoload_register('\myphp::autoload', true, true);
         // 设定错误和异常处理

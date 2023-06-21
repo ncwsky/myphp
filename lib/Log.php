@@ -35,7 +35,7 @@ class Log{
 	//初始日志目录
 	public static function Init($logDir=null, $level=0, $size=2097152){
 		if(!self::$instance) self::$instance = new self();
-		self::$logDir = $logDir ? (substr($logDir,-1)==DS?$logDir:$logDir.DS) : ROOT.ROOT_DIR.DS;
+		self::$logDir = $logDir ? (substr($logDir,-1)==DS?$logDir:$logDir.DS) : ROOT.DS;
         !is_dir(self::$logDir) && mkdir(self::$logDir, 0755, true);
 		self::$file = self::$logDir.'log.log';
 		self::$instance->handler[self::$dir] = fopen(self::$file,'a');
@@ -225,7 +225,7 @@ class Log{
             if(isset(self::$instance->handler)) {
                 $fp = self::$instance->handler[$level=='_def'?'_def':self::$dir];
             }
-            $file = ROOT.ROOT_DIR.'/log.log';
+            $file = ROOT.'/log.log';
             if(self::$file){
                 $file = $level=='_def'?self::$logDir.'log.log':self::$file;
             }

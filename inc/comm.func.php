@@ -542,13 +542,13 @@ function get_thumb($image,$thumb_wh='',$nopic='/pub/images/itemi.png'){
             if($__has!==false) $thumb_wh = substr($thumb_wh, 0, $__has);
         }
         $thumb = substr($image, 0, $dot).$thumb_wh.substr($image, $dot);
-        return is_file(ROOT.ROOT_DIR.$thumb) ? $thumb : $image;
+        return is_file(SITE_WEB.$thumb) ? $thumb : $image;
     }
 }
 //生成缩略图  return array 缩略图列表
 function make_thumb($image){
     $thumb = array();
-    $image = ROOT.ROOT_DIR.$image;
+    $image = SITE_WEB.$image;
     if(!is_file($image)) return false;
     $imgType = '.png,.jpg,.jpeg,.bmp,.gif';//图片类型
     $dot = strrpos($image,'.');
@@ -569,7 +569,7 @@ function make_thumb($image){
 }
 //删除上传文件 文件路径 是否图片
 function del_up_file($file, $is_img=0){
-    $realFile = ROOT.ROOT_DIR.$file;//真实路径
+    $realFile = SITE_WEB.$file;//真实路径
     if (is_file($realFile)) {
         if($is_img){
             $dot = strrpos($realFile,'.');
@@ -614,7 +614,7 @@ function editor_fun($field,$value=''){
 // 设置config文件 $config 配属信息,$file 配置文件名(相对根目录/xxx/config.php) $allow_val 允许的值名替换 默认不限制
 // 示例 allow_val = array('js_path','css_path','img_path'); 配置值不允许有换行符、单引号 以防出错
 function set_config($config, $file="/config.php", $allow_val=null) {
-    $configFile = ROOT.ROOT_DIR.$file;
+    $configFile = ROOT.$file;
     $pattern = $replacement = array();
     foreach($config as $k=>$v) {
         if(is_array($allow_val) && !in_array($k,$allow_val)) continue;

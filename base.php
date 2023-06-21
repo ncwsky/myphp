@@ -19,7 +19,7 @@ if (!class_exists('Error')) { //兼容7.0
 }
 
 //REQUEST_URI 处理 ORIG_PATH_INFO REDIRECT_PATH_INFO REDIRECT_URL
-if(!isset($_SERVER['REQUEST_URI'])){
+if(!IS_CLI && !isset($_SERVER['REQUEST_URI'])){
     if (isset($_SERVER['HTTP_X_REWRITE_URL'])) {
         $_SERVER['REQUEST_URI'] = $_SERVER['HTTP_X_REWRITE_URL'];
     } else {
@@ -27,13 +27,23 @@ if(!isset($_SERVER['REQUEST_URI'])){
     }
 }
 
-//绝对根目录
-define('ROOT', IS_CLI ? strtr(dirname(realpath($_SERVER['SCRIPT_FILENAME'])), '\\', DS) : str_replace($_SERVER['SCRIPT_NAME'], '', strtr($_SERVER['SCRIPT_FILENAME'], '\\', DS)));
-
-//运行临时目录
-defined('RUNTIME') || define('RUNTIME', ROOT.'/runtime');
+//项目根目录处理
+if (defined('APP_PATH')) {
+    $root = dirname(APP_PATH);
+    if (strpos($root, '..')) {
+        $root = realpath($root);
+    }
+} else {
+    $root = IS_CLI ? strtr(dirname(realpath($_SERVER['SCRIPT_FILENAME'])), '\\', DS) : str_replace($_SERVER['SCRIPT_NAME'], '', strtr($_SERVER['SCRIPT_FILENAME'], '\\', DS));
+}
+define('ROOT', $root);
+//临时目录
+defined('RUNTIME') || define('RUNTIME', ROOT . '/runtime');
 //公共目录
-defined('COMMON') || define('COMMON', ROOT.'/common');
+defined('COMMON') || define('COMMON', ROOT . '/common');
+//Web目录
+defined('SITE_WEB') || define('SITE_WEB', ROOT . '/web');
+
 require __DIR__ . '/myphp.php';
 require __DIR__ . '/inc/comm.func.php';
 require __DIR__ . '/lib/Db.php';
