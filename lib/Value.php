@@ -65,7 +65,7 @@ class Value{
             $val = isset($data[$name]) ? $data[$name] : null;
         }
 
-        if (is_array($rule)) {
+        if (is_array($rule) && isset($rule['rule'])) {
             if (isset($rule['def'])) $default = $rule['def'];
             $rule = $rule['rule'];
         }
