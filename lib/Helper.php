@@ -487,19 +487,26 @@ class Helper{
             return $keyc.str_replace('=', '', base64_encode($result));
         }
     }
-    //aes加密
-    public static function aesEncrypt($str,$key,$method=MCRYPT_MODE_CBC)
+
+    /**
+     * aes加密
+     * @param string $str
+     * @param string $key
+     * @param string $method cbc|cfb|ecb|nofb|ofb|stream
+     * @return string
+     */
+    public static function aesEncrypt($str,$key,$method='cbc')
     {
         $keyLen = strlen($key);
         if(!function_exists('openssl_encrypt')){ //mcrypt_encrypt
             if($keyLen<=16){
-                $cipher = MCRYPT_RIJNDAEL_128;
+                $cipher = 'rijndael-128';
                 if($keyLen<16) $key = str_pad($key,16,"\0");
             }elseif($keyLen<=24){
-                $cipher = MCRYPT_RIJNDAEL_192;
+                $cipher = 'rijndael-192';
                 if($keyLen<24) $key = str_pad($key,24,"\0");
             }else{ //超出32位截断
-                $cipher = MCRYPT_RIJNDAEL_256;
+                $cipher = 'rijndael-256';
                 if($keyLen>32) $key = substr($key,0,32);
                 elseif($keyLen<32) $key = str_pad($key,32,"\0");
             }
@@ -529,19 +536,26 @@ class Helper{
         //echo $ivlen,$method,'===',$key,'===',$iv,'<br>';
         return base64_encode(openssl_encrypt($str, $method, $key, OPENSSL_RAW_DATA, $iv)); //OPENSSL_RAW_DATA  OPENSSL_ZERO_PADDING
     }
-    //aes解密
-    public static function aesDecrypt($str,$key,$method=MCRYPT_MODE_CBC)
+
+    /**
+     * aes解密
+     * @param string $str
+     * @param string $key
+     * @param string $method cbc|cfb|ecb|nofb|ofb|stream
+     * @return false|string
+     */
+    public static function aesDecrypt($str,$key,$method='cbc')
     {
         $keyLen = strlen($key);
         if(!function_exists('openssl_encrypt')){ //mcrypt_decrypt
             if($keyLen<=16){
-                $cipher = MCRYPT_RIJNDAEL_128;
+                $cipher = 'rijndael-128';
                 if($keyLen<16) $key = str_pad($key,16,"\0");
             }elseif($keyLen<=24){
-                $cipher = MCRYPT_RIJNDAEL_192;
+                $cipher = 'rijndael-192';
                 if($keyLen<24) $key = str_pad($key,24,"\0");
             }else{ //超出32位截断
-                $cipher = MCRYPT_RIJNDAEL_256;
+                $cipher = 'rijndael-256';
                 if($keyLen>32) $key = substr($key,0,32);
                 elseif($keyLen<32) $key = str_pad($key,32,"\0");
             }
