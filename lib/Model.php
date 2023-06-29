@@ -492,7 +492,7 @@ class Model implements \ArrayAccess
                         if (is_array($rules[$name])) {
                             //是否有默认值 无默认值时则不能为空
                             $hasDef = isset($rules[$name]['def']) || array_key_exists('def', $rules[$name]);
-                            $rule = $rules[$name]['rule'];
+                            $rule = isset($rules[$name]['rule']) ? $rules[$name]['rule'] : $rules[$name];
                         } else {
                             $rule = $rules[$name];
                         }
