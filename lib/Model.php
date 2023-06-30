@@ -512,7 +512,12 @@ class Model implements \ArrayAccess
                     if (isset($rule['def']) || array_key_exists('def', $rule)) {
                         if ($setDef) $data[$name] = $rule['def'];
                     } else {
-                        throw new \RuntimeException(isset($rule['err']) ? $rule['err'] : $name . ' is invalid');
+                        $err = $name . ' is invalid';
+                        if (is_array($rule)) {
+                            if (isset($rule['rule']['err'])) $err = $rule['rule']['err'];
+                            elseif (isset($rule['err'])) $err = $rule['err'];
+                        }
+                        throw new \RuntimeException($err);
                     }
                 }
             }
