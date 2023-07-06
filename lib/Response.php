@@ -281,7 +281,7 @@ class Response
             $url = Request::siteUrl();
         } elseif ($url[0] === '/') {
             $url = Request::siteUrl() . $url;
-        } elseif (strpos($url, 'http://') === false || strpos($url, 'https://') === false) {
+        } elseif (strpos($url, 'http://') === false && strpos($url, 'https://') === false) {
             $url = Request::siteUrl() . '/' . $url;
         }
 
