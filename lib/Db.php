@@ -89,10 +89,11 @@ class Db {
         }
 
         switch ($this->config['dbms']) {
-            case 'mssql':
-            case 'oracle':
-            case 'pgsql':
-            case 'sqlite':
+            case 'mysql':
+                $this->startSpec = '`';
+                $this->endSpec = '`';
+                break;
+            default: //mssql,sqlite,oracle,pgsql
                 $this->startSpec = '"';
                 $this->endSpec = '"';
                 break;

@@ -166,7 +166,7 @@ class Log{
         $postStr =\myphp::rawBody();
         $_srv = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'] . (strpos($_SERVER['REQUEST_URI'],'?')===false && isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . urldecode($_SERVER['QUERY_STRING']) : '') . ' ' . $_SERVER['SERVER_PROTOCOL'] . PHP_EOL . 'HOST:' . $_SERVER['HTTP_HOST'] . PHP_EOL . 'Remote: ' . $_SERVER['REMOTE_ADDR'] . ':' . $_SERVER['REMOTE_PORT'] . (empty($_SERVER['HTTP_X_REAL_IP']) ? '' : '(' . $_SERVER['HTTP_X_REAL_IP'] . ')');
 
-		return $_srv.(isset($_POST)?PHP_EOL."Form-Data: ".rawurldecode(http_build_query($_POST, null, null, PHP_QUERY_RFC3986)):'').($postStr?PHP_EOL."Raw: ".($raw_full?$postStr:substr($postStr,0,255)):'');
+		return $_srv.(isset($_POST)?PHP_EOL."Form-Data: ".rawurldecode(http_build_query($_POST, null, "&", PHP_QUERY_RFC3986)):'').($postStr?PHP_EOL."Raw: ".($raw_full?$postStr:substr($postStr,0,255)):'');
 	}
 	//返回请求信息
 	public static function REQ($raw_full=false){
