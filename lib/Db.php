@@ -93,6 +93,10 @@ class Db {
                 $this->startSpec = '`';
                 $this->endSpec = '`';
                 break;
+            case 'taos': //TDengine
+                $this->startSpec = '';
+                $this->endSpec = '';
+                break;
             default: //mssql,sqlite,oracle,pgsql
                 $this->startSpec = '"';
                 $this->endSpec = '"';
