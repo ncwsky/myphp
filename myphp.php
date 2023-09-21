@@ -5,14 +5,15 @@ use myphp\Log;
 
 final class myphp{
     use MyMsg;
-    public static $beforeFun = null; //Control_run之前的处理回调 \Closure()
-    public static $authFun = null; //验证回调方法 \Closure
+    public static $beforeFun = null; //Control_run之前的处理回调 \Closure() @return void|throw|\myphp\Response
+    public static $authFun = null; //验证回调方法 \Closure @return void|false|throw|\myphp\Response
     public static $sendFun = null; //自定义输出处理 \Closure($code, $data, $header)
     public static $lang = [];
     public static $env = []; //Run执行时的环境值 array
     public static $header = [];
     public static $statusCode = 200;
     /**
+     * 管道模式
      * @var \myphp\Pipeline
      */
     public static $pipe = null;
@@ -137,6 +138,35 @@ final class myphp{
     }
 
     /**
+     * 执行c->a
+     * @return mixed|\myphp\Response|null
+     * @throws Exception
+     */
+    private static function _runCA(){
+        //权限验证处理
+        $res = self::$authFun instanceof \Closure ? call_user_func(self::$authFun) : self::Auth();
+        if ($res instanceof \myphp\Response) return $res;
+        if (false === $res) return null;
+        // 请求缓存处理
+        $res = self::reqCache();
+        if (false === $res) {
+            //转驼峰 控制器的类名
+            $control = self::$env['app_namespace'] . '\\control\\' . self::$env['CONTROL'];
+            if (!class_exists($control)) return self::res()->e404('class not exists ' . $control);
+            //throw new \Exception('class not exists ' . $control, 404);
+            /**
+             * @var \myphp\Control $instance
+             */
+            $instance = new $control();
+            $res = $instance->_run(self::$env['ACTION']);
+        }
+        if ($res !== null && !$res instanceof \myphp\Response) {
+            self::res()->body = $res;
+            $res = self::res();
+        }
+        return $res;
+    }
+    /**
      * 运行程序 $isCli 可设置CLI模式下false用于解析数据的参数
      * @param null $sendFun
      * @param bool $isCli
@@ -147,45 +177,33 @@ final class myphp{
         self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法及初始化
         self::$sendFun = $sendFun;
         try {
-            //前置处理
-            if(self::$beforeFun instanceof \Closure){
-                array_unshift(self::$cfg['middleware'], function($request, $next){
-                    $data = call_user_func(self::$beforeFun);
-                    if ($data instanceof \myphp\Response) return $data;
-                    return $next($request);
-                });
-                //$data = call_user_func(self::$beforeFun);
-            }
-            //权限验证处理
-            array_unshift(self::$cfg['middleware'], function($request, $next){
-                $data = self::$authFun instanceof \Closure ? call_user_func(self::$authFun) : self::Auth();
-                if ($data instanceof \myphp\Response) return $data;
-                return $next($request);
-            });
-            //$data = self::$authFun instanceof \Closure ? call_user_func(self::$authFun) : self::Auth();
             /**
              * @var \myphp\Response|null $res
              */
-            $res = self::$pipe->send(self::req())->through(self::$cfg['middleware'])->then(function ($request){
-                // 请求缓存处理
-                $res = self::reqCache();
-                if (false === $res) {
-                    //转驼峰 控制器的类名
-                    $control = self::$env['app_namespace'] . '\\control\\' . self::$env['CONTROL'];
-                    if (!class_exists($control)) return self::res()->e404('class not exists ' . $control);
-                    //throw new \Exception('class not exists ' . $control, 404);
-                    /**
-                     * @var \myphp\Control $instance
-                     */
-                    $instance = new $control();
-                    $res = $instance->_run(self::$env['ACTION']);
+            $res = null;
+            //有中间件配置时走管道模式
+            if (self::$cfg['middleware']) {
+                //前置处理
+                if(self::$beforeFun instanceof \Closure){
+                    array_unshift(self::$cfg['middleware'], function($request, $next){
+                        $data = call_user_func(self::$beforeFun);
+                        if ($data instanceof \myphp\Response) return $data;
+                        return $next($request);
+                    });
                 }
-                if ($res !== null && !$res instanceof \myphp\Response) {
-                    self::res()->body = $res;
-                    $res = self::res();
+                //c->a执行
+                $res = self::$pipe->send(self::req())->through(self::$cfg['middleware'])->then(function ($request){
+                    return self::_runCA();
+                });
+            } else {
+                //前置处理
+                if (self::$beforeFun instanceof \Closure) {
+                    $res = call_user_func(self::$beforeFun);
                 }
-                return $res;
-            });
+                if ($res === null || !$res instanceof \myphp\Response) {
+                    $res = self::_runCA();
+                }
+            }
             $res!==null && self::send($res, self::$statusCode, self::req()->expire);
         } catch (\Exception $e) {
             $errCode = $e->getCode();
@@ -246,7 +264,6 @@ final class myphp{
         // 监听res_end
         \myphp\Hook::listen('res_end', $res);
     }
-
     /**
      * 请求缓存处理
      * @return false|\myphp\Response
@@ -529,7 +546,6 @@ final class myphp{
         //self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
         //self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
     }
-
     /**
      * 引入合并配置
      * @param $app_path
@@ -556,7 +572,6 @@ final class myphp{
 
         self::$cfg = array_merge(self::$cfg, $config); //array_merge_recursive 可考虑递归合并
     }
-
     /**
      * 权限验证处理 在config.php配置中设置开启
      * @return \myphp\Response|mixed|void
@@ -605,7 +620,6 @@ final class myphp{
         }
         return $auth->$auth_action(); //启动验证方法
     }
-
     // app项目初始化
     private static function init_app($path, $isCLI = IS_CLI){
         if(!$isCLI && self::$env['MODULE']!='') return; //仅cli下自动生成项目模块
@@ -710,7 +724,6 @@ final class myphp{
         if ('?>' == substr($content, -2)) $content = substr($content, 0, -2);
         return $content;
     }
-
     /**
      * 载入php文件
      * @param string $path  路径
@@ -719,7 +732,6 @@ final class myphp{
     public static function loadPHP($path) {
         return self::load($path);
     }
-
     //语言
     public static function loadLang($file){
         self::$lang = array_merge(self::$lang, is_array($file) ? $file : include $file);
@@ -741,7 +753,6 @@ final class myphp{
         $name1 = substr($name,0,$pos); $name2 = substr($name,$pos+1);
         return isset(self::$lang[$name1][$name2]) ? self::$lang[$name1][$name2] : null;
     }
-
     /** 组件使用
      * @param string $name 组件名称 唯一
      * @param null $option 自定义载入'aa'+['class'=>'ab\aa', param1,....]||'ab\aa'+[param1,....]
@@ -778,7 +789,6 @@ final class myphp{
         self::$container[$name] = $appConf ? new $class($appConf) : new $class();
         return self::$container[$name];
     }
-
     /**
      * @return \myphp\Request
      */
@@ -790,7 +800,6 @@ final class myphp{
         }
         return self::$container[$k];
     }
-
     /**
      * @return \myphp\Response
      */
@@ -802,7 +811,6 @@ final class myphp{
         }
         return self::$container[$k];
     }
-
     /**
      * db实例化
      * @param string $name 数据库配置名
@@ -834,7 +842,6 @@ final class myphp{
     {
         unset(self::$container[$name]);
     }
-
     /**
      * 默认缓存实例
      * @return \myphp\cache\File|\myphp\cache\Redis
@@ -844,11 +851,9 @@ final class myphp{
         $type = isset(self::$cfg['cache']) ? self::$cfg['cache'] : 'file';
         return \myphp\Cache::getInstance($type, self::$cfg['cache_option']);
     }
-
     public static function runTime(){
         return '页面耗时'.run_time().'秒, 内存占用'.run_mem().', 执行'.\myphp\Db::$times.'次SQL';
     }
-
     //url地址转换对应的模块/控制/方法
     public static function parseUrlMap(){
         /*
@@ -1044,7 +1049,6 @@ final class myphp{
         U('/index/show?b=2&c=4',$option=null)  /index.php/index-show-b-2-c-4	当前项目 index->show方法
         U('/show?b=2&c=4',$option=null) 同上  当前项目 默认控制器/show方法
     */
-
     //url正向解析 地址 [!]admin/index/show?b=c&d=e&....[#锚点@域名（待实现）], 附加参数 数组|null, url字符串如：/pub/index.php
     public static function forward_url($uri='', $vars=null, $url=''){
         $normal = false;
@@ -1173,7 +1177,6 @@ trait MyMsg
         }
     }
 }
-
 /**
  * Trait MyBaseObj 基础对象复用
  */
@@ -1182,7 +1185,6 @@ trait MyBaseObj{
      * @var array 附加属性
      */
     protected $_behavior = [];
-
     /**
      * @param $name
      * @param $value
@@ -1191,7 +1193,6 @@ trait MyBaseObj{
     {
         $this->_behavior[$name] = $value;
     }
-
     /**
      * @param $name
      * @return mixed|null
@@ -1200,7 +1201,6 @@ trait MyBaseObj{
     {
         return isset($this->_behavior[$name]) ? $this->_behavior[$name] : null;
     }
-
     /**
      * @param $name
      * @return bool
@@ -1209,7 +1209,6 @@ trait MyBaseObj{
     {
         return isset($this->_behavior[$name]);
     }
-
     /**
      * @param $name
      */
@@ -1217,12 +1216,10 @@ trait MyBaseObj{
     {
         unset($this->_behavior[$name]);
     }
-
     /**
      * @var static
      */
     public static $instance = null;
-
     /**
      * @return static
      */
