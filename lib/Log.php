@@ -207,7 +207,7 @@ class Log{
 			self::write($msg, $level);
 		}else{
 			if(!self::_level($level)) return false;
-            if(!is_scalar($msg)) $msg = toJson($msg);
+            if(!is_scalar($msg) || is_bool($msg)) $msg = toJson($msg);
 			self::$logs[] = date('[Y-m-d H:i:s]').'['.$level.'] '.$msg."\r\n";
 		}
 	}

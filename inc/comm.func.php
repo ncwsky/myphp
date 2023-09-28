@@ -1296,23 +1296,23 @@ function aes($string, $operation = 'ENCODE', $key = ''){
 }
 //替换字符串中间位置字符为星号  仅英文字符
 function half_replace($str){
-    $len = strlen($str)/2;
-    return substr_replace($str,str_repeat('*',$len),ceil(($len)/2),$len);
+    $len = strlen($str) / 2;
+    return substr_replace($str, str_repeat('*', $len), ceil($len / 2), $len);
 }
 //替换字符串中间位置字符为星号  仅英文字符
 function half2_replace($str){
-    $len = ceil(strlen($str)/3);
-    $cLen = floor(strlen($str)/2-($len/2));
-    return substr_replace($str, str_repeat('*',$len), $cLen, $len);
+    $len = ceil(strlen($str) / 3);
+    $cLen = floor(strlen($str) / 2 - ($len / 2));
+    return substr_replace($str, str_repeat('*', $len), $cLen, $len);
 }
 //替换字符串中间位置字符为星号  支持中文
 function cn_half_replace($str){
     preg_match_all('/./u', $str, $arr);
-    $len = count($arr[0])/2;
-    $offset = ceil(($len)/2);
+    $len =  ceil(count($arr[0])/2);
+    $offset = ceil($len/2);
     $a = implode('', array_slice($arr[0], 0, $offset));
     $b = implode('', array_slice($arr[0], $offset+$len));
-    return $a.str_repeat('*',$len).$b;
+    return $a.str_repeat('*', $len).$b;
 }
 //字母数字及部分符号全角转半角
 function toSemiAngle($str){

@@ -315,6 +315,7 @@ class lib_redis{
         $val = $this->handler->get($name);
         if (self::$isExRedis && $val === false) return null; //redis扩展兼容处理
         if ($json) {
+            if ($val === null) return $val;
             $jsonData = json_decode($val, true);
             return ($jsonData === null) ? $val : $jsonData;    //检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
         }
