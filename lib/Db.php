@@ -328,7 +328,14 @@ class Db {
 
         //Log::trace($sql);
     }
-	//用于select find getCount联合查询
+
+    /**
+     * 联合查询
+     * @param string $tb
+     * @param string|array $on
+     * @param string $joinWay
+     * @return $this
+     */
 	public function join($tb, $on, $joinWay='inner'){
         $where = '';
         if(is_array($on)){
@@ -343,17 +350,27 @@ class Db {
         if(!isset($this->options['fields'])){
             $this->options['fields'] = '*'; //联合查询 直接使用星号显示所有字段
         }
-        /*
-        $joinTb = $tb;
-        if($pos=strpos($tb,' ')){
-            $joinTb = substr($tb,0, $pos);
-        }
-        $prikey = '';
-        $this->getFields($joinTb, $prikey, $joinFields);
-        */
 	    $join = $joinWay.' join '.$tb.' on '.$where;
         $this->options['join'] = isset($this->options['join']) ? $this->options['join'] . ' ' . $join : ' ' . $join;
         return $this;
+    }
+    /**
+     * @param string $tb
+     * @param string|array $on
+     * @return $this
+     */
+    public function leftJoin($tb, $on)
+    {
+        return $this->join($tb, $on, 'left');
+    }
+    /**
+     * @param string $tb
+     * @param string|array $on
+     * @return $this
+     */
+    public function rightJoin($tb, $on)
+    {
+        return $this->join($tb, $on, 'right');
     }
     /**
      * 指定显示列

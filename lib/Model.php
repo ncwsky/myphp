@@ -12,6 +12,8 @@ namespace myphp;
  * @method null|static table(string $val)
  * @method null|static idx(string $val)
  * @method null|static join(string $tb, string|array $on, $joinWay='inner')
+ * @method null|static leftJoin(string $tb, string|array $on)
+ * @method null|static rightJoin(string $tb, string|array $on)
  * @method null|static where(string|array $val, $bind=null)
  * @method null|static whereOr(string|array $val, $bind=null)
  * @method int update(array $post, string $table='', string|array $where = '')
