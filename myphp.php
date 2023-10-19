@@ -414,10 +414,10 @@ final class myphp{
         //引入app下的配置文件
         self::loadConfig($app_path);
 
-        $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //获取当前执行文件名
-        $app_root = IS_CLI ? DS : APP_ROOT . DS; //app_url根路径
+        $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //当前执行文件名
+        $app_root = IS_CLI ? DS : ROOT_DIR . DS; //app_url根路径
         $url_mode = isset(self::$cfg['url_mode']) ? self::$cfg['url_mode'] : -1;
-        if($isCLI){ //cli模式请求处理
+        if ($isCLI) { //cli模式请求处理
             //cli_url_mode请求模式 默认2 PATH_INFO模式
             $url_mode = self::$cfg['url_mode'] = isset(self::$cfg['cli_url_mode'])?self::$cfg['cli_url_mode']:2;
             if($url_mode == 2){
@@ -436,7 +436,7 @@ final class myphp{
         } else {
             $_app = $uri;
         }
-        if(!$hasMatch && $url_mode == 2){	//如果Url模式为2，那么就是使用PATH_INFO模式
+        if (!$hasMatch && $url_mode == 2){	//如果Url模式为2，那么就是使用PATH_INFO模式
             $url = $_SERVER["REQUEST_URI"];//获取完整的路径，包含"?"之后的字
             //去除url包含的当前文件的路径信息
             if (strpos($url, $uri, 0) === 0) {
@@ -449,8 +449,8 @@ final class myphp{
             }
             //去除?处理
             $pos = strpos($url,'?');
-            if($pos!==false){
-                if($isCLI){ #cli 命令模式支持?b=1&d=1
+            if ($pos!==false){
+                if ($isCLI) { //cli 命令模式支持?b=1&d=1
                     parse_str(substr($url, $pos+1), $_GET);
                     $_REQUEST = array_merge($_REQUEST, $_GET);
                 }
@@ -504,7 +504,7 @@ final class myphp{
             if(strpos($view_path,ROOT)===0){
                 $path = str_replace(ROOT,'', $view_path);
             }elseif(substr($view_path,0,2) == './'){
-                $path = APP_ROOT . substr($view_path,1);
+                $path = $app_root . substr($view_path,2);
             }
             self::$cfg['app_res_path'] = $path;
         }
@@ -652,11 +652,6 @@ final class myphp{
     }
     //初始框架
     public static function init($cfg=null){
-        //项目相对根目录
-        $appRoot = IS_WIN ? strtr(dirname($_SERVER['SCRIPT_NAME']), '\\', DS) : dirname($_SERVER['SCRIPT_NAME']);
-        ($appRoot=='.' || $appRoot==DS) && $appRoot='';
-        #self::$cfg['APP_ROOT'] = $appRoot;
-        define('APP_ROOT', $appRoot);
         //引入默认配置文件
         self::$cfg = require(__DIR__ . '/def_config.php');
         if (is_array($cfg)) { //组合参数配置
@@ -670,11 +665,12 @@ final class myphp{
 
         //相对根目录
         if(!isset(self::$cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
-            self::$cfg['root_dir'] = '';
-            if($appRoot!=''){
-                if($_s_pos=strpos($appRoot,DS,1)) self::$cfg['root_dir'] = substr($appRoot,0,$_s_pos);
-                else self::$cfg['root_dir'] = $appRoot;
-                if(self::$cfg['root_dir']=='.') self::$cfg['root_dir'] = '';
+            if (IS_CLI) {
+                self::$cfg['root_dir'] = '';
+            } else {
+                $appRoot = IS_WIN ? strtr(dirname($_SERVER['SCRIPT_NAME']), '\\', DS) : dirname($_SERVER['SCRIPT_NAME']);
+                $appRoot == DS && $appRoot = ''; //$appRoot=='.' cli下会得到.
+                self::$cfg['root_dir'] = $appRoot;
             }
         }
         //相对根目录
