@@ -4,6 +4,7 @@ class Upload {
     public $fileMd5 = false; //文件名md5加密
     public $fileName = ''; //指定保存文件名
     public $fileZero = false; //文件零字节开关
+    public $useOriFileName = false; //使用原始上传文件名
 	private static $instance = null; //内部实例对象
     //上传配置
     public $uploadPath = 'up/'; //相对的上传路径
@@ -72,9 +73,14 @@ class Upload {
         if ($pos = strpos($url, '?')) {
             $url = substr($url, 0, $pos);
         }
+        if ($pos = strpos($url, '?')) {
+            $name = basename(substr($url, 0, $pos));
+        } else {
+            $name = basename($url);
+        }
         $clientFile = [
             "tmp_name" => "",
-            "name" => basename($url),
+            "name" => $name,
             "size" => 0,
             "error" => UPLOAD_ERR_OK,
             "type" => "raw_string",
@@ -126,12 +132,12 @@ class Upload {
         $this->createPath($this->realPath);
         //文件句柄
         $clientFile = $_FILES[$name];
-        $data = array();
+        $data = [];
         //批量上传判断
         if (is_array($clientFile['name'])) {
-            $tmpFile = array();
-            for ($i = 0; $i < count($clientFile['name']); $i++) {
-                $tmpFile['name'] = $clientFile['name'][$i];
+            $tmpFile = [];
+            foreach ($clientFile['name'] as $i => $name) {
+                $tmpFile['name'] = $name;
                 $tmpFile['type'] = $clientFile['type'][$i];
                 $tmpFile['tmp_name'] = $clientFile['tmp_name'][$i];
                 $tmpFile['error'] = $clientFile['error'][$i];
@@ -198,7 +204,7 @@ class Upload {
             //不允许的类型格式
             $notFileType = ',' . $this->notFileType . ',';
             if (strpos($notFileType, ',' . $data['fileType'] . ',') !== false) {
-                $data['state'] = "不支持上传的文件类型！";
+                $data['state'] = "不允许的文件类型！";
                 return $data;
             }
         }
@@ -221,10 +227,14 @@ class Upload {
         $cli = PHP_SAPI == 'cli';
         //cli模式is_uploaded_file无效
         if ($cli || $raw_string || is_uploaded_file($clientFile['tmp_name'])) {//判断文件是上传文件
-            $tmp_file = $clientFile["name"];
-            $f_name = $this->fileName!=='' ? $this->fileName : str_replace('.', '', uniqid('', true));
-            $f_name = $this->fileMd5 ? md5($f_name) : $f_name;//md5文件名加密
-            $f_name .= strrchr($tmp_file, '.');
+            if ($this->useOriFileName) { //使用原始上传文件名
+                $f_name = $clientFile["name"];
+            } else {
+                $tmp_file = $clientFile["name"];
+                $f_name = $this->fileName !== '' ? $this->fileName : str_replace('.', '', uniqid('', true));
+                $f_name = $this->fileMd5 ? md5($f_name) : $f_name;//md5文件名加密
+                $f_name .= strrchr($tmp_file, '.');
+            }
             $fileUrl = $this->uploadPath . $f_name;
             $realFile = $this->realPath . $f_name;
 

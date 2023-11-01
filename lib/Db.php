@@ -421,7 +421,7 @@ class Db {
     public function makeWhere($case, $args=null){
 		$where = '';
 		if(is_array($case)){ //数组组合条件
-			$args = (string)$args=='or'?'or':'and';
+            if ($args !== 'or') $args = 'and';
 			foreach($case as $k=>$v){
 			    if(is_int($k)){ // '1=1'
                     $field = $v;

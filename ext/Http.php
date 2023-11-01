@@ -10,11 +10,16 @@ class Http
     public static $curlRetries = 0;
     public static $curlRetryCond = null; //curl重试条件，未指定使用的默认 function($url, $err):bool
     public static $curlErr = '';
+    public static $curlPostEncode = true; //编码post数据
     /**
      * @param $proxy `proxy://user:pass@hostname:port`
      */
     public static function setCurlProxy($proxy)
     {
+        if ($proxy === null) { //清除代理设置
+            self::$curlProxy = [];
+            return;
+        }
         $proxy = parse_url($proxy);
         $proxy['user'] = isset($proxy['user']) ? $proxy['user'] : null;
         $proxy['pass'] = isset($proxy['pass']) ? $proxy['pass'] : null;
@@ -92,11 +97,72 @@ class Http
     {
         return self::curlSend($url, 'POST', $data, $timeout, $header, $opt);
     }
-    //通过curl 自定义发送请求
+    /**
+     * 通过curl post文件数据
+     * @param string $url
+     * @param array $files ['字段名'=>file|[name,content|url,type], ...]
+     * @param array $data
+     * @param int $timeout
+     * @param string|array $header
+     * @param array $opt
+     * @return array|bool|string
+     */
+    public static function curlPostFile($url, $files, $data=[], $timeout=30, $header=[], $opt=[])
+    {
+        self::$curlPostEncode = false;
+        if (PHP_VERSION_ID < 80100){
+            $hasStringFile = false;
+            foreach ($files as $name => $file) {
+                if (is_array($file)) {
+                    $hasStringFile = true;
+                    break;
+                }
+            }
+            if ($hasStringFile) {
+                if ($header) {
+                    if (is_string($header)) $header = explode("\r\n", $header);
+                } else {
+                    $header = [];
+                }
+                self::withCurlFiles($data, $files, $body, $header);
+                return self::curlSend($url, 'POST', $body, $timeout, $header, $opt);
+            }
+        }
+
+        foreach ($files as $name => $file) {
+            if (is_array($file)) { //[filename, content, mime_type]
+                if (!isset($file[0]) || !isset($file[1])) continue;
+                $type = isset($file[2]) ? $file[2] : 'application/octet-stream';
+
+                //是否远程下载获取内容
+                $check = substr($file[1], 0, 8);
+                if (strpos($check, 'http://') === 0 || strpos($check, 'https://') === 0) {
+                    $file[1] = Http::doGet($file[1]);
+                }
+
+                $data[$name] = new \CURLStringFile($file[1], $file[0], $type); //>=8.1.0
+            } else {
+                //if (!file_exists($file)) continue;
+                $data[$name] = new \CURLFile($file, mime_content_type($file), basename($file));
+            }
+        }
+
+        return self::curlSend($url, 'POST', $data, $timeout, $header, $opt);
+    }
+    /**
+     * 通过curl 自定义发送请求
+     * @param string $url
+     * @param string $type
+     * @param null|array $data
+     * @param int $timeout
+     * @param string|array $header
+     * @param array $opt
+     * @return array|bool|string
+     */
     public static function curlSend($url, $type='GET', $data=null, $timeout=30, $header='', $opt=[])
     {
         if(!$opt) $opt = self::$curlOpt;
-        if(!$header) $header = self::defaultHeader();
+
         if(self::$curlBeforeCall){
             //call_user_func不支持引用传值
             call_user_func_array(self::$curlBeforeCall, [&$url, &$type, &$data, &$timeout, &$header, &$opt]);
@@ -172,28 +238,20 @@ class Http
         switch ($type) {
             case 'GET':
                 if ( $data ) {
-                    $data = is_array($data) ? http_build_query($data) : $data;
+                    if (is_array($data)) $data = http_build_query($data, "", "&", PHP_QUERY_RFC3986);
                     $url = strpos($url, '?') === false ? ($url . '?' . $data) : ($url . '&' . $data);
                     $options[CURLOPT_URL] = $url;
                 }
                 break;
             case 'POST':
                 //https 使用数组的在某些未知情况下数据长度超过一定长度会报SSL read: error:00000000:lib(0):func(0):reason(0), errno 10054
-                if(is_array($data) && (!isset($opt['post_encode']) || $opt['post_encode'])){
+                if (is_array($data) && self::$curlPostEncode) { // && (!isset($opt['post_encode']) || $opt['post_encode'])
                     //针对 CURLFile 上传文件不要编码
-                    $data = http_build_query($data);
-                    /*$toBuild = true;
-                    if(class_exists('CURLFile')){ //针对上传文件处理
-                        foreach ($data as $v){
-                            if($v instanceof CURLFile){
-                                $toBuild = false;
-                                break;
-                            }
-                        }
-                    }
-                    if($toBuild) $data = http_build_query($data);*/
+                    $data = http_build_query($data, "", "&", PHP_QUERY_RFC3986);
                 }
+                // 如果$data是一个数组，Content-Type头将会被设置成multipart/form-data。
                 $options[CURLOPT_POSTFIELDS] = $data;
+                self::$curlPostEncode = true; //重置
                 /*
                 //header没有配置Expect时添加 'Expect:' todo
                 //取消 100-continue应答
@@ -218,6 +276,17 @@ class Http
             $options[CURLOPT_REFERER] = $opt['referer'];
         }
 
+        if (!$header) {
+            $header = self::defaultHeader();
+        } elseif (is_array($header)) {
+            foreach ($header as $k => $v) {
+                if (!is_int($k)) {
+                    $header = self::header2string($header);
+                    break;
+                }
+            }
+        }
+
         $options[CURLOPT_HTTPHEADER] = is_string($header) ? explode("\r\n", $header) : $header;
         if (isset($opt['cookie'])) $options[CURLOPT_COOKIE] = $opt['cookie'];
 
@@ -226,10 +295,6 @@ class Http
         //批量配置
         if (isset($opt['opts']) && is_array($opt['opts'])) {
             curl_setopt_array($ch, $opt['opts']);
-            /*
-            foreach ($opt['opts'] as $option => $value) {
-                curl_setopt($ch, $option, $value);
-            }*/
         }
 
         $result = false;
@@ -242,9 +307,9 @@ class Http
                 //$http_code  = curl_getinfo($ch, CURLINFO_HTTP_CODE);    // 获取响应状态码
                 //$res_body   = substr($output, $header_size);
                 $result = [
-                    //'request_url'        => $url,
-                    //'request_body'       => $data,
-                    //'request_header'     => $header,
+                    //'req_url'        => $url,
+                    //'req_body'       => $data,
+                    //'req_header'     => $header,
                     'res_http_code' => curl_getinfo($ch, CURLINFO_HTTP_CODE), // 获取响应状态码
                     'res_body'      => substr($output, $header_size),
                     'res_header'    => substr($output, 0, $header_size),
@@ -258,7 +323,7 @@ class Http
         self::$curlErr = '';
         if(curl_errno($ch)){
             self::$curlErr = curl_error($ch);
-            \myphp\Log::write('err:'. self::$curlErr."\nurl:".$url.($data!==null?"\ndata:".(is_scalar($data)?urldecode($data):toJson($data)):''), 'curl');
+            \myphp\Log::write('err:'. self::$curlErr."\nurl:".$url.($data!==null?"\ndata:".(is_string($data)?urldecode($data):toJson($data)):''), 'curl');
             //\myphp\Log::write($options, 'options');
             //\myphp\Log::write($opt, 'opt');
             //重试
@@ -287,7 +352,66 @@ class Http
         curl_close($ch);
         return $result;
     }
-    //重试条件
+    /**
+     * 文件流上传 非CURLFile方式
+     * 示例 self::withFiles(['field1'=>1, ...], ['file[0]'=>'file1','file[1]'=>'file2'], $post, $header);
+     *
+     *  CURLFile方式示例
+     *  post [
+    'field1'=>1, ...
+    'file[0]'=>new \CURLFile('file1', 'application/octet-stream'|mime_content_type(file1), basename(file1)),
+    'file[1]'=>new \CURLFile('file2', 'application/octet-stream'|mime_content_type(file2), basename(file2)),
+    ]
+     * @param array $postFields ['field1'=>1, ...]
+     * @param array $fileFields ['file1'=>''|[filename,content,type], ...]
+     * @param string $body
+     * @param array $header
+     */
+    public static function withCurlFiles($postFields, $fileFields, &$body='', &$header=[]){
+        //生成分隔符
+        $delimiter = '-------------' . uniqid('', true);
+        //先将post的普通数据生成主体字符串
+        if ($postFields != null) {
+            foreach ($postFields as $name => $value) {
+                $body .= "--" . $delimiter . "\r\n";
+                $body .= 'Content-Disposition: form-data; name="' . $name . '"';
+                $body .= "\r\n\r\n" . $value . "\r\n"; //multipart/form-data 不需要urlencode
+            }
+        }
+        //将上传的文件生成主体字符串
+        if ($fileFields != null) {
+            foreach ($fileFields as $name => $file) {
+                $body .= "--" . $delimiter . "\r\n";
+                if (is_array($file)) {
+                    $type = isset($file[2]) ? $file[2] : 'application/octet-stream';
+
+                    //是否远程下载获取内容
+                    $check = substr($file[1], 0, 8);
+                    if (strpos($check, 'http://') === 0 || strpos($check, 'https://') === 0) {
+                        $file[1] = Http::doGet($file[1]);
+                    }
+
+                    $body .= 'Content-Disposition: form-data; name="' . $name . '"; filename="' . $file[0] . "\" \r\n";
+                    $body .= 'Content-Type: ' . $type . "\r\n\r\n";//多了个文档类型
+                    $body .= $file[1] . "\r\n";
+                } else {
+                    $body .= 'Content-Disposition: form-data; name="' . $name . '"; filename="' . basename($file) . "\" \r\n";
+                    $body .= 'Content-Type: ' . mime_content_type($file) . "\r\n\r\n";//多了个文档类型
+                    $body .= file_get_contents($file) . "\r\n";
+                }
+            }
+        }
+        //主体结束的分隔符
+        $body .= "--" . $delimiter . "--";
+        $header[] = 'Content-Type: multipart/form-data; boundary=' . $delimiter;
+        $header[] = 'Content-Length: '.strlen($body);
+    }
+    /**
+     * 重试条件
+     * @param string $url
+     * @param string $err
+     * @return bool|mixed
+     */
     private static function _curlIsRetry($url, $err)
     {
         if (self::$curlRetries <= 0) return false;
@@ -315,7 +439,7 @@ class Http
     {
         if (!$header) $header = self::defaultHeader();
         $header = self::header2string($header);
-        $post_string = is_array($data)?http_build_query($data):$data;
+        $post_string = is_array($data)?http_build_query($data, "", "&", PHP_QUERY_RFC3986):$data;
 
         $def_port = 80;$scheme = '';
         if(substr($url,0,5)=='https'){ //ssl
@@ -351,7 +475,6 @@ class Http
 
         $in .= "Connection: Close\r\n\r\n";
         $in .= $post_string . "\r\n\r\n";
-        unset($post_string);
         if(!@fwrite($fsock, $in, strlen($in))){
             @fclose($fsock);
             return false;
@@ -378,7 +501,7 @@ class Http
         if(substr($url,0,5)=='https'){ //ssl
             //$opt_http = 'https';
         }
-        $post_string = is_array($data)?http_build_query($data):$data;
+        $post_string = is_array($data)?http_build_query($data, "", "&", PHP_QUERY_RFC3986):$data;
         $type = strtoupper($type);
         switch ($type) {
             case 'POST':

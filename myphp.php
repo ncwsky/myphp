@@ -1089,7 +1089,7 @@ final class myphp{
             $mca = $uri;
         }
         if (is_array($vars)) {
-            $query = http_build_query($vars);
+            $query = http_build_query($vars, "", "&", PHP_QUERY_RFC3986);
         }
 
         //直接解析 普通模式
