@@ -358,21 +358,25 @@ class Http
      *
      *  CURLFile方式示例
      *  post [
-    'field1'=>1, ...
-    'file[0]'=>new \CURLFile('file1', 'application/octet-stream'|mime_content_type(file1), basename(file1)),
-    'file[1]'=>new \CURLFile('file2', 'application/octet-stream'|mime_content_type(file2), basename(file2)),
-    ]
+    * 'field1'=>1, ...
+    * 'file[0]'=>new \CURLFile('file1', 'application/octet-stream'|mime_content_type(file1), basename(file1)),
+    * 'file[1]'=>new \CURLFile('file2', 'application/octet-stream'|mime_content_type(file2), basename(file2)),
+    * ]
      * @param array $postFields ['field1'=>1, ...]
      * @param array $fileFields ['file1'=>''|[filename,content,type], ...]
      * @param string $body
      * @param array $header
+     * @param bool $phpArr php数组是带[]的
      */
-    public static function withCurlFiles($postFields, $fileFields, &$body='', &$header=[]){
+    public static function withCurlFiles($postFields, $fileFields, &$body='', &$header=[], $phpArr=true){
         //生成分隔符
         $delimiter = '-------------' . uniqid('', true);
         //先将post的普通数据生成主体字符串
         if ($postFields != null) {
             foreach ($postFields as $name => $value) {
+                if (!$phpArr && $pos=strpos($name, '[')) {
+                    $name = substr($name, 0, $pos);
+                }
                 $body .= "--" . $delimiter . "\r\n";
                 $body .= 'Content-Disposition: form-data; name="' . $name . '"';
                 $body .= "\r\n\r\n" . $value . "\r\n"; //multipart/form-data 不需要urlencode
@@ -381,6 +385,9 @@ class Http
         //将上传的文件生成主体字符串
         if ($fileFields != null) {
             foreach ($fileFields as $name => $file) {
+                if (!$phpArr && $pos=strpos($name, '[')) {
+                    $name = substr($name, 0, $pos);
+                }
                 $body .= "--" . $delimiter . "\r\n";
                 if (is_array($file)) {
                     $type = isset($file[2]) ? $file[2] : 'application/octet-stream';
