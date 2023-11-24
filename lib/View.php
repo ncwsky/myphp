@@ -24,7 +24,7 @@ class View
 
         $this->template = new Template();
         $this->template->view_path = $path;
-        $this->template->cache = false;    //设置是否开启缓存
+        $this->template->cache = !myphp::$cfg['debug'];    //设置是否开启缓存
         $this->template->cachePath = $cachePath;    //缓存路径
         $this->template->suffix = isset(myphp::$cfg['tmp_suffix']) ? myphp::$cfg['tmp_suffix'] : '.html';    //模板后缀名
         $this->template->leftTag = isset(myphp::$cfg['tmp_left_tag']) ? myphp::$cfg['tmp_left_tag'] : '{';    //模板左侧符号

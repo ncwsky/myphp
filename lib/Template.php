@@ -162,6 +162,13 @@ class Template{
 		//替换系统常量
 		$patt = array('__URL__', '__APP__');
 		$replace = array('<?php echo \myphp::env("URL"); ?>','<?php echo \myphp::env("APP"); ?>');
+        //自定义模板变量
+        if (!empty(myphp::$cfg['tmp_variables'])) {
+            foreach (myphp::$cfg['tmp_variables'] as $name => $val) {
+                $patt[] = $name;
+                $replace[] = '<?php echo \myphp::$cfg["tmp_variables"]["'.$name.'"]; ?>';
+            }
+        }
 		$content = str_replace($patt, $replace, $content);
 		$patt = preg_quote($this->leftTag) .'(\S.+?)'. preg_quote($this->rightTag);
 		$content = preg_replace_callback("/{$patt}/", array($this,'parseTag'), $content); //i 不区分大小写 s .匹配所有的字符，包括换行符 e PHP代码求值并替换

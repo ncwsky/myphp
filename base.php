@@ -34,9 +34,9 @@ if (defined('APP_PATH')) {
         $root = realpath($root);
     }
 } else {
-    $root = IS_CLI ? strtr(dirname(realpath($_SERVER['SCRIPT_FILENAME'])), '\\', DS) : str_replace($_SERVER['SCRIPT_NAME'], '', strtr($_SERVER['SCRIPT_FILENAME'], '\\', DS));
+    $root = IS_CLI ? dirname(realpath($_SERVER['SCRIPT_FILENAME'])) : str_replace($_SERVER['SCRIPT_NAME'], '', IS_WIN ? strtr($_SERVER['SCRIPT_FILENAME'], '\\', DS) : $_SERVER['SCRIPT_FILENAME']);
 }
-define('ROOT', $root);
+define('ROOT', IS_WIN ? strtr($root, '\\', DS) : $root);
 //临时目录
 defined('RUNTIME') || define('RUNTIME', ROOT . '/runtime');
 //公共目录
@@ -58,10 +58,6 @@ myphp::$classMap = [
     'myphp\CacheAbstract' => __DIR__ . '/lib/Cache.php',
     'myphp\Value' => __DIR__ . '/lib/Value.php',
     'myphp\Control' => __DIR__ . '/lib/Control.php',
-    //'myphp\Db' => __DIR__ . '/lib/Db.php',
-    //'myphp\DbBase' => __DIR__ . '/lib/Db.php',
-    //'myphp\Expr' => __DIR__ . '/lib/Db.php',
-    //'myphp\TbBase' => __DIR__ . '/lib/Db.php',
     'myphp\db\db_mysqli' => __DIR__ . '/lib/db/db_mysqli.php',
     'myphp\db\db_pdo' => __DIR__ . '/lib/db/db_pdo.php',
     'myphp\db\tb_mysql' => __DIR__ . '/lib/db/tb_mysql.php',
@@ -76,13 +72,7 @@ myphp::$classMap = [
     'myphp\Session' => __DIR__ . '/lib/Session.php',
     'myphp\Template' => __DIR__ . '/lib/Template.php',
     'myphp\View' => __DIR__ . '/lib/View.php',
-
-    //'myphp\cache\File' => __DIR__ . '/lib/cache/File.php',
-    //'myphp\cache\Redis' => __DIR__ . '/lib/cache/Redis.php',
-
     'myphp\driver\Redis' => __DIR__ . '/lib/driver/Redis.php',
-
-    //'myphp\session\Redis' => __DIR__ . '/lib/session/Redis.php',
 
     'AES' => __DIR__ . '/ext/AES.php',
     'BitMap' => __DIR__ . '/ext/BitMap.php',

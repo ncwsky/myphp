@@ -594,7 +594,7 @@ function editor_fun($field,$value=''){
         static $ueditor;
         if(empty($ueditor)) {
             $ueditor=true;
-            $str .='<script type="text/javascript" src="'.($config==''?PUB.'/ueditor/ueditor.config.js':PUB.'/ueditor/'.$config).'"></script><script type="text/javascript" src="'.PUB.'/ueditor/ueditor.all.min.js"></script>';
+            $str .='<script type="text/javascript" src="'.($config==''?ROOT_DIR.'/pub/ueditor/ueditor.config.js':ROOT_DIR.'/pub/ueditor/'.$config).'"></script><script type="text/javascript" src="'.ROOT_DIR.'/pub/ueditor/ueditor.all.min.js"></script>';
             $str .= '<script>var ueditor;</script>';
         }
         //<textarea id="'. $field['name'] .'" name="'. $field['name'] .'">'. htmlspecialchars($value) .'</textarea>
@@ -603,7 +603,7 @@ function editor_fun($field,$value=''){
         static $keditor;
         if(empty($keditor)) {
             $keditor=true;
-            $str .='<script src="'.PUB.'/keditor/kindeditor.js"></script><script src="'.PUB.'/keditor/lang/zh_CN.js"></script>';
+            $str .='<script src="'.ROOT_DIR.'/pub/keditor/kindeditor.js"></script><script src="'.ROOT_DIR.'/pub/keditor/lang/zh_CN.js"></script>';
             $str .= '<script>var keditor;</script>';
         }
         $str .= '<textarea id="'. $field['name'] .'" name="'. $field['name'] .'">'. htmlspecialchars($value) .'</textarea>';

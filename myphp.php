@@ -501,8 +501,8 @@ final class myphp{
         //自定义项目模板目录 用于模板资源路径
         if(!isset(self::$cfg['app_res_path'])){
             $path = $view_path;
-            if(strpos($view_path,ROOT)===0){
-                $path = str_replace(ROOT,'', $view_path);
+            if(strpos($view_path,ROOT)===0){ //这里可能是二级目录
+                $path = str_replace(ROOT_DIR !== '' ? str_replace(ROOT_DIR, '', ROOT) : ROOT, '', $view_path);
             }elseif(substr($view_path,0,2) == './'){
                 $path = $app_root . substr($view_path,2);
             }
@@ -538,8 +538,6 @@ final class myphp{
             'MODEL_PATH' => $app_path . DS . 'model',
             'LANG_PATH' => $app_path . DS . 'lang',
             'VIEW_PATH' => $view_path,
-            //相对项目的模板目录
-            'APP_VIEW'=>self::$cfg['app_res_path'],
         ]);
         self::init_app($app_path, $isCLI);
         //通过命名空间加载可不需要指定目录遍历了
@@ -668,7 +666,8 @@ final class myphp{
             if (IS_CLI) {
                 self::$cfg['root_dir'] = '';
             } else {
-                $appRoot = IS_WIN ? strtr(dirname($_SERVER['SCRIPT_NAME']), '\\', DS) : dirname($_SERVER['SCRIPT_NAME']);
+                $appRoot = dirname($_SERVER['SCRIPT_NAME']);
+                if (IS_WIN) $appRoot = strtr($appRoot, '\\', DS);
                 $appRoot == DS && $appRoot = ''; //$appRoot=='.' cli下会得到.
                 self::$cfg['root_dir'] = $appRoot;
             }

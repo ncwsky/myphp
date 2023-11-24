@@ -67,6 +67,7 @@ return array(
 	'tmp_suffix' => '.html',//模板后缀名
 	'tmp_left_tag'=>'{', //模板左侧符号
 	'tmp_right_tag'=>'}', //模板右侧符号
+    'tmp_variables'=>[], //模板自定义变量 key=>val|callable 如： '__PUBLIC__'=>ROOT_DIR.'/pub',...
 	'site_template' => '',//模板主题
 	'tmp_not_allow_fun' => '',//模板中不允许使用的函数 使用,分隔 如：,eval,echo,
 	/* cookie设置 */
