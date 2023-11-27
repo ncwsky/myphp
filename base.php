@@ -30,7 +30,7 @@ if(!IS_CLI && !isset($_SERVER['REQUEST_URI'])){
 //项目根目录处理
 if (defined('APP_PATH')) {
     $root = dirname(APP_PATH);
-    if (strpos($root, '..')) {
+    if ($root==='' || $root[0]==='.' || strpos($root, '..') ) {
         $root = realpath($root);
     }
 } else {

@@ -6,7 +6,7 @@ use myphp\Log;
 final class myphp{
     use MyMsg;
     public static $beforeFun = null; //Control_run之前的处理回调 \Closure() @return void|throw|\myphp\Response
-    public static $authFun = null; //验证回调方法 \Closure @return void|false|throw|\myphp\Response
+    public static $authFun = null; //自定义验证回调方法 \Closure @return void|false|throw|\myphp\Response
     public static $sendFun = null; //自定义输出处理 \Closure($code, $data, $header)
     public static $lang = [];
     public static $env = []; //Run执行时的环境值 array
