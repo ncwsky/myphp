@@ -57,7 +57,7 @@ class BaseAuth
             return true;
         }
         //没有此权限
-        if (!isset($purview[$c])) {
+        if (!isset($purview[$c]) || !$purview[$c]) {
             return self::err($cErr);
         }
         //模块所有权限
