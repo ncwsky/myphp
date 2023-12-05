@@ -146,7 +146,7 @@ final class myphp{
         //权限验证处理
         $res = self::$authFun instanceof \Closure ? call_user_func(self::$authFun) : self::Auth();
         if ($res instanceof \myphp\Response) return $res;
-        if (false === $res) return null;
+        if (false === $res) return self::res()->withBody(Helper::outMsg('auth fail'));
         // 请求缓存处理
         $res = self::reqCache();
         if (false === $res) {
@@ -572,7 +572,7 @@ final class myphp{
     }
     /**
      * 权限验证处理 在config.php配置中设置开启
-     * @return \myphp\Response|mixed|void
+     * @return \myphp\Response|bool|void
      */
     public static function Auth(){
         if(!self::$cfg['auth_on']) return;
@@ -600,7 +600,9 @@ final class myphp{
 
         //仅登陆验证
         if(strpos( self::$cfg['auth_login_model'] , ','.$c.',')!==false || strpos( self::$cfg['auth_login_action'] , ','.$c.'/'.$a.',')!==false){
-            if(!$auth->$auth_login()) {
+            $res = $auth->$auth_login();
+            if ($res instanceof \myphp\Response) return $res;
+            if (!$res) {
                 $redirect = (strpos(self::$cfg['auth_gateway'], 'http') === 0 ? '' : ROOT_DIR) . self::$cfg['auth_gateway'];
                 if (!Helper::isAjax() || $c == self::$cfg['def_control']) {
                     return self::res()->redirect($redirect);
@@ -611,8 +613,8 @@ final class myphp{
                 //throw new \Exception(Helper::outMsg('你未登录,请先登录!', $redirect), 200);
             }
             //验证此模块中需要验证的动作
-            if(self::$cfg['auth_login_M_A']=='') return;
-            if(strpos( self::$cfg['auth_login_M_A'] , ','.$c.'/'.$a.',')===false){
+            if (self::$cfg['auth_login_M_A'] == '') return true;
+            if (strpos(self::$cfg['auth_login_M_A'], ',' . $c . '/' . $a . ',') === false) {
                 return;
             }
         }

@@ -83,6 +83,8 @@ return array(
         //'xx::class', ...
     ],
 	//权限验证
+    //'roles' => [], //角色权限配置 [角色=>['name'=>'', 'purview'=>[]], ...]
+    //'roles_name' => [], //角色名称 [角色=>'角色名',...]
 	'auth_on' => false, //默认关闭
 	'auth_model' => '\myphp\BaseAuth',//验证模块
 	'auth_action' => 'check',//验证动作方法
