@@ -3,7 +3,7 @@
 //GD库 - 生成图像缩略图和生成验证码
 class Image
 {
-    public static $raw_string = false;
+    public static $rawString = false;
     /**
      * 取得图像信息
      * @param string $img 图像文件名
@@ -12,7 +12,7 @@ class Image
      */
     public static function getImageInfo($img, $raw_string=null)
     {
-        if ($raw_string === null) $raw_string = self::$raw_string;
+        if ($raw_string === null) $raw_string = self::$rawString;
         $imageInfo = $raw_string ? getimagesizefromstring($img) : getimagesize($img);
         if ($imageInfo) {
             $imageSize = $raw_string ? strlen($img) : filesize($img);
@@ -80,8 +80,8 @@ class Image
         }
 
         //载入原图
-        if (self::$raw_string) {
-            self::$raw_string = false; //Reset
+        if (self::$rawString) {
+            self::$rawString = false; //Reset
             $srcImg = imagecreatefromstring($image); //从字符串的图像流中新建图像
         } else {
             $imagecreatefrom = 'imagecreatefrom' . $type;

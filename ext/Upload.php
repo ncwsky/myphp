@@ -1,6 +1,8 @@
 <?php
 //上传类
 class Upload {
+    const TYPE_RAW = 'raw_string';
+
     public $fileMd5 = false; //文件名md5加密
     public $fileName = ''; //指定保存文件名
     public $fileZero = false; //文件零字节开关
@@ -83,7 +85,7 @@ class Upload {
             "name" => $name,
             "size" => 0,
             "error" => UPLOAD_ERR_OK,
-            "type" => "raw_string",
+            "type" => self::TYPE_RAW,
         ];
         $f_name = $this->fileName . strrchr($clientFile['name'], '.');
         if ($path === '') $path = '/' . substr($this->fileName, 0, 1) . '/' . substr($this->fileName, 1, 2) . '/';
@@ -223,7 +225,7 @@ class Upload {
         //保存文件
         $fileUrl = "";
         //是否文件流
-        $raw_string = $clientFile['type']=='raw_string';
+        $raw_string = $clientFile['type']==self::TYPE_RAW;
         $cli = PHP_SAPI == 'cli';
         //cli模式is_uploaded_file无效
         if ($cli || $raw_string || is_uploaded_file($clientFile['tmp_name'])) {//判断文件是上传文件
@@ -240,7 +242,7 @@ class Upload {
 
             $save = true;
             if (strpos($this->imgType, ',' . $data['fileType'] . ',') !== false && $this->width > 0 && $this->height > 0) { //指定图片大小处理 使用第三方 Image类 方式一
-                Image::$raw_string = $raw_string;
+                Image::$rawString = $raw_string;
                 $result = Image::thumb($clientFile["tmp_name"], $realFile, $this->width, $this->height);
                 $save = (0 === $result);
             }
