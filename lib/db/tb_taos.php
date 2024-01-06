@@ -45,7 +45,7 @@ class tb_taos extends \myphp\TbBase
         $rule = array();
         $sql = 'DESCRIBE ' . $tableName;
         $res = $db->query($sql);
-        while ($rs = $db->fetch_array($res)) {
+        while ($rs = $db->fetch($res)) {
             $rs = array_change_key_case($rs);
             if ($prikey == '') $prikey = $rs['field']; //第一个字段 主键
 
@@ -74,7 +74,7 @@ class tb_taos extends \myphp\TbBase
         $tables = [];
         $sql = 'SHOW TABLES';
         $res = $db->query($sql);
-        while ($rs = $db->fetch_array($res, 'num')) {
+        while ($rs = $db->fetch($res, 'num')) {
             $tables[] = $rs[0];
         }
         return $tables;

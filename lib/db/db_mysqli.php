@@ -45,7 +45,7 @@ class db_mysqli extends \myphp\DbBase{
 	public function exec($sql) {
 		$result = $this->conn->query($sql);
 		if($result===false) {
-			if(IS_CLI && ($this->conn->errno=='2006' || $this->conn->errno=='2013')){ //重连 MySQL server has gone away
+			if(IS_CLI && ($this->conn->errno=='2006' || $this->conn->errno=='2013') && $this->transCounter==0){ //重连 MySQL server has gone away
 				$this->connect();
 				Log::write('重连 '.$this->conn->error, 'db_connect');
 				return $this->exec($sql);
@@ -63,7 +63,7 @@ class db_mysqli extends \myphp\DbBase{
 	public function query($sql) {
 		$this->rs = $this->conn->query($sql);
 		if($this->rs===false) {
-			if(IS_CLI && ($this->conn->errno=='2006' || $this->conn->errno=='2013')){
+			if(IS_CLI && ($this->conn->errno=='2006' || $this->conn->errno=='2013') && $this->transCounter==0){
 				$this->connect();
 				Log::write('重连 '.$this->conn->error, 'db_connect');
                 return $this->query($sql);
@@ -77,6 +77,7 @@ class db_mysqli extends \myphp\DbBase{
      * @param $sql
      * @param string $type
      * @return array
+     * @throws Exception
      */
 	public function queryAll($sql, $type = 'assoc'){
         if($type=='assoc') $type = MYSQLI_ASSOC;
@@ -91,12 +92,13 @@ class db_mysqli extends \myphp\DbBase{
      * @param string $type 默认MYSQLI_ASSOC关联,MYSQLI_NUM 数字,MYSQLI_BOTH 两者
      * @return mixed
      */
-	public function fetch_array($query, $type = 'assoc') {
-		if($type=='assoc') $type = MYSQLI_ASSOC;
-		elseif($type=='num') $type = MYSQLI_NUM;
-		else $type = MYSQLI_BOTH;
-
-		return $query->fetch_array($type);
+	public function fetch(&$query, $type = 'assoc') {
+        if ($type == 'assoc') {
+            return $query->fetch_assoc();
+        } elseif ($type == 'num') {
+            return $query->fetch_row();
+        }
+        return $query->fetch_array();
 	}
 
     /**

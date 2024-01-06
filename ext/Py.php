@@ -570,6 +570,7 @@ class Py{
         } else {
             $py = '';
             foreach ($sList as $i => $char) {
+                if ($char === '') continue;
                 $py .= $char[0];
             }
         }

@@ -19,7 +19,7 @@ class db_pdo extends \myphp\DbBase{
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, //以异常的方式报错
             PDO::ATTR_STRINGIFY_FETCHES => false, //提取的时候不将数值转换为字符串
-            PDO::ATTR_EMULATE_PREPARES => false //禁用预处理语句的模拟
+            PDO::ATTR_EMULATE_PREPARES => false //禁用预处理语句的模拟 启用pdo在查询时会预分配内存
         ];
         if (!empty($cfg_db['options'])) {
             $options = array_merge($options, $cfg_db['options']);
@@ -65,7 +65,10 @@ class db_pdo extends \myphp\DbBase{
 		} catch(PDOException $e) {
             Log::write('dsn:' . $dsn . '|' . $e->getMessage(), 'db_connect');
 			throw $e;
-		}
+		}/*
+        if ($cfg_db['char'] && in_array($cfg_db['dbms'], ['pgsql', 'mysql', 'cubrid'], true)) {
+            $this->conn->exec('SET NAMES ' . $this->conn->quote($cfg_db['char']));
+        }*/
     }
 
     /**
@@ -86,10 +89,6 @@ class db_pdo extends \myphp\DbBase{
 	public function exec($sql, $run=0){
         try {
             $affected = $this->conn->exec($sql);
-            if (false===$affected) {
-                $errorInfo = $this->conn->errorInfo();
-                throw new PDOException(implode('|', $errorInfo), $errorInfo[1]);
-            }
         } catch (PDOException $e) { //兼容>=8.0处理
             $errorInfo = $this->conn->errorInfo();
             if (empty($errorInfo[1]) && is_int($e->getCode())) {
@@ -98,7 +97,7 @@ class db_pdo extends \myphp\DbBase{
             }
             if ($errorInfo[1]) {
                 $errInfo = implode('|', $errorInfo);
-                if ($run == 0 && $this->transCounter==0) { //重连1次处理 非事务时允许重连
+                if ($run == 0 && $this->transCounter==0 && IS_CLI) { //重连1次处理 非事务时允许重连
                     #MySQL server has gone away
                     if ($this->config['dbms'] == 'mysql' && ($errorInfo[1] == 2006 || $errorInfo[1] == 2013)) {
                         $this->connect();
@@ -112,7 +111,7 @@ class db_pdo extends \myphp\DbBase{
                     if ($this->rs->errorCode() != '00000') {
                         throw new PDOException(implode('|', $this->rs->errorInfo())."; SQL exec: " . $sql);
                     }
-                    $affected = $this->rs->rowCount();
+                    return $this->rs->rowCount();
                 }
             } else {
                 $errInfo = $e->getCode() . ':' . $e->getMessage();
@@ -130,11 +129,7 @@ class db_pdo extends \myphp\DbBase{
      */
     public function query($sql, $run = 0){
         try {
-            $this->rs = $this->conn->query($sql);
-            if (false === $this->rs) {
-                $errorInfo = $this->conn->errorInfo();
-                throw new PDOException(implode('|', $errorInfo), $errorInfo[1]);
-            }
+            $this->rs = $this->conn->query($sql); //预处理并执行没有占位符的 SQL 语句
         } catch (PDOException $e) {
             $errorInfo = $this->conn->errorInfo();
             if (empty($errorInfo[1]) && is_int($e->getCode())) {
@@ -143,7 +138,7 @@ class db_pdo extends \myphp\DbBase{
             }
             if ($errorInfo[1]) {
                 $errInfo = implode('|', $errorInfo);
-                if ($run == 0 && $this->transCounter == 0) { //重连1次处理 非事务时允许重连
+                if ($run == 0 && $this->transCounter == 0 && IS_CLI) { //重连1次处理 非事务时允许重连
                     #MySQL server has gone away
                     if ($this->config['dbms'] == 'mysql' && ($errorInfo[1] == 2006 || $errorInfo[1] == 2013)) {
                         $this->connect();
@@ -166,11 +161,11 @@ class db_pdo extends \myphp\DbBase{
      * @throws PDOException
      */
     public function queryAll($sql, $type = 'assoc'){
-        $style = PDO::FETCH_BOTH;
-        if($type=='assoc') $style = PDO::FETCH_ASSOC;
-        elseif($type=='num') $style = PDO::FETCH_NUM;
-        //$sth = $this->conn->prepare($sql); $sth->execute();
-        return $this->query($sql)->fetchAll($style);
+        $mode = PDO::FETCH_BOTH;
+        if($type=='assoc') $mode = PDO::FETCH_ASSOC;
+        elseif($type=='num') $mode = PDO::FETCH_NUM;
+        //$sth = $this->conn->prepare($sql); $sth->execute(); return $sth->fetchAll($mode);
+        return $this->query($sql)->fetchAll($mode);
     }
 
     /**
@@ -179,16 +174,12 @@ class db_pdo extends \myphp\DbBase{
      * @param string $type 默认MYSQL_ASSOC 关联，MYSQL_NUM 数字，MYSQL_BOTH 两者
      * @return mixed
      */
-	public function fetch_array($query, $type = 'assoc') {
-        $style = PDO::FETCH_BOTH;
-        if($type=='assoc') $style = PDO::FETCH_ASSOC;
-        elseif($type=='num') $style = PDO::FETCH_NUM;
-        /*
-		if($type=='assoc') $query->setFetchMode(PDO::FETCH_ASSOC);
-		elseif($type=='num') $query->setFetchMode(PDO::FETCH_NUM);
-		else $query->setFetchMode(PDO::FETCH_BOTH);*/
+	public function fetch(&$query, $type = 'assoc') {
+        $mode = PDO::FETCH_BOTH;
+        if($type=='assoc') $mode = PDO::FETCH_ASSOC;
+        elseif($type=='num') $mode = PDO::FETCH_NUM;
 
-		return $query->fetch($style);
+		return $query->fetch($mode);
 	}
 
     /**

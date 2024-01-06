@@ -7,15 +7,17 @@ use myphp;
 
 /**
  * Class Db 数据db类
- * @method Db group($val)
- * @method Db having($val)
- * @method Db idx($val)
- * @method Db limit($val)
- * @method Db order($val)
- * @method Db table($val)
+ * @method Db group(string $val)
+ * @method Db having(string $val)
+ * @method Db idx(string $val)
+ * @method Db batch(int $val)
+ * @method Db limit(string|int $val)
+ * @method Db order(string $val)
+ * @method Db table(string $val)
  * @property string group
  * @property string having
  * @property string idx
+ * @property string batch
  * @property string limit
  * @property string lock
  * @property string order
@@ -27,7 +29,7 @@ class Db {
     private static $log_type = 0; //是否记录sql
     private static $instance = [];
     /**
-     * @var \myphp\db\db_pdo|\myphp\db\db_mysqli
+     * @var \myphp\db\db_pdo
      */
     private $db;
     /**
@@ -55,7 +57,7 @@ class Db {
     private $options;
     public $resetOption = true;
 	//链操作方法列表
-    private $methods = ',group,having,idx,limit,order,table,';
+    private $methods = ',group,having,idx,batch,limit,order,table,';
     //表字段信息
     private $tbFields = [];
     //特殊符 默认mysql
@@ -508,10 +510,19 @@ class Db {
             return $this->db->exec($sql);
         }
 	}
-	//执行查询 返回数据 $bind[array:绑定数据, true:直接返回查询数据],$isArr $bind为array时才有效
-	public function query($sql, $bind=null, $isArr=false) {
-        !is_array($bind) && $isArr = $bind;
-        $idx = $isArr && isset($this->options['idx']) ? $this->options['idx'] : null; //指定键名
+
+    /**
+     * 执行查询 返回数据 $bind[array:绑定数据, true:直接返回查询数据],$isArr $bind为array时才有效
+     * @param $sql
+     * @param null $bind
+     * @param bool $isArr
+     * @param string $type
+     * @return array|false|\Generator|mixed|\PDOStatement
+     */
+	public function query($sql, $bind=null, $isArr=false, $type='assoc') {
+        if(is_bool($bind)) $isArr = $bind;
+        $idx = isset($this->options['idx']) ? $this->options['idx'] : null; //指定键名
+        $batch = isset($this->options['batch']) ? (int)$this->options['batch'] : 0; //批量处理
         // 替换前缀
         if(!isset($this->options['table']) && strpos($sql, '{prefix}')){
             $sql = str_replace('{prefix}', $this->config['prefix'], $sql);
@@ -520,24 +531,43 @@ class Db {
         $this->_run_init($sql, $bind);
         if(!$isArr) return $this->db->query($sql);
 
+        $data = [];
+        if ($batch > 0) {
+            $n = 0;
+            $rs = $this->db->query($sql);
+            while ($row = $this->db->fetch($rs, $type)) {
+                if ($idx && isset($row[$idx])) {
+                    $data[$row[$idx]] = $row;
+                } else {
+                    $data[] = $row;
+                }
+                if (++$n == $batch) {
+                    yield $data;
+                    $data = [];
+                    $n = 0;
+                }
+            }
+            if ($data) {
+                yield $data;
+                $data = [];
+            }
+        }
+        elseif ($idx) {
+            $rs = $this->db->query($sql);
+            while($row = $this->db->fetch($rs, $type)) {
+                $data[$row[$idx]] = $row;
+            }
+        } else {
+            $data = $this->db->queryAll($sql, $type);
+        }
+        return $data;
+        /*
         $rs = $this->db->queryAll($sql);
         if(!$idx) return $rs;
         $data = array();
         foreach ($rs as $row){
             $data[$row[$idx]] = $row;
         }
-        return $data;
-        /*
-        $rs = $this->db->query($sql);
-        $data = array();//可以 读取缓存
-        while($row = $this->db->fetch_array($rs)) {
-            if($idx && isset($row[$idx])){
-                $data[$row[$idx]] = $row;
-            }else{
-                $data[] = $row;
-            }
-        }
-        //可以 设置缓存
         return $data;*/
 	}
 	//获取记录 简单单表查询
@@ -699,6 +729,7 @@ class Db {
      * @param string $where
      * @param string $field
      * @return int
+     * @throws Exception
      */
 	public function getCount($table='', $where = '', $field='*') {
         $join = '';
@@ -738,6 +769,7 @@ class Db {
      * @param string $where
      * @param string $orderBy
      * @return bool|mixed
+     * @throws Exception
      */
 	public function getCustomId($table, $idName, $where = '', $orderBy = ''){
 		$this->_table($table);
@@ -758,15 +790,11 @@ class Db {
      * @param null $bind
      * @param string $type
      * @return array|false
+     * @throws Exception
      */
 	public function getOne($sql, $bind=null, $type = 'assoc') {
-		if(is_array($bind)){
-			$result = $this->query($sql, $bind);
-		}else{
-			$bind && $type = $bind;
-			$result = $this->query($sql);
-		}
-		return $this->db->fetch_array($result, $type);//无记录返回false
+        $rs = $this->query($sql, $bind === null ? null : (array)$bind);
+		return $this->db->fetch($rs, $type );//无记录返回false
 	}
 
     /**
@@ -777,7 +805,7 @@ class Db {
      */
     public function fetch($rs=null, $type = 'assoc') {
         if($rs===null) $rs=$this->db->rs;
-        return $this->db->fetch_array($rs, $type);
+        return $this->db->fetch($rs, $type);
     }
 
     /**
@@ -965,7 +993,7 @@ abstract class TbBase{
 
 /**
  * Class DbBase
- * @property \PDO|\mysqli $conn
+ * @property \PDO $conn
  */
 abstract class DbBase{
     //隔离级别
@@ -1082,7 +1110,7 @@ abstract class DbBase{
      * @param string $type 默认MYSQL_ASSOC 关联，MYSQL_NUM 数字，MYSQL_BOTH 两者
      * @return mixed
      */
-	abstract public function fetch_array($query, $type = 'assoc');
+	abstract public function fetch(&$query, $type = 'assoc');
 	//取得结果集行的数目
 	abstract public function num_rows();
 	//取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID

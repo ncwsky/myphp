@@ -44,7 +44,7 @@ class tb_sqlite extends \myphp\TbBase
         $rule = array();
         $sql = 'PRAGMA table_info(' . $tableName . ')';
         $res = $db->query($sql);
-        while ($rs = $db->fetch_array($res)) {
+        while ($rs = $db->fetch($res)) {
             $rs = array_change_key_case($rs);
             $null = strtolower($rs['notnull']) == 0 ? 1 : 0;
             $toRule = $this->fieldToRule(strtolower($rs['type']), $vType);
@@ -80,7 +80,7 @@ class tb_sqlite extends \myphp\TbBase
         $tables = array();
         $sql = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"; // UNION ALL SELECT name FROM sqlite_temp_master WHERE type='table'
         $res = $db->query($sql);
-        while ($rs = $db->fetch_array($res, 'num')) {
+        while ($rs = $db->fetch($res, 'num')) {
             $tables[] = $rs[0];
         }
         return $tables;

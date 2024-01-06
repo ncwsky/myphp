@@ -6,7 +6,7 @@ class __c__ extends Base{
 	public function __a__(){
 /*
 		$res = db()->query("select * from test");	//查询数据库
-		$row = db()->fetch_array($res);	//获得查询结果
+		$row = db()->fetch($res);	//获得查询结果
 		return $row;	//输出结果
 */
 		$title = '欢迎信息';

@@ -84,7 +84,7 @@ class db_taos extends \myphp\DbBase{
      * @param string $type 默认MYSQLI_ASSOC关联,MYSQLI_NUM 数字,MYSQLI_BOTH 两者
      * @return mixed
      */
-	public function fetch_array($query, $type = 'assoc') {
+	public function fetch(&$query, $type = 'assoc') {
 		if($type=='assoc') $type = TaosRestApi::FETCH_ASSOC;
 		elseif($type=='num') $type = TaosRestApi::FETCH_NUM;
 		else $type = TaosRestApi::FETCH_BOTH;

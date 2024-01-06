@@ -11,6 +11,7 @@ namespace myphp;
  * @method null|static limit(string|int $val) example 30 or 2,5
  * @method null|static table(string $val)
  * @method null|static idx(string $val)
+ * @method null|static batch(int $val)
  * @method null|static join(string $tb, string|array $on, $joinWay='inner')
  * @method null|static leftJoin(string $tb, string|array $on)
  * @method null|static rightJoin(string $tb, string|array $on)
@@ -409,18 +410,30 @@ class Model implements \ArrayAccess
     }
     //执行db方法的后置处理
     protected function _afterDbMethod($method, &$result){
-        if ($method=='one' || $method == 'find') { //单条记录   || $method == 'getOne'
-            if (false === $result) return $result;
+        if ($method == 'one' || $method == 'find') { //单条记录   || $method == 'getOne'
+            if (false === $result) return;
             $this->formatData($result);
             $this->_data = $this->_oldData = $result;
             if ($this->_asObj) {
                 $result = $this;
             }
         }
-        if ($this->_asObj) {
-            if($method == 'all' || $method == 'select'){
-                foreach ($result as $k=>$row){
-                    $result[$k] = static::create($row);
+        if ($this->_asObj && ($method == 'all' || $method == 'select')) {
+            if ($result instanceof \Generator) { //batch()批量处理数据时为生成器
+                $generator = function ($result) { //替换成带对象的新生成器
+                    foreach ($result as $rows) {
+                        $data = [];
+                        foreach ($rows as $k => $row) {
+                            $data[$k] = self::clone($this, $row);
+                        }
+                        yield $data;
+                    }
+                };
+                $result = $generator($result);
+            } else {
+                foreach ($result as $k => $row) {
+                    $result[$k] = self::clone($this, $row);
+                    //$result[$k] = static::create($row, $this->tbName, clone $this->db);
                 }
             }
         }
@@ -446,6 +459,7 @@ class Model implements \ArrayAccess
     /**
      * @param string $field
      * @return int
+     * @throws \Exception
      */
     public function count($field='*'){
         return $this->db->getCount($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''), '', $field);
@@ -527,6 +541,20 @@ class Model implements \ArrayAccess
             return static::err($e->getMessage());
         }
         return true;
+    }
+
+    /**
+     * @param Model $self
+     * @param array $data
+     * @return static
+     */
+    public static function clone($self, $data=[]){
+        $model = clone $self;
+        $model->db->resetOptions();
+        $model->_oldData = $data;
+        $self->formatData($model->_oldData);
+        $model->_data = $model->_oldData;
+        return $model;
     }
 
     /**

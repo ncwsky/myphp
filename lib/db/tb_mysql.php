@@ -40,7 +40,7 @@ class tb_mysql extends \myphp\TbBase
         $rule = array();
         $sql = 'SHOW COLUMNS FROM ' . $tableName;
         $res = $db->query($sql);
-        while ($rs = $db->fetch_array($res)) {
+        while ($rs = $db->fetch($res)) {
             $rs = array_change_key_case($rs);
             $null = strtolower($rs['null']) == 'yes' ? 1 : 0;
             $toRule = $this->fieldToRule(strtolower($rs['type']), $vType);
@@ -81,7 +81,7 @@ class tb_mysql extends \myphp\TbBase
         $tables = array();
         $sql = $dbName != '' ? 'SHOW TABLES FROM ' . $dbName : 'SHOW TABLES';
         $res = $db->query($sql);
-        while ($rs = $db->fetch_array($res, 'num')) {
+        while ($rs = $db->fetch($res, 'num')) {
             $tables[] = $rs[0];
         }
         return $tables;
