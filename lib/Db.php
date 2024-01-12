@@ -10,14 +10,12 @@ use myphp;
  * @method Db group(string $val)
  * @method Db having(string $val)
  * @method Db idx(string $val)
- * @method Db batch(int $val)
  * @method Db limit(string|int $val)
  * @method Db order(string $val)
  * @method Db table(string $val)
  * @property string group
  * @property string having
  * @property string idx
- * @property string batch
  * @property string limit
  * @property string lock
  * @property string order
@@ -28,6 +26,8 @@ class Db {
     public static $times = 0; //执行次数
     private static $log_type = 0; //是否记录sql
     private static $instance = [];
+
+    private $_sql = ''; //完整的Sql
     /**
      * @var \myphp\db\db_pdo
      */
@@ -133,7 +133,7 @@ class Db {
 	}
 	//获取最后执行的Sql
 	public function getSql(){
-	    return self::$sql;
+	    return $this->_sql;
     }
     //取得数据表的字段信息
     public function getFields($tb, &$prikey='', &$fields='*', &$rule=array(), &$autoKey=''){
@@ -206,14 +206,14 @@ class Db {
             $pos = 0;
             foreach ($bind as $key => $val) {
                 $val = $this->parseValue($val);
-                $isnum = is_numeric($key);
+                $isNum = is_numeric($key);
                 // 判断占位符
-                $sql = $isnum ? substr_replace($sql, $val, $pos=strpos($sql, '?', $pos), 1) :
+                $sql = $isNum ? substr_replace($sql, $val, $pos=strpos($sql, '?', $pos), 1) :
                     str_replace(
                         array(':' . $key . ')', ':' . $key . ',', ':' . $key . ' '),
                         array($val . ')', $val . ',', $val . ' '),
                         $sql . ' ');
-                $isnum && $pos += strlen($val);
+                $isNum && $pos += strlen($val);
             }
         }
         return $sql;
@@ -470,7 +470,7 @@ class Db {
 	//sql处理 记数
 	private function _run_init(&$sql, $bind=null, $curd=false){
         $this->chkSql($sql, $curd);
-        self::$sql = $sql = $this->get_real_sql($sql, $bind); //解析绑定参数
+        self::$sql = $this->_sql = $sql = $this->get_real_sql($sql, $bind); //解析绑定参数
 		if($this->resetOption) $this->options = null; //重置
 		if(self::$log_type==2 || (self::$log_type==1 && $curd)) Log::write($sql,'SQL');
 		self::$times++;
@@ -499,7 +499,7 @@ class Db {
      * 执行sql  todo:有主从时 默认都走主库
      * @param $sql
      * @param null $bind
-     * @return bool|int|mixed
+     * @return bool|int
      * @throws Exception
      */
 	public function execute($sql, $bind=null) {
@@ -517,42 +517,21 @@ class Db {
      * @param null $bind
      * @param bool $isArr
      * @param string $type
-     * @return array|false|\Generator|mixed|\PDOStatement
+     * @return array|false|\PDOStatement
      */
 	public function query($sql, $bind=null, $isArr=false, $type='assoc') {
         if(is_bool($bind)) $isArr = $bind;
         $idx = isset($this->options['idx']) ? $this->options['idx'] : null; //指定键名
-        $batch = isset($this->options['batch']) ? (int)$this->options['batch'] : 0; //批量处理
         // 替换前缀
         if(!isset($this->options['table']) && strpos($sql, '{prefix}')){
             $sql = str_replace('{prefix}', $this->config['prefix'], $sql);
         }
 
-        $this->_run_init($sql, $bind);
+        $this->_run_init($sql, $bind === null || is_bool($bind) ? null : (array)$bind);
         if(!$isArr) return $this->db->query($sql);
 
         $data = [];
-        if ($batch > 0) {
-            $n = 0;
-            $rs = $this->db->query($sql);
-            while ($row = $this->db->fetch($rs, $type)) {
-                if ($idx && isset($row[$idx])) {
-                    $data[$row[$idx]] = $row;
-                } else {
-                    $data[] = $row;
-                }
-                if (++$n == $batch) {
-                    yield $data;
-                    $data = [];
-                    $n = 0;
-                }
-            }
-            if ($data) {
-                yield $data;
-                $data = [];
-            }
-        }
-        elseif ($idx) {
+        if ($idx) {
             $rs = $this->db->query($sql);
             while($row = $this->db->fetch($rs, $type)) {
                 $data[$row[$idx]] = $row;
@@ -561,15 +540,37 @@ class Db {
             $data = $this->db->queryAll($sql, $type);
         }
         return $data;
-        /*
-        $rs = $this->db->queryAll($sql);
-        if(!$idx) return $rs;
-        $data = array();
-        foreach ($rs as $row){
-            $data[$row[$idx]] = $row;
-        }
-        return $data;*/
 	}
+
+    /**
+     * @param int $num
+     * @return \Generator|\SplFixedArray[][]|array[][]
+     */
+	public function batch($num){
+        //任何包含 yield 的函数都是一个生成器函数。
+        $idx = isset($this->options['idx']) ? $this->options['idx'] : null; //指定键名
+        $n = 0;
+        $data = $idx ? [] : new \SplFixedArray($num);
+        $rs = $this->query($this->select_sql(),false);
+        while ($row = $this->db->fetch($rs, 'assoc')) {
+            if ($idx) {
+                $data[$row[$idx]] = $row;
+            } else {
+                $data[$n] = $row;
+            }
+            if (++$n == $num) {
+                yield $data;
+                $data = $idx ? [] : new \SplFixedArray($num);
+                $n = 0;
+            }
+        }
+        if ($data) {
+            if (!$idx) {
+                $data->setSize($n);
+            }
+            yield $data;
+        }
+    }
 	//获取记录 简单单表查询
     public function select_sql($table='', $where = '', $order='', $fields = '*', $limit=''){
         if($where) $this->_where($where);
@@ -715,7 +716,12 @@ class Db {
 
         return $sql;
     }
-	//删除记录
+    /**
+     * @param string $table
+     * @param string $where
+     * @return int|false
+     * @throws Exception
+     */
     public function del($table='', $where = '') {
 		return $this->execute($this->del_sql($table, $where)); //返回删除记录数
 	}
@@ -793,7 +799,7 @@ class Db {
      * @throws Exception
      */
 	public function getOne($sql, $bind=null, $type = 'assoc') {
-        $rs = $this->query($sql, $bind === null ? null : (array)$bind);
+        $rs = $this->query($sql, $bind === null || is_bool($bind) ? null : (array)$bind);
 		return $this->db->fetch($rs, $type );//无记录返回false
 	}
 

@@ -11,14 +11,12 @@ namespace myphp;
  * @method null|static limit(string|int $val) example 30 or 2,5
  * @method null|static table(string $val)
  * @method null|static idx(string $val)
- * @method null|static batch(int $val)
  * @method null|static join(string $tb, string|array $on, $joinWay='inner')
  * @method null|static leftJoin(string $tb, string|array $on)
  * @method null|static rightJoin(string $tb, string|array $on)
  * @method null|static where(string|array $val, $bind=null)
  * @method null|static whereOr(string|array $val, $bind=null)
  * @method int update(array $post, string $table='', string|array $where = '')
- * @method int del(string $table='', string|array $where = '')
  * @method array|false|\PDOStatement|static[] select(bool|string $table='');
  * @method array|false|\PDOStatement|static[] all(bool|string $table='');
  * @method array|false|static find();
@@ -211,6 +209,10 @@ class Model implements \ArrayAccess
         }
     }
 
+    /**
+     * @param bool $insert
+     * @return bool
+     */
     public function beforeSave($insert)
     {
         return true;
@@ -220,6 +222,55 @@ class Model implements \ArrayAccess
      * @param array $changed 变动的数据
      */
     public function afterSave($insert, $changed = []) {}
+
+    /**
+     * @return bool
+     */
+    public function beforeDel(){
+        return true;
+    }
+    public function afterDel(){}
+
+    /**
+     * @return int|false
+     * @throws \Throwable
+     */
+    public function del()
+    {
+        //$trans = clone $this->db;
+        $trans = $this->db;
+        $this->db->resetOption = false; //sql组合项执行后是否重置
+        $trans->beginTrans();
+        try {
+            if (!$this->beforeDel()) {
+                $trans->rollBack();
+                return false;
+            }
+
+            // 删除条件处理
+            if ($this->prikey && $this->_oldData) { //有主键 有单条查询
+                if (isset($this->_oldData[$this->prikey])) {
+                    $this->db->where([$this->prikey => $this->_oldData[$this->prikey]]);
+                } else {
+                    $this->db->where('1=0'); //没有主键值
+                }
+            }
+            if(!$this->db->where){
+                throw new \Exception("请指定删除条件");
+            }
+
+            $result = $this->db->del($this->tbName);
+            $this->afterDel();
+            $trans->commit();
+            return $result;
+        } catch (\Exception $e) {
+            $trans->rollBack();
+            throw $e;
+        } catch (\Throwable $e) {
+            $trans->rollBack();
+            throw $e;
+        }
+    }
 
     /**
      * 保存数据
@@ -381,21 +432,6 @@ class Model implements \ArrayAccess
 
     //执行db方法的前置处理
     protected function _beforeDbMethod($method){
-        //$methods = 'find,select,getCount,add,update,del';
-        //if (strpos($methods, $method) === false) return;
-        if ($method == 'del') {
-            if ($this->prikey && $this->_oldData) { //有主键 有单条查询
-                if (isset($this->_oldData[$this->prikey])) {
-                    $this->db->where([$this->prikey => $this->_oldData[$this->prikey]]);
-                } else {
-                    $this->db->where('1=0'); //没有主键值
-                }
-            }
-
-            if(!$this->db->where){
-                throw new \Exception("请指定删除条件");
-            }
-        }
         if ($this->tbName && (!$this->db->table || strpos($this->db->table,$this->tbName)!==0)) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
         if ($method == 'one' || $method == 'all' || $method == 'find' || $method == 'select') {
             if(!$this->tbName && $this->db->table){ //未取得表名及字段时
@@ -419,22 +455,9 @@ class Model implements \ArrayAccess
             }
         }
         if ($this->_asObj && ($method == 'all' || $method == 'select')) {
-            if ($result instanceof \Generator) { //batch()批量处理数据时为生成器
-                $generator = function ($result) { //替换成带对象的新生成器
-                    foreach ($result as $rows) {
-                        $data = [];
-                        foreach ($rows as $k => $row) {
-                            $data[$k] = self::clone($this, $row);
-                        }
-                        yield $data;
-                    }
-                };
-                $result = $generator($result);
-            } else {
-                foreach ($result as $k => $row) {
-                    $result[$k] = self::clone($this, $row);
-                    //$result[$k] = static::create($row, $this->tbName, clone $this->db);
-                }
+            foreach ($result as $k => $row) {
+                $result[$k] = self::clone($this, $row);
+                //$result[$k] = static::create($row, $this->tbName, clone $this->db);
             }
         }
     }
@@ -457,6 +480,26 @@ class Model implements \ArrayAccess
     }
 
     /**
+     * @param $num
+     * @return \Generator|\SplFixedArray[][]|static[][]|array[][]
+     */
+    public function batch($num){
+        $result = $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''))->batch($num);
+        if (!$this->_asObj) {
+            return $result;
+        }
+        $generator = function ($result) { //替换成带对象的新生成器
+            foreach ($result as $rows) {
+                $data = $rows instanceof \SplFixedArray ? new \SplFixedArray(count($rows)): [];
+                foreach ($rows as $k => $row) {
+                    $data[$k] = self::clone($this, $row);
+                }
+                yield $data;
+            }
+        };
+        return $generator($result);
+    }
+    /**
      * @param string $field
      * @return int
      * @throws \Exception
@@ -478,12 +521,12 @@ class Model implements \ArrayAccess
             return $result;
         }
     }
-    //连贯操作
+    //调用一个不可访问方法
     public function __call($method, $args)
     {
         return self::runCall($this, $method, $args);
     }
-    //连贯操作
+    //静态上下文中调用一个不可访问方法
     public static function __callStatic($method, $args)
     {
         return self::runCall(new static(), $method, $args);
