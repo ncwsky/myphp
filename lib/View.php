@@ -57,7 +57,7 @@ class View
     public function display($file = '', $var = null)
     {
         $content = $this->fetch($file, $var);
-        $this->obStart();
+        self::obStart();
         echo $content;
         ob_end_flush();
     }

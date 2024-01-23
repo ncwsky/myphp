@@ -284,7 +284,7 @@ class Helper{
             file_put_contents($file, '', LOCK_EX);
             clearstatcache(true, $file);
         }
-        file_put_contents($file, "[".date("Y-m-d H:i:s")."]".(is_scalar($content)?$content:self::toJson($content))."\n", FILE_APPEND);
+        file_put_contents($file, "[".date("Y-m-d H:i:s").'.'.substr(microtime(), 2, 3)."]".(is_scalar($content)?$content:self::toJson($content))."\n", FILE_APPEND);
     }
     /**
      * 字符串转十六进制函数

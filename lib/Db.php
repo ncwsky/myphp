@@ -840,7 +840,7 @@ class Db {
     }
 	//开始一个事务，关闭自动提交 todo:有主从时 默认都走主库
 	public function beginTrans(){
-		$sql = 'beginTransaction';
+		$sql = 'beginTrans';
 		$this->_run_init($sql, null, true);
         $this->db->beginTrans();
         return $this;

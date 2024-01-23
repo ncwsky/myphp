@@ -163,8 +163,8 @@ class Log{
 	}
 	public static function miniREQ($raw_full=false){
         if (!isset($_SERVER['REQUEST_METHOD'])) return '';
-        $postStr =\myphp::rawBody();
-        $_srv = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'] . (strpos($_SERVER['REQUEST_URI'],'?')===false && isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . urldecode($_SERVER['QUERY_STRING']) : '') . (isset($_SERVER['SERVER_PROTOCOL']) ? ' ' . $_SERVER['SERVER_PROTOCOL'] : '') . PHP_EOL . 'HOST:' . $_SERVER['HTTP_HOST'] . PHP_EOL . 'Remote: ' . $_SERVER['REMOTE_ADDR'] . ':' . $_SERVER['REMOTE_PORT'] . (empty($_SERVER['HTTP_X_REAL_IP']) ? '' : '(' . $_SERVER['HTTP_X_REAL_IP'] . ')');
+        $postStr = \myphp::rawBody();
+        $_srv = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'] . (strpos($_SERVER['REQUEST_URI'],'?')===false && isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . urldecode($_SERVER['QUERY_STRING']) : '') . (isset($_SERVER['SERVER_PROTOCOL']) ? ' ' . $_SERVER['SERVER_PROTOCOL'] : '') . PHP_EOL . (isset($_SERVER['HTTP_HOST']) ? 'HOST:' . $_SERVER['HTTP_HOST'] . PHP_EOL : ''). 'Remote: ' . $_SERVER['REMOTE_ADDR'] . ':' . $_SERVER['REMOTE_PORT'] . (empty($_SERVER['HTTP_X_REAL_IP']) ? '' : '(' . $_SERVER['HTTP_X_REAL_IP'] . ')');
 
 		return $_srv.(isset($_POST)?PHP_EOL."Form-Data: ".rawurldecode(http_build_query($_POST, "", "&", PHP_QUERY_RFC3986)):'').($postStr?PHP_EOL."Raw: ".($raw_full?$postStr:substr($postStr,0,255)):'');
 	}
@@ -206,14 +206,14 @@ class Log{
 		if(IS_CLI){
 			self::write($msg, $level);
 		}else{
-			if(!self::_level($level)) return false;
+			if(!self::_level($level)) return;
             if(!is_scalar($msg) || is_bool($msg)) $msg = toJson($msg);
 			self::$logs[] = date('[Y-m-d H:i:s]').'['.$level.'] '.$msg."\r\n";
 		}
 	}
 	//写入日志
 	public static function write($msg,$level='info',$file=null){
-		if(!self::_level($level)) return false;
+		if(!self::_level($level)) return;
         if(!is_scalar($msg) || is_bool($msg)) {
             $msg = toJson($msg);
             if (false === $msg) {
