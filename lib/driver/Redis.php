@@ -865,7 +865,7 @@ class Redis
                         return $data;
                     }
                 }
-                $data = new \SplFixedArray($count);
+                $data = $count > 99999 ? new \SplFixedArray($count) : []; //大数组使用SplFixedArray
                 for ($i = 0; $i < $count; $i++) {
                     $data[$i] = $this->parseResponse($command, $srcCommand);
                 }

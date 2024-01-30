@@ -2,8 +2,6 @@
 namespace myphp;
 
 class Request extends \HttpReqInfo{
-    use \MyBaseObj;
-
     public $expire = 0; //请求缓存过期时间 见 \myphp::$req_cache
     public $enableCsrf = false;
     public $csrfParam = 'csrf_token';
