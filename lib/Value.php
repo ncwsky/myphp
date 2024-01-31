@@ -131,14 +131,17 @@ class Value{
      * @param null $default 默认值
      * @param bool $strict 强验证 失败抛出异常
      * @param string $name 提示名称
+     * @param string $err1 未输入提示内容
+     * @param string $err2 输入无效提示内容
      * @return int $errCode
      */
-    public static function type2val(&$val, $rule, $default=null, $strict=false, $name='value'){
+    public static function type2val(&$val, $rule, $default=null, $strict=false, $name='value', $err1='', $err2=''){
         $type = 's'; // 默认转换为字符串
         $digit = 0; //小数位处理 四舍五入
         $errCode = 0;
         $filter = $max = $min = null;
-        $err2 = $err1 = $name . ' is invalid';
+        if ($err1 === '') $err1 = $name . ' is invalid';
+        if ($err2 === '') $err2 = $name . ' is invalid';
 
         if($val==='' || $val===null) $errCode = 1;
         elseif(is_string($val)) $val = trim($val);

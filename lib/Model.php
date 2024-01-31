@@ -548,14 +548,17 @@ class Model implements \ArrayAccess
                     //非禁用默认值及验证处理或表达式
                     if (!($setDef === 0 || $v instanceof Expr)) {
                         $hasDef = true;
-                        if (is_array($rules[$name])) {
+                        $err1 = $err2 = '';
+                        if (is_array($rules[$name])) { // 'name'=>['rule'=>'%s{25}'|['s','max'=>25,'err','err2'],'err','err2'
                             //是否有默认值 无默认值时则不能为空
                             $hasDef = isset($rules[$name]['def']) || array_key_exists('def', $rules[$name]);
                             $rule = isset($rules[$name]['rule']) ? $rules[$name]['rule'] : $rules[$name];
-                        } else {
+                            if (isset($rules[$name]['err'])) $err1 = $rules[$name]['err'];
+                            if (isset($rules[$name]['err2'])) $err2 = $rules[$name]['err2'];
+                        } else { // 'name'=>'%s{25}'
                             $rule = $rules[$name];
                         }
-                        Value::type2val($v, $rule, '', !$hasDef, $name);
+                        Value::type2val($v, $rule, '', !$hasDef, $name, $err1, $err2);
 
                         $data[$name] = $v;
                     }
@@ -621,9 +624,8 @@ class Model implements \ArrayAccess
      * @return bool|mixed|string
      * @throws \Exception
      */
-    public static function insert($post){
-        $model = static::create();
-        if ($model->fieldRule) { //有字段规则
+    public static function insert($post, $validate=true){
+        if ($validate && ($model = static::create()) && $model->fieldRule) { //有字段规则
             if (isset($post[0])) { //批量
                 if($model->autoIncrement){ //自增键时排除验证规则
                     unset($model->fieldRule[$model->autoIncrement]);
