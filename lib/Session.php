@@ -2,7 +2,8 @@
 namespace myphp;
 
 /**
- * Class Session
+ * Session设置处理
+ * 默认使用系统自带session函数处理
  * @package myphp
  * @method all() static
  * @method get($name) static
@@ -18,6 +19,7 @@ class Session {
      */
     public static $instance = null;
     /**
+     * 自定义session类处理 返回的对类需要满足EnvSessionInterface接口的方法
      * @var null|callable
      */
     private static $callable = null;
@@ -46,10 +48,10 @@ class Session {
             }
             if ($class instanceof \Closure) {
                 self::$instance = call_user_func($class);
-            } elseif (is_string($class)) {
-                self::$instance = new $class($opts);
-            } else {
+            } elseif (is_object($class)) {
                 self::$instance = $class;
+            } else {
+                self::$instance = new $class($opts);
             }
         }
         return self::$instance;
@@ -108,17 +110,15 @@ class EnvSession implements EnvSessionInterface
         );
         isset($this->options['expire']) && ini_set('session.gc_maxlifetime', $this->options['expire']);
 
-        @session_start();
-        //自定义ses类
-        $session_class = isset($this->options['class']) ? $this->options['class'] : '';
-        if ($session_class == 'redis') $session_class = '\myphp\session\Redis';
-
-        if ($session_class) {
-            $sess = new $session_class($this->options);
+        //默认php文件ses
+        $type = isset($this->options['type']) ? $this->options['type'] : '';
+        if ($type == 'redis') {
+            $sess = new \myphp\session\Redis($this->options);
             session_set_save_handler($sess, true);
         } else {
             isset($this->options['path']) && session_save_path($this->options['path']);
         }
+        @session_start();
     }
 
     /**

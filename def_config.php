@@ -38,7 +38,8 @@ return array(
 		'expire' => 0, //默认有效期
 	),
 	'session' => null, /*array(
-	    //'class'=> null|'redis', //内置处理 默认files系统 | 'redis':\myphp\session\Redis
+	    //'class'=> null, //[优先]自定义session类,需要满足EnvSessionInterface接口的方法,如:\myphp\EnvSession
+        // #'type'=> 'redis', //redis|file 内置处理 默认系统file
         // 'name'=>'sid',
         // 'path' => './', //可指定session存放目录
         // 'prefix' => 'my_', //用于非file方式的名前缀
