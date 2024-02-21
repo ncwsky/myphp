@@ -3,21 +3,24 @@ namespace myphp\cache;
 
 // redis缓存类
 class Redis extends \myphp\CacheAbstract{
+    /**
+     * @var \myphp\driver\Redis|\Redis
+     */
     private $handler;
 	//配置
-    protected $options = array(
+    protected $options = [
         'prefix' => '_',
-		'host' => '127.0.0.1',
-		'port' => 6379,
-		'password'=>'',
-		'select'=>0, //选择库 
-		'timeout'=> 0, 
-		'pconnect' => false, //持续连接
-    	'expire' => 0, //有效期
-		'server' => array() //从服务器 待实现
-    );
+        'host' => '127.0.0.1',
+        'port' => 6379,
+        'password' => '',
+        'select' => 7, //选择库
+        'timeout' => 0,
+        'pconnect' => false, //持续连接
+        'expire' => 0, //有效期
+        'server' => [] //从服务器 待实现
+    ];
 	//构造函数
-	public function __construct($options = array()){
+	public function __construct($options = []){
         parent::__construct($options);
 
 	    if ( extension_loaded('redis') ) {
@@ -71,7 +74,7 @@ class Redis extends \myphp\CacheAbstract{
 
     //删除缓存
     public function del($name) {
-        return $this->handler->delete($this->options['prefix'].$name);
+        return $this->handler->del($this->options['prefix'].$name);
     }
 
     //清除缓存

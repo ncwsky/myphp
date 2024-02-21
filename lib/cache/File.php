@@ -20,7 +20,7 @@ class File extends \myphp\CacheAbstract{
         'dir_level'=>0 //缓存层级
     ];
 
-	public function __construct($options = array()){
+	public function __construct($options = []){
         parent::__construct($options);
 		$this->setCacheDir();
 	}
@@ -44,7 +44,6 @@ class File extends \myphp\CacheAbstract{
 	/**
 	 * 设置缓存存储类型
 	 * @param int $mode
-	 * @return self
 	 */
 	public function setCacheMode($mode = self::MODE_SERIALIZE){
         $this->options['mode'] = $mode == self::MODE_SERIALIZE ? self::MODE_SERIALIZE : self::MODE_PHP;
@@ -71,11 +70,7 @@ class File extends \myphp\CacheAbstract{
         $this->gc();//触发垃圾回收
 
 		$time = time();
-		$cache = array();
-		$cache['contents'] = $data;
-		$cache['expire'] = $expire == 0 ? 0 : $time + $expire;
-		$cache['mtime'] = $time;
-
+        $cache = ['contents' => $data, 'expire' => $expire == 0 ? 0 : $time + $expire];
         $file = $this->_file($name, true);
         if(false!==$this->_filePutContent($file, $cache)){
             return @touch($file, $expire ? $time+$expire : 0); //修改访问时间 用于垃圾回收 $time+($expire == 0 ? 31536000 : $expire)
@@ -97,14 +92,18 @@ class File extends \myphp\CacheAbstract{
 	}
 	/**
 	 * 判断缓存是否存在
-	 * @param string $name cache_name
+	 * @param string $name
 	 * @return bool
 	 */
 	public function has($name){
 		$file = $this->_file($name);
-		if(!is_file($file)) return false;
-		return true;
+        if (!is_file($file)) return false;
+        if (($mTime = @filemtime($file)) && $mTime < time()) return false;
+        return true;
 	}
+	public function exists($name){
+	    return $this->has($name);
+    }
     /**
      * 清除一条缓存
      * @param string name
@@ -134,7 +133,6 @@ class File extends \myphp\CacheAbstract{
 
         if($time) $time = $time+time();
         $data['expire'] = $time;
-        $data['mtime'] = time();
         if(false!==$this->_filePutContent($file, $data)){
             return @touch($file, $data['expire']);
         }
@@ -150,7 +148,6 @@ class File extends \myphp\CacheAbstract{
 
         if($time) $time = $time+time();
         $data['expire'] = $time;
-        $data['mtime'] = time();
 
         if(false!==$this->_filePutContent($file, $data)){
             return @touch($file, $data['expire']);
@@ -163,11 +160,9 @@ class File extends \myphp\CacheAbstract{
     public function hSet($name, $key, $val){
         $this->gc();//触发垃圾回收
 
-        $time = time();
-        $cache = array();
+        $cache = [];
         $cache['contents'] = $val;
         $cache['expire'] = 0;
-        $cache['mtime'] = $time;
 
         $file = $this->_hFile($name, $key, true);
         if(false!==$this->_filePutContent($file, $cache)){
@@ -175,6 +170,7 @@ class File extends \myphp\CacheAbstract{
         }
         $error = error_get_last();
         Log::WARN("Unable to write cache file '{$file}': {$error['message']}");
+        return false;
     }
     public function hGet($name, $key){
         $file = $this->_hFile($name, $key);
@@ -271,13 +267,10 @@ class File extends \myphp\CacheAbstract{
 
         $file = $this->_file($name, true);
         $data = $this->_fileGetContent($file);
-        if($data && ($data['expire'] == 0 || time() < $data['expire'])){
+        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
 
-        }else{
-            $data = array();
-            $data['contents'] = [];
-            $data['expire'] = 0;
-            $data['mtime'] = time();
+        } else {
+            $data = ['contents' => [], 'expire' => 0];
         }
         $data['contents'][$key] = $val;
 
@@ -405,54 +398,25 @@ class File extends \myphp\CacheAbstract{
 	 * @return bool|array
 	 */
 	protected function _fileGetContent($file){
-        if(!is_file($file)) return false; // || ($mTime=@filemtime($file)) && $mTime < time())
+        if (!is_file($file)) return false;
+        if (($mTime = @filemtime($file)) && $mTime < time()) {
+            //@unlink($file);
+            return false;
+        }
 
-        if($this->options['mode'] == self::MODE_SERIALIZE) {
+        if ($this->options['mode'] == self::MODE_SERIALIZE) {
             $content = file_get_contents($file, false, null, 13);
             return unserialize($content);
         } else {
-            return require $file;
+            return require($file);
         }
 	}
 }
 
 /* 初始化设置cache的配置信息什么的 */
 /*
-$cache = Cache::getInstance();
-$cache->setCachePrefix('core'); //设置缓存文件前缀
-$cache->setCacheDir('./app/cache/'); //设置存放缓存文件夹路径
-$cache->setCacheMode(2); 
-*/
-//模式1 缓存存储方式
-//a:3:{s:8:"contents";a:7:{i:0;i:1;i:1;i:2;i:2;i:3;i:3;i:34;i:4;i:5;i:5;i:6;i:6;i:6;}s:6:"expire";i:0;s:5:"mtime";i:1318218422;}
-//模式2 缓存存储方式
-/*
- <?php
- // mktime: 1318224645
- return array (
-  'contents' => 
-  array (
-    0 => 1,
-    1 => 2,
-    2 => 3,
-    3 => 34,
-    4 => 5,
-    5 => 6,
-    6 => 6,
-  ),
-  'expire' => 0,
-  'mtime' => 1318224645,
-)
-?>
- */
-/*
-if(!$row = $cache->get('zj2'))
-{
-	
-	$array = array(1,2,3,34,5,6,6);
-	$row = $cache->set('zj2',$array);
-}
-// $cache->clear(); 清空所有缓存
-
-print_r($row);
+$cache = Cache::getInstance(); //new \myphp\cache\File();
+$cache->setCacheDir(RUNTIME . DS . 'cache');
+$cache->setCachePrefix('.'); //设置缓存文件前缀
+$cache->setCacheMode(\myphp\cache\File::MODE_PHP);
 */
