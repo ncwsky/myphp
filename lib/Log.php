@@ -3,7 +3,10 @@ namespace myphp;
 
 //日志类
 class Log{
-	private $handler = null;
+    /**
+     * @var resource[]
+     */
+	private $handler = [];
 	private static $level = 0; //日志级别 0-5
 	private static $size = 2097152; //日志大小 2M 
 	private static $instance = null;
@@ -19,12 +22,12 @@ class Log{
 		self::free();
 	}
 	public static function free(){
-	    if(!self::$instance) return;
-        if(self::$instance->handler){
-            foreach(self::$instance->handler as $handler)
+        if (!self::$instance) return;
+        if (self::$instance->handler) {
+            foreach (self::$instance->handler as $handler)
                 $handler && @fclose($handler);
         }
-        self::$instance=null;
+        self::$instance = null;
     }
     //注册异常处理
     public static function register(){
@@ -35,18 +38,22 @@ class Log{
 	//初始日志目录
 	public static function Init($logDir=null, $level=0, $size=2097152){
 		if(!self::$instance) self::$instance = new self();
-		self::$logDir = $logDir ? (substr($logDir,-1)==DS?$logDir:$logDir.DS) : ROOT.DS;
-        !is_dir(self::$logDir) && mkdir(self::$logDir, 0755, true);
+		self::$logDir = $logDir ? (substr($logDir,-1)==DS?$logDir:$logDir.DS) : ROOT.'/log/';
+        //set_error_handler(function(){});
+        !is_dir(self::$logDir) && @mkdir(self::$logDir, 0755, true);
+        //restore_error_handler();
 		self::$file = self::$logDir.'log.log';
-		self::$instance->handler[self::$dir] = fopen(self::$file,'a');
+		self::$instance->handler[self::$dir] = fopen(self::$file,'ab');
 		self::$level = $level;
 		self::$size = $size;
+		//PHP_EOL 当前平台中对于换行符的定义
 		return self::$instance;
 	}
+	//切换日志子目录
 	public static function Dir($dir='_def'){
 		if(!self::$instance) self::Init();
 		if(self::$logs){ //切换日志时记录上个辅助日志
-			$logs = implode('', self::$logs);
+			$logs = implode(PHP_EOL, self::$logs);
 			self::write($logs, null);
 			self::$logs = null;
 		}
@@ -54,7 +61,7 @@ class Log{
 		if(!isset(self::$instance->handler[$dir])){
             !is_dir(self::$logDir.$dir) && @mkdir(self::$logDir.$dir, 0755, true);
 			self::$file = self::$logDir.$dir.'/log.log';
-			self::$instance->handler[$dir] = fopen(self::$file,'a');
+			self::$instance->handler[$dir] = fopen(self::$file,'ab');
 		}
 	}
 	public static function DEBUG($msg){
@@ -81,16 +88,16 @@ class Log{
 		$stack = '';
 		if ($e = error_get_last()) {
 			self::$errflag=true;
-			self::$errs[] = $stack = date('[Y-m-d H:i:s]').'[error] type:'.$e['type'].', line:'.$e['line'].', file:'.$e['file'].', message:'.$e['message']."\n";
+			self::$errs[] = $stack = date('[Y-m-d H:i:s]').'[error] type:'.$e['type'].', line:'.$e['line'].', file:'.$e['file'].', message:'.$e['message'];
 		}
-		if(self::$errflag){ //主日志记录错误信息
+		if(self::$errflag){
 			!IS_CLI && self::$errs[] = Log::REQ();
-			$logs = implode('', self::$errs);
-			self::write($logs, '_def');
+			$logs = implode( PHP_EOL, self::$errs);
+			self::write($logs, '_def'); //错误信息记录到主日志
 			self::$errs = null;
 		}
 		if(self::$logs){ //辅助日志记录
-			$logs = implode('', self::$logs);
+			$logs = implode(PHP_EOL, self::$logs);
 			self::write($logs, null);
 			self::$logs = null;
 		}
@@ -127,7 +134,7 @@ class Log{
             $debugInfo = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
             if(count($debugInfo)>1){
                 array_pop($debugInfo); // 删除最后一个跟踪: Log::UserErr
-                $stack = "\n[\n";
+                $stack = PHP_EOL."[".PHP_EOL;
                 foreach($debugInfo as $key => $val){
                     if(array_key_exists("file", $val)){
                         $stack .= ",file:" . $val["file"];
@@ -138,7 +145,7 @@ class Log{
                     if(array_key_exists("function", $val)){
                         $stack .= "function:" . $val["function"];
                     }
-                    $stack .= "\n";
+                    $stack .= PHP_EOL;
                 }
                 $stack .= "]";
             }
@@ -151,14 +158,13 @@ class Log{
      * @param bool $out
      */
 	public static function Exception($e, $out=true){
-		$err = $e->getMessage()."\n".'line:'.$e->getLine().', file:'.$e->getFile()."\n".$e->getTraceAsString();
+		$err = $e->getMessage().PHP_EOL.'line:'.$e->getLine().', file:'.$e->getFile().PHP_EOL.$e->getTraceAsString();
 		if(IS_CLI || !$out){
 		    self::WARN($err.PHP_EOL.self::miniREQ());
 		    return;
         }
         self::$errflag=true;
-        self::$errs[] = date('[Y-m-d H:i:s]').'[error] '.$err."\n";
-        //restore_error_handler(); restore_exception_handler(); //避免递归错误
+        self::$errs[] = date('[Y-m-d H:i:s]').'[error] '.$err;
 		if(GetC('debug')) echo '<pre>'.$err.'</pre>';
 	}
 	public static function miniREQ($raw_full=false){
@@ -203,47 +209,92 @@ class Log{
 	}
 	//记录日志 建议优先使用
 	public static function trace($msg,$level='trace'){
-		if(IS_CLI){
-			self::write($msg, $level);
-		}else{
-			if(!self::_level($level)) return;
-            if(!is_scalar($msg) || is_bool($msg)) $msg = toJson($msg);
-			self::$logs[] = date('[Y-m-d H:i:s]').'['.$level.'] '.$msg."\r\n";
-		}
+        if (IS_CLI) {
+            self::write($msg, $level);
+        } else {
+            if (!self::_level($level)) return;
+            if (!is_scalar($msg) || is_bool($msg)) $msg = toJson($msg);
+            self::$logs[] = date('[Y-m-d H:i:s]') . '[' . $level . '] ' . $msg;
+        }
 	}
 	//写入日志
-	public static function write($msg,$level='info',$file=null){
-		if(!self::_level($level)) return;
-        if(!is_scalar($msg) || is_bool($msg)) {
+	public static function write($msg,$level='info')
+    {
+        if (!self::_level($level)) return;
+        if (!is_scalar($msg) || is_bool($msg)) {
             $msg = toJson($msg);
             if (false === $msg) {
                 $msg = '->json fail<-' . json_last_error_msg();
             }
         }
-		$fp = null;
-		if(!$file){
-            if(isset(self::$instance->handler)) {
-                $fp = self::$instance->handler[$level=='_def'?'_def':self::$dir];
+
+        if (!self::$instance) self::Init(); //自动初始化
+
+        $dir = $level == '_def' ? '_def' : self::$dir;
+        $file = $level == '_def' ? self::$logDir . 'log.log' : self::$file;
+        self::truncate(self::$instance->handler[$dir], $file);
+
+        if ($level && $level != '_def') $msg = '['.date('Y-m-d H:i:s').']['.$level.'] '.$msg;
+        if (flock(self::$instance->handler[$dir], LOCK_EX)) {
+            fwrite(self::$instance->handler[$dir], $msg.PHP_EOL);
+            flock(self::$instance->handler[$dir], LOCK_UN);
+        } else {
+            error_log($msg . ' write ' . $file . " lock fail".PHP_EOL);
+        }
+    }
+    //写入日志 多个内容输入
+    public static function echo($content)
+    {
+        $msg = '[' . date('Y-m-d H:i:s') . '.' . substr(microtime(), 2, 3) . ']';
+        if (func_num_args() > 1) {
+            $args = func_get_args();
+            foreach ($args as $v) {
+                $msg .= (is_scalar($v) && !is_bool($v) ? $v : toJson($v)) . ' ';
             }
-            $file = ROOT.'/log.log';
-            if(self::$file){
-                $file = $level=='_def'?self::$logDir.'log.log':self::$file;
+        } else {
+            $msg .= (is_scalar($content) && !is_bool($content) ? $content : toJson($content));
+        }
+
+        if (!self::$instance) self::Init(); //自动初始化
+
+        self::truncate(self::$instance->handler[self::$dir], self::$file);
+
+        if (flock(self::$instance->handler[self::$dir], LOCK_EX)) {
+            fwrite(self::$instance->handler[self::$dir], $msg.PHP_EOL);
+            flock(self::$instance->handler[self::$dir], LOCK_UN);
+        } else {
+            error_log($msg . ' write ' . self::$file . " lock fail".PHP_EOL);
+        }
+    }
+
+    /**
+     * 日志超过配置大小则备份并重新生成
+     * @param resource $fp
+     * @param string $file
+     */
+    public static function truncate($fp, $file){
+        $fileSize = fstat($fp)['size'];
+        if (self::$size > $fileSize) return;
+
+        $lockFp = fopen($file, 'r+b'); //读写方式
+        if (flock($lockFp, LOCK_EX)) {
+            $fileSize = fstat($lockFp)['size'];
+            if ($fileSize < self::$size) {
+                flock($lockFp, LOCK_UN);
+                fclose($lockFp);
+                return;
             }
-		}
-		//日志超过配置大小则备份并重新生成
-		if(is_file($file) && self::$size <= filesize($file) ){
-			//rename($file, dirname($file).'/'.date('YmdHis').'.log');
-			copy($file, dirname($file).'/'.date('YmdHis').'.log');
-			if($fp && flock($fp, LOCK_EX | LOCK_NB)) { // 进行排它型锁定 加上LOCK_NB不会堵塞
-				ftruncate($fp, 0); // 截断文件 file
-				flock($fp, LOCK_UN);    // 释放锁定
-			} else {
-				file_put_contents($file, '', LOCK_EX | LOCK_NB);
-			}
-			clearstatcache(true, $file);
-		}
-		if($level && $level!='_def') $msg = '['.date('Y-m-d H:i:s').']['.$level.'] '.$msg."\r\n";
-		$fp ? @fwrite($fp, $msg, strlen($msg)+1) : file_put_contents($file, $msg, FILE_APPEND | LOCK_EX);
+            #$new_fp = fopen(dirname($file) . '/' . date('YmdHis') . '.log', 'ab');
+            #stream_copy_to_stream($lockFp, $new_fp);
+            copy($file, dirname($file).'/'.date('YmdHis').'.log');
+            ftruncate($lockFp, 0); // 截断文件
+
+            //clearstatcache(true, $file);
+            flock($lockFp, LOCK_UN);
+        } else {
+            error_log(date('Y-m-d H:i:s') . ' truncate, ' . $file . ' lock fail' . PHP_EOL);
+        }
+        fclose($lockFp);
     }
 /*
 

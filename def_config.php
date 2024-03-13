@@ -41,7 +41,7 @@ return array(
 	    //'class'=> null, //[优先]自定义session类,需要满足EnvSessionInterface接口的方法,如:\myphp\EnvSession
         // #'type'=> 'redis', //redis|file 内置处理 默认系统file
         // 'name'=>'sid',
-        // 'path' => './', //可指定session存放目录
+        // 'path' => RUNTIME.'/sess', //可指定session存放目录
         // 'prefix' => 'my_', //用于非file方式的名前缀
         // 'expire' => 1440, //默认有效期
 	),*/

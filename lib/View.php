@@ -6,7 +6,7 @@ use myphp;
 //视图类
 class View
 {
-    public $vars = array();    //板变量数组
+    public $vars = [];    //板变量数组
     /**
      * @var Template
      */
@@ -19,13 +19,11 @@ class View
     //构造方法，实例化视图
     public function __construct($path='', $cachePath='')
     {
-        if ($path=='') $path = './view';
-        if ($cachePath=='') $cachePath = './cache';
+        if ($path=='') $path = APP_PATH.'/view';
+        if ($cachePath=='') $cachePath = APP_PATH.'/cache';
 
-        $this->template = new Template();
-        $this->template->view_path = $path;
+        $this->template = new Template($path, $cachePath);
         $this->template->cache = !myphp::$cfg['debug'];    //设置是否开启缓存
-        $this->template->cachePath = $cachePath;    //缓存路径
         $this->template->suffix = isset(myphp::$cfg['tmp_suffix']) ? myphp::$cfg['tmp_suffix'] : '.html';    //模板后缀名
         $this->template->leftTag = isset(myphp::$cfg['tmp_left_tag']) ? myphp::$cfg['tmp_left_tag'] : '{';    //模板左侧符号
         $this->template->rightTag = isset(myphp::$cfg['tmp_right_tag']) ? myphp::$cfg['tmp_right_tag'] : '}';    //模板右侧符号
@@ -37,7 +35,7 @@ class View
         if (!self::$instance) {
             self::$instance = new self($path, $cachePath);
         }else{
-            if($path) self::$instance->template->view_path = $path;
+            if($path) self::$instance->template->viewPath = $path;
             if($cachePath) self::$instance->template->cachePath = $cachePath;
         }
         return self::$instance;

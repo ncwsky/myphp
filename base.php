@@ -97,10 +97,11 @@ myphp::init(isset($cfg) ? $cfg : null);
 /*---------- 辅助方法 ----------*/
 /**
  * 统计程序运行时间 秒
+ * @param float|string $microtime
  * @return string
  */
-function run_time() {
-    return number_format(microtime(TRUE) - SYS_START_TIME, 4);
+function run_time($microtime=SYS_START_TIME) {
+    return number_format(microtime(true) - $microtime, 4);
 }
 
 /**

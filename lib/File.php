@@ -4,19 +4,28 @@ namespace myphp;
 //文件文件类
 class File {
     //配置
-    public $path = '.'; //路径
+    public $path = ''; //路径
     public $prefix = ''; //前缀
     public $clearExSuffix = ''; //排除指定后缀的文件 多个使用,分隔 .php,.html
     public $listLimit = 2048; //显示列表限制
     private $dirLen;
 
-	//构造函数
-	public function __construct($path='./', $prefix=''){
+    //构造函数
+    public function __construct($path = ROOT, $prefix = '')
+    {
+        if (!$path) {
+            if ($tmp_dir = \ini_get('upload_tmp_dir')) {
+                $path = $tmp_dir;
+            } else if ($tmp_dir = \sys_get_temp_dir()) {
+                $path = $tmp_dir;
+            }
+        }
         $this->prefix = $prefix;
         $this->setDir($path);
-	}
+    }
     // 数组保存到文件
     public static function arr2file($file, $arr=''){
+
         if(is_array($arr)){
             $con = var_export($arr,true);
         } else{
@@ -30,18 +39,11 @@ class File {
         file_put_contents($file, $data, LOCK_EX);
     }
     //递归创建目录 createDir("./up/img/ap")
-    public static function createDir( $path, $mode=0755 ) {
-        if(is_dir($path)) return true;
-        try {
-            if (!@mkdir($path, $mode, true)) {
-                return false;
-            }
-        } catch (\Exception $e) {
-            if (!is_dir($path)) {
-                throw new \Exception("Failed to create directory {$path}: " . $e->getMessage(), $e->getCode(), $e);
-            }
+    public static function createDir($path, $mode=0755 ) {
+        if (is_dir($path)) return;
+        if (!@mkdir($path, $mode, true)) {
+            throw new \Exception("Failed to create directory {$path}");
         }
-        return true;
     }
     //取得文件扩展 $file 文件名
     public static function getExt($file) {
@@ -63,28 +65,28 @@ class File {
         }
         return $v;
     }
-	//设置路径
-	public function setDir($path){
-		//if(substr($path,-1)=='/') $path = substr($path,0, -1);
+    //设置路径
+    public function setDir($path){
+        //if(substr($path,-1)=='/') $path = substr($path,0, -1);
         $this->createDir($path);
         $this->path = realpath($path);
         $this->dirLen = strlen($this->path);
-		
-	}
-	//设置文件前缀
-	public function setPrefix($prefix){
-		$this->prefix = $prefix;
-	}
+
+    }
+    //设置文件前缀
+    public function setPrefix($prefix){
+        $this->prefix = $prefix;
+    }
     //文件锁
-	private $lockFile, $lockHandle;
+    private $lockFile, $lockHandle;
 
     /**
      * @param $name
      * @param bool $block 默认阻塞
      * @return bool
      */
-	public function lock($name, $block=true){
-	    $this->lockFile[$name] = $this->path.'/'.$name.'.lock';
+    public function lock($name, $block=true){
+        $this->lockFile[$name] = $this->path.'/'.$name.'.lock';
         $this->lockHandle[$name] = @fopen($this->lockFile[$name], 'w');
         if(!$this->lockHandle[$name]) {
             unset($this->lockHandle[$name], $this->lockFile[$name]);
@@ -116,33 +118,33 @@ class File {
      * @param $name
      * @return bool|string
      */
-	public function get($name){
-		$file = $this->_file($name);
-		if(!is_file($file)) return false;
+    public function get($name){
+        $file = $this->_file($name);
+        if(!is_file($file)) return false;
         return file_get_contents($file);
-	}
-	/**
-	 * 判断文件是否存在
-	 * @param string $name cache_name
-	 * @return bool
-	 */
-	public function has($name){
-		if(empty($name)) return false;
-		$file = $this->_file($name);
-		if(!is_file($file)) return false;
-		return true;
-	}
+    }
+    /**
+     * 判断文件是否存在
+     * @param string $name cache_name
+     * @return bool
+     */
+    public function has($name){
+        if(empty($name)) return false;
+        $file = $this->_file($name);
+        if(!is_file($file)) return false;
+        return true;
+    }
     /**
      * 清除一条文件
-     * @param string cache name	 
+     * @param string cache name
      * @return bool
-     */   
-	public function del($name){
-    	$file = $this->_file($name);
+     */
+    public function del($name){
+        $file = $this->_file($name);
         if(!is_file($file)) return false;
-    	//删除该文件
-    	return @unlink($file);
-	}
+        //删除该文件
+        return @unlink($file);
+    }
 
     /**
      * 读取目录
@@ -152,7 +154,7 @@ class File {
      * @param array $list 文件及目录列表
      * @param array $pathList 目录路径列表
      */
-	public function readPath($reqPath, $sortBy='name_asc', $search='', &$list=[], &$pathList=[]){
+    public function readPath($reqPath, $sortBy='name_asc', $search='', &$list=[], &$pathList=[]){
         // name_asc,name_desc | mtime_asc,mtime_desc | size_asc,size_desc
         //$sortBy = isset($_GET['sort']) ? trim($_GET['sort']) : 'name_asc';
         //$search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -258,10 +260,10 @@ class File {
      * @param bool $isRecursive
      * @param string $exSuffix
      */
-	public function clear($maxLifeTime=0, $isRecursive=false, $exSuffix=''){
-	    if(!$exSuffix) $exSuffix = $this->clearExSuffix;
-		$this->gcRecursive($this->path, $isRecursive, $maxLifeTime, $exSuffix);
-	}
+    public function clear($maxLifeTime=0, $isRecursive=false, $exSuffix=''){
+        if(!$exSuffix) $exSuffix = $this->clearExSuffix;
+        $this->gcRecursive($this->path, $isRecursive, $maxLifeTime, $exSuffix);
+    }
     /**
      * 通过文件name得到文件信息路径
      * @param string $name

@@ -5,8 +5,8 @@ use Exception;
 use myphp;
 //模板解析基类 解析模板文件并判断是否需要在缓存目录生成缓存文件
 class Template{
-    public $view_path = './view';
-	public $cachePath = '';	//缓存文件存入路径
+    public $viewPath = ''; //模板文件路径
+	public $cachePath = '';	//缓存文件路径
 	public $cache = false;	//是否缓存
 	public $cacheLifeTime = 0;	//缓存文件更新时间
 	public $suffix = '.html';	//模板文件后缀名
@@ -16,7 +16,13 @@ class Template{
 	private $templateFile = '';	//当前模板文件名
 	private $cacheFile = '';	//当前缓存文件名
 	private $level = 0, $maxLevel = 0; //模板嵌套层次 层次深度
-	private $dir = array(); //模板嵌套 模板层次关系 模板内容 存放数组
+	private $dir = []; //模板嵌套 模板层次关系 模板内容 存放数组
+
+    public function __construct($path = '', $cachePath='')
+    {
+        $this->viewPath = $path ?: APP_PATH . '/view';
+        $this->cachePath = $cachePath ?: APP_PATH . '/cache';
+    }
 
     /**
      * 初始化模板文件夹以及缓存文件完整路径
@@ -25,7 +31,7 @@ class Template{
      */
 	private function initFile($file){
         //判断模板文件是否存在
-        $templateFile = ($file[0] == '/' ? ROOT : $this->view_path . DS) . $file;
+        $templateFile = ($file[0] == '/' ? ROOT : $this->viewPath . DS) . $file;
         if (!is_file($templateFile)) {
             throw new Exception('模板文件' . str_replace(ROOT, '', $templateFile) . '不存在');
         }
@@ -202,7 +208,7 @@ class Template{
 	//模板地址转换
     private function transPath($tagFile) {
         // 此处需要判断是否需要默认目录 '/'开头表示根目录
-		return substr($tagFile, 0, 1) =='/' ? ROOT . $tagFile : $this->view_path . DS . $tagFile;
+		return substr($tagFile, 0, 1) =='/' ? ROOT . $tagFile : $this->viewPath . DS . $tagFile;
 	}
 	//验证缓存是否有效
 	private function checkCache(){

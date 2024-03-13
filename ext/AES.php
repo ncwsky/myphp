@@ -1,7 +1,7 @@
 <?PHP
 /*
 <?php
-    require_once('./AES.php');
+    require_once('AES.php');
     //$aes = new AES();
     $aes = new AES(true);// 把加密后的字符串按十六进制进行存储
     //$aes = new AES(true,true);// 带有调试信息且加密字符串按十六进制存储

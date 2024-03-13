@@ -5,6 +5,7 @@
 扩展包casbin访问控制 https://docs.casbin.cn/zh/docs/overview 
 https://github.com/php-casbin/php-casbin    
 登陆错误次数限制｜通用密码登陆+来源ip｜账户不存在错误次数限制ip  
+编辑器 
 
 
 **使用参考实例**
