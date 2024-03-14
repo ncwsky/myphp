@@ -1,22 +1,16 @@
 <?php
-return array(
+return array_merge([
 	/*
-	//数据库连接信息
-	'db' => array(
-		'type' => 'pdo',   //数据库连接类型 仅pdo、mysqli
-		'dbms' => 'mysql', //数据库
-		'server' => '127.0.0.1', //数据库主机
-		'name' => '',     //数据库名称
-		'user' => 'root', //数据库用户
-		'pwd' => '',      //数据库密码
-		'port' => 3306,   // 端口
-		'char' => 'utf8', //数据库编码
-		'prefix' => 'my_' //数据库表前缀
-	),
-	//'debug' => FALSE,
-	//'url_mode' => 2,
-	'root_dir' => '',//相对根目录 未设置时自动获取 结尾不要"/"
+	'auth_on' => true, //默认关闭
+    'auth_model' => '\myphp\BaseAuth',//验证模块
+    'auth_action' => 'check',//验证动作方法
+    'auth_login' => 'isLogin',//登陆验证的动作方法
+    'auth_gateway'=> '/index/login',//默认验证网关    ------------ 以下权限设置 优先级从上到下 ------------------------
+    'auth_action_not' => ',index/login,',// 无需验证的模块动作
+    'auth_login_model' => ',index,',//仅登陆验证的模块
+    'auth_login_M_A' => '',//仅登陆验证的模块动作
+    'auth_login_action' => '',//仅登陆验证的动作
+    'app_res_path'=>''
 	*/
 //可以在此行上面追加配置信息
-//Do not remove this line
-);
+], is_file(__DIR__ . '/config.local.php') ? require(__DIR__ . '/config.local.php') : []);

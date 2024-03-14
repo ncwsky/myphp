@@ -648,7 +648,7 @@ final class myphp{
         }
         //生成git忽略文件
         file_put_contents(self::$env['CACHE_PATH'] . '/.gitignore', "*\r\n!.gitignore");
-        file_put_contents($path . '/.gitignore', "/config.php");
+        file_put_contents($path . '/.gitignore', "/config.local.php");
     }
     //初始框架
     public static function init($cfg=null){
