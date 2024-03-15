@@ -13,6 +13,7 @@ use myphp;
  * @method Db limit(string|int $val)
  * @method Db order(string $val)
  * @method Db table(string $val)
+ * @property string fields
  * @property string group
  * @property string having
  * @property string idx
@@ -57,7 +58,7 @@ class Db {
     private $options;
     public $resetOption = true;
 	//链操作方法列表
-    private $methods = ',group,having,idx,batch,limit,order,table,';
+    private $methods = ',group,having,idx,limit,order,table,';
     //表字段信息
     private $tbFields = [];
     //特殊符 默认mysql
