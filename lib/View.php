@@ -37,6 +37,7 @@ class View
         } else {
             if ($path) self::$instance->template->viewPath = $path;
             if ($cachePath) self::$instance->template->cachePath = $cachePath;
+            self::$instance->vars = [];
         }
         return self::$instance;
     }

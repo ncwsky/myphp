@@ -95,7 +95,7 @@ class Control
         $this->request->expire = (int)$expire; //0使用默认配置req_cache_expire
         return $this;
     }
-    //在子类控制器及方法中调用 显示模板
+    //在子类控制器及方法中调用 显示模板 非cli模式下使用
     final function display($file = '', $var = null)
     {
         myphp::conType('text/html');
