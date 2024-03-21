@@ -52,6 +52,10 @@ return array(
 	'root_dir' => null,//相对根目录 未设置时自动获取 结尾不要"/"
 	'class_dir'=>'',//class扩展路径 相对根目录 路径开头使用/ 多个使用,分隔 应用于myphp.php中
 	'def_filter'=>'htmlspecialchars', //默认参数过滤
+    'gzip' => false, //gzip压缩开关 输出头需输出 Content-Encoding: gzip  在Control:_after实现
+    'gzip_min_length' => 1024, //1k 最低压缩大小
+    'gzip_comp_level' => 3, //压缩等级
+    //'gzip_types'=>'text/plain application/javascript application/x-javascript text/javascript text/css application/xml',
 	'encode_key'  => 'oz7oQdlUdlP#y3gKuBbi67mVxhh',//加密串 用于cookie,api通信md5加密及rc4、authcode或其他加密
 	'timezone' => 'PRC', //PRC中国 Etc/GMT-8东八区  Asia/Chongqing重庆 Asia/Shanghai上海
 	'htmldir' => '/e',//默认静态目录

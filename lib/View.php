@@ -57,17 +57,7 @@ class View
         ob_start();
         require $cacheFile;
         return ob_get_clean();
-        return $this->template->display($file, $this->vars);//返回内容
-    }
-
-    //输出页面内容
-    public function display($file = '', $var = null)
-    {
-        $content = $this->fetch($file, $var);
-        ob_start();
-        echo $content;
-        ob_end_flush();
-        return ob_get_clean();
+        //return $this->template->display($file, $this->vars);//返回内容
     }
 
     //设置模板变量

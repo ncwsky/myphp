@@ -6,8 +6,17 @@ use myphp;
 
 class Control
 {
+    /**
+     * @var View|null
+     */
     protected $view = null; //模板实例
+    /**
+     * @var Response|null
+     */
     public $response = null;
+    /**
+     * @var Request|null
+     */
     public $request = null;
 
     const CODE_OK = 0; //成功
@@ -72,6 +81,15 @@ class Control
      * @return mixed
      */
     protected function _after($result){
+        if (!empty(myphp::$cfg['gzip'])) {
+            if (is_array($result)) { // || is_object($result)
+                $result = Helper::toJson($result);
+            }
+            if (strlen($result) > myphp::$cfg['gzip_min_length']) {
+                myphp::setHeader('Content-Encoding', 'gzip');
+                $result = gzencode($result, myphp::$cfg['gzip_comp_level']);
+            }
+        }
         return $result;
     }
 
@@ -99,7 +117,12 @@ class Control
     final function display($file = '', $var = null)
     {
         myphp::conType('text/html');
-        $this->view->display($file, $var);
+        $content = $this->view->fetch($file, $var);
+        if (IS_CLI) return $content;
+        ob_start();
+        echo $content;
+        ob_end_flush();
+        return ob_get_clean();
     }
 
     /**
