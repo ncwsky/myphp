@@ -10,26 +10,23 @@ class __c__ extends Base{
 		return $row;	//输出结果
 */
 		$title = '欢迎信息';
-		$mess = '我的一个MVC框架';
 		//赋值给模板变量
-		$this->assign('title', $title);
-		$this->assign('mess', $mess);
-		return $this->fetch('index.html');
+        $this->assign('title', $title);
+        return $this->fetch('index.html', [
+            'mess' => '我是一个MVC框架'
+        ]);
 /*
+        //还可以与assign混合使用 此处在__construct 时特别有用 可以对一些需要全局使用的模板变量进行赋值调用
+		$this->assign('mess', 'Hello world');
+        #$this->view->vars['mess'] = 'Hello world';
+		#extract($this->view->vars);
 		//可不用assign进行模板赋值
-		\myphp\View::obStart();
+		ob_start();
 		require \myphp\View::doTemp('index.html');
+		return ob_get_clean();//\myphp\View::end();
 
-		$this->assign('mess', '');
+		$this->assign('mess', 'Hello world');
 		return $this->fetch();
-
-		extract($this->view->vars);
-		\myphp\View::obStart();
-		require \myphp\View::doTemp();
-
-		//还可以与assign混合使用 此处在__construct 时特别有用 可以对一些类里全局使用的模板变量进行赋值调用
-		\myphp\View::obStart();extract($this->view->vars);
-		require \myphp\View::doTemp('index.html');
 */
 	}
 }

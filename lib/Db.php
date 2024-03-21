@@ -133,8 +133,8 @@ class Db {
         }
 	}
 	//获取最后执行的Sql
-	public function getSql(){
-	    return $this->_sql;
+	public function getSql($last=true){
+	    return $last ? self::$sql : $this->_sql;
     }
     //取得数据表的字段信息
     public function getFields($tb, &$prikey='', &$fields='*', &$rule=array(), &$autoKey=''){

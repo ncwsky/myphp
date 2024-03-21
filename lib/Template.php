@@ -45,11 +45,12 @@ class Template{
 	}
 
     /**
-     * 模板处理
+     * 模板处理并返回模板处理后的缓存文件
      * @param $file
+     * @return string
      * @throws Exception
      */
-    private function tmp_process($file){
+	public function cacheFile($file){
         $this->cacheLifeTime *= 60;
         $this->initFile($file);
         //验证是否需要更新缓存
@@ -57,21 +58,11 @@ class Template{
             $this->analyze();
             $this->build();
         }
-    }
-
-    /**
-     * 返回模板处理后的缓存文件
-     * @param $file
-     * @return string
-     * @throws Exception
-     */
-	public function cacheFile($file){
-		$this->tmp_process($file);
 		return $this->cacheFile;
 	}
 	//显示模板、返回模板内容
 	public function display($file, &$tVars = []){
-		$this->tmp_process($file);
+		$this->cacheFile($file);
 		//将模板变量数组，导出为变量
 		extract($tVars);
 		//载入模板缓存文件

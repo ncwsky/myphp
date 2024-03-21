@@ -34,9 +34,9 @@ class View
     {
         if (!self::$instance) {
             self::$instance = new self($path, $cachePath);
-        }else{
-            if($path) self::$instance->template->viewPath = $path;
-            if($cachePath) self::$instance->template->cachePath = $cachePath;
+        } else {
+            if ($path) self::$instance->template->viewPath = $path;
+            if ($cachePath) self::$instance->template->cachePath = $cachePath;
         }
         return self::$instance;
     }
@@ -48,6 +48,14 @@ class View
         if (is_array($var)) {    //如果是数组，那么将它合并到属性$vars中
             $this->vars = array_merge($this->vars, $var);
         }
+
+        $cacheFile = $this->template->cacheFile($file);
+        //将模板变量数组，导出为变量
+        extract($this->vars);
+        //载入模板缓存文件
+        ob_start();
+        require $cacheFile;
+        return ob_get_clean();
         return $this->template->display($file, $this->vars);//返回内容
     }
 
@@ -55,9 +63,10 @@ class View
     public function display($file = '', $var = null)
     {
         $content = $this->fetch($file, $var);
-        self::obStart();
+        ob_start();
         echo $content;
         ob_end_flush();
+        return ob_get_clean();
     }
 
     //设置模板变量
@@ -71,7 +80,7 @@ class View
     }
 
     /**
-     * 静态方法 直接返回解析后的php文件
+     * 直接返回解析后的php文件  ob_start(); require self::doTemp(); return ob_get_clean();
      * @param string $file
      * @return string
      * @throws Exception
@@ -86,14 +95,8 @@ class View
         return self::$instance->template->cacheFile($file);
     }
 
-    //打开输出缓冲
-    public static function obStart()
+    public static function end()
     {
-        // 配置变量isGzipEnable Gzip压缩开关
-        if (function_exists('ob_gzhandler') && isset(myphp::$cfg['isGzipEnable']) && myphp::$cfg['isGzipEnable']) {
-            ob_start('ob_gzhandler');
-        } else {
-            ob_start();
-        }
+        return ob_get_clean();
     }
 }

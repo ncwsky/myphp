@@ -6,7 +6,8 @@ class Http
     public static $protocol = '1.1';
     public static $curlOpt = []; //curl配置 ssl cookie header redirect opts[curl_opt=>value,..]
     public static $curlProxy = []; //代理 [user,pass,host,port]
-    public static $curlBeforeCall = null; //curl前置处理 function($url, $type, $data, $timeout, $header, $opt):void
+    public static $curlBeforeCall = null; //curl前置处理 function(&$url, &$type, &$data, &$timeout, &$header, &$opt):void
+    public static $curlAfterCall = null; //curl后置处理 function(&$result):void
     public static $curlRetries = 0;
     public static $curlRetryCond = null; //curl重试条件，未指定使用的默认 function($url, $err):bool
     public static $curlErr = '';
@@ -167,6 +168,11 @@ class Http
             //call_user_func不支持引用传值
             call_user_func_array(self::$curlBeforeCall, [&$url, &$type, &$data, &$timeout, &$header, &$opt]);
         }
+        /* 可在 $curlBeforeCall 回调里实现判断处理
+        if (myphp::redis()->exists('https2http')) {
+            $url = str_replace('https://', 'http://', $url);
+        }
+        */
         /*
         GET（SELECT）：从服务器取出资源（一项或多项）。
         POST（CREATE）：在服务器新建一个资源。
@@ -326,8 +332,17 @@ class Http
             \myphp\Log::write('err:'. self::$curlErr."\nurl:".$url.($data!==null?"\ndata:".(is_string($data)?urldecode($data):toJson($data)):''), 'curl');
             //\myphp\Log::write($options, 'options');
             //\myphp\Log::write($opt, 'opt');
+
+            //OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to xxx.com:443
+            $is_SSL_ERROR_SYSCALL = false;
+            //SSL read |SSL protocol
+            if (strpos(self::$curlErr, 'SSL ') !== false) { //ssl请求无效时直接转为http请求
+                //myphp::redis()->set('https2http', 1, 3600);
+                $url = str_replace('https://', 'http://', $url);
+                $is_SSL_ERROR_SYSCALL = strpos(self::$curlErr, 'SSL_ERROR_SYSCALL') !== false;
+            }
             //重试
-            if (self::_curlIsRetry($url, self::$curlErr)) {
+            if (self::_curlIsRetry($url, self::$curlErr) || $is_SSL_ERROR_SYSCALL) {
                 $runRetry = true;
                 if (preg_match('/_retry=(\d)/', $url, $retryMatch)) {
                     $retry = (int)$retryMatch[1];
@@ -347,6 +362,11 @@ class Http
                     return self::curlSend($url, $type, $data, $timeout, $header, $opt);
                 }
             }
+        }
+
+        if (self::$curlAfterCall) {
+            //call_user_func不支持引用传值
+            call_user_func_array(self::$curlAfterCall, [&$result]);
         }
 
         curl_close($ch);

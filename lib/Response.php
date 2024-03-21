@@ -348,8 +348,6 @@ class Response
             return;
         }
 
-        ob_end_flush();//冲刷出（送出）输出缓冲区内容并关闭缓冲区
-
         set_time_limit(0); // Reset time limit for big files
         $perLimit = $this->steamLimit > 0; //每秒限制?
         $chunkSize = $perLimit ? $this->steamLimit * 1024 : 2 * 1024 * 1024; // 2MB per chunk
