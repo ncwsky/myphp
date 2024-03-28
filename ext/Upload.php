@@ -11,11 +11,13 @@ class Upload {
     //上传配置
     public $uploadPath = 'up/'; //相对的上传路径
     public $realPath = 'up/'; //绝对路径
-    public $fileType = 'rar,zip,doc,docx,pdf,txt,swf,flv,wmv,png,jpg,jpeg,bmp,gif'; //文件允许格式
+    public $fileType = 'rar,zip,doc,docx,pdf,txt,swf,flv,wmv,png,jpg,jpeg,bmp,gif,webp'; //文件允许格式
     public $notFileType = ''; //不允许上传的格式 asp,asa,aspx,php,jsp
     public $fileSize = 10; //文件大小限制，单位MB
+    public $before = null; //上传前的处理 (&$clientFile, &$data, $fileUrl, $realFile):bool
     //图片大小处理配置
-    private $imgType = ',png,jpg,jpeg,bmp,gif,';
+    private $imgType = ',png,jpg,jpeg,bmp,gif,webp,';
+    public $imgOptimize = false; //图片优化 图片质量默认75 [png bmg gif]除外
     private $width = 0;
     private $height = 0;
 
@@ -241,10 +243,21 @@ class Upload {
             $realFile = $this->realPath . $f_name;
 
             $save = true;
-            if (strpos($this->imgType, ',' . $data['fileType'] . ',') !== false && $this->width > 0 && $this->height > 0) { //指定图片大小处理 使用第三方 Image类 方式一
+            if ($this->before) {
+                if (!call_user_func_array($this->before, [&$clientFile, &$data, $fileUrl, $realFile])) {
+                    return $data;
+                }
+            }
+            if (strpos($this->imgType, ',' . $data['fileType'] . ',') !== false) {
                 Image::$rawString = $raw_string;
-                $result = Image::thumb($clientFile["tmp_name"], $realFile, $this->width, $this->height);
-                $save = (0 === $result);
+                if ($this->width > 0 || $this->height > 0) { //指定图片大小处理 使用第三方 Image类 方式一
+                    $result = Image::thumb($clientFile["tmp_name"], $realFile, $this->width, $this->height);
+                    $save = false === $result;
+                } elseif ($this->imgOptimize) {
+                    $result = Image::optimize($clientFile["tmp_name"], $realFile);
+                    $save = false === $result; //失败时原图需要保存
+                }
+                Image::$rawString = false;
             }
             if ($save) {
                 if ($raw_string) {

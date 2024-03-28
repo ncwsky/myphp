@@ -3,7 +3,11 @@
 //GD库 - 生成图像缩略图和生成验证码
 class Image
 {
+    /**
+     * @var bool 是否原始内容
+     */
     public static $rawString = false;
+    public static $quality = 75;
     /**
      * 取得图像信息
      * @param string $img 图像文件名
@@ -30,6 +34,53 @@ class Image
     }
 
     /**
+     * 图片优化处理
+     * @param string $image
+     * @param string $out
+     * @param int $quality
+     * @return bool
+     */
+    public static function optimize($image, $out = '', $quality = -1){
+        $info = self::getImageInfo($image); // 获取原图信息
+        if ($info === false) return false;
+        if ($out == '') {
+            if (self::$rawString) {
+                //self::$rawString = false; //Reset
+                return false;
+            }
+            $out = $image;
+        }
+
+        $type = $info['type'];
+        $allowType = ',jpg,jpeg,png,webp,';
+        if(strpos($allowType, ','.$type.',')===false) return false;
+        //载入原图
+        if (self::$rawString) {
+            //self::$rawString = false; //Reset
+            $srcImg = imagecreatefromstring($image); //从字符串的图像流中新建图像
+        } else {
+            $imagecreatefrom = 'imagecreatefrom' . $type;
+            $srcImg = $imagecreatefrom($image);
+        }
+
+        if ($quality == -1) $quality = self::$quality; //默认质量
+        // 生成图片
+        if ($type == 'jpeg' || $type == 'jpg') {
+            imagejpeg($srcImg, $out, $quality);
+        } elseif ($type == 'png') {
+            imagesavealpha($srcImg, true); //保持完整的 alpha 通道信息
+            imagepng($srcImg, $out); //默认压缩
+        } elseif ($type == 'webp') {
+            imagewebp($srcImg, $out, $quality);
+        } else {
+            return false;
+        }
+
+        imagedestroy($srcImg);
+        return true;
+    }
+
+    /**
      * 生成缩略图
      * @param string $image 原图路径
      * @param string $thumbName 缩略图生成路径
@@ -38,17 +89,19 @@ class Image
      * @param boolean $fixed 固定缩略图大小
      * @param boolean $interlace 启用隔行扫描
      * @param int $quality jpg质量1-100
-     * @return false|int|string false失败 0原图未缩放 string原图类型
+     * @return false|string false失败 string原图类型
      */
-    public static function thumb($image, $thumbName, $maxWidth = 200, $maxHeight = 50, $fixed = false, $interlace = false, $quality = 80)
+    public static function thumb($image, $thumbName, $maxWidth = 200, $maxHeight = 50, $fixed = false, $interlace = false, $quality = -1)
     {
         $info = self::getImageInfo($image); // 获取原图信息
         if ($info === false) return false;
 
         $srcWidth = $info['width'];
         $srcHeight = $info['height'];
+        $type = $info['type'];
         if ($maxWidth == 0 && $maxHeight == 0) {
-            return 0;//直接返回
+            $result = self::optimize($image, $thumbName);
+            return $result ? $type : false; //优化返回
         } elseif ($maxWidth == 0) { //固定高度
             $maxWidth = intval($srcWidth * $maxHeight / $srcHeight);
             $fixed = false;
@@ -57,11 +110,11 @@ class Image
             $fixed = false;
         }
 
-        $type = $info['type'];
         unset($info);
         $scale = min($maxWidth / $srcWidth, $maxHeight / $srcHeight); // 计算缩放比例
-        if ($scale >= 1) { //超出原图大小不缩略直接返回
-            return 0;
+        if ($scale >= 1) { //超出原图大小不缩略优化返回
+            $result = self::optimize($image, $thumbName);
+            return $result ? $type : false;
         } else { // 缩略图尺寸
             $width = (int)($srcWidth * $scale);
             $height = (int)($srcHeight * $scale);
@@ -81,7 +134,7 @@ class Image
 
         //载入原图
         if (self::$rawString) {
-            self::$rawString = false; //Reset
+            //self::$rawString = false; //Reset
             $srcImg = imagecreatefromstring($image); //从字符串的图像流中新建图像
         } else {
             $imagecreatefrom = 'imagecreatefrom' . $type;
@@ -116,15 +169,20 @@ class Image
             imagecopyresized($thumbImg, $srcImg, $dst_x, $dst_y, 0, 0, $width, $height, $srcWidth, $srcHeight);
 
         $interlace && imageinterlace($thumbImg, 1); //图形设置隔行扫描
+        if ($quality == -1) $quality = self::$quality; //默认质量
         // 生成图片
-        $imageFun = 'image' . $type;
         if ($type == 'jpeg' || $type == 'jpg') {
             imagejpeg($thumbImg, $thumbName, $quality);
+        } elseif ($type == 'png') {
+            imagepng($thumbImg, $thumbName);
+        } elseif ($type == 'webp') {
+            imagewebp($thumbImg, $thumbName, $quality);
         } else {
+            $imageFun = 'image' . $type;
             if (function_exists($imageFun)) {
                 $imageFun($thumbImg, $thumbName);
             } else {
-                imagejpeg($thumbImg, $thumbName); //默认质量为75
+                imagejpeg($thumbImg, $thumbName, $quality);
             }
         }
 
