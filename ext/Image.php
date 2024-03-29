@@ -7,6 +7,9 @@ class Image
      * @var bool 是否原始内容
      */
     public static $rawString = false;
+    /**
+     * @var int jpg图片质量
+     */
     public static $quality = 75;
     /**
      * 取得图像信息
@@ -71,7 +74,7 @@ class Image
             imagesavealpha($srcImg, true); //保持完整的 alpha 通道信息
             imagepng($srcImg, $out); //默认压缩
         } elseif ($type == 'webp') {
-            imagewebp($srcImg, $out, $quality);
+            imagewebp($srcImg, $out);
         } else {
             return false;
         }
@@ -176,7 +179,7 @@ class Image
         } elseif ($type == 'png') {
             imagepng($thumbImg, $thumbName);
         } elseif ($type == 'webp') {
-            imagewebp($thumbImg, $thumbName, $quality);
+            imagewebp($thumbImg, $thumbName);
         } else {
             $imageFun = 'image' . $type;
             if (function_exists($imageFun)) {

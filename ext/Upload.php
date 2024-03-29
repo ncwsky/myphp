@@ -17,7 +17,7 @@ class Upload {
     public $before = null; //上传前的处理 (&$clientFile, &$data, $fileUrl, $realFile):bool
     //图片大小处理配置
     private $imgType = ',png,jpg,jpeg,bmp,gif,webp,';
-    public $imgOptimize = false; //图片优化 图片质量默认75 [png bmg gif]除外
+    public $imgOptimize = false; //图片优化 jpg,jpeg图片质量默认75 png,webp默认处理
     private $width = 0;
     private $height = 0;
 
