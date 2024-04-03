@@ -402,13 +402,14 @@ final class myphp{
     {
         self::$header['Content-Type'] = $conType . '; charset=' . ($charset ?: self::$cfg['charset']);
     }
-    /*
-    url模式：分隔符 "-"
-        0、http://localhost/index.php?c=控制器&a=方法
-        1、http://localhost/index.php?do=控制器-方法-id-1-page-1
-        2、http://localhost/index.php/控制器-方法-其他参数
-    */
-    //解析URL获得控制器的与方法
+    /**
+     * 解析URL获得控制器的与方法
+     * m c a在GET变量下为内置参数名，不可用于其他
+     * url模式
+     * 0、http://localhost/index.php?c=控制器&a=方法
+     * 2、http://localhost/index.php/[模块/]控制器/方法?其他参数
+     * @param bool $isCLI cli命令脚本模式处理
+     */
     public static function Analysis($isCLI = IS_CLI){
         $app_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
         //引入app下的配置文件
@@ -416,13 +417,14 @@ final class myphp{
 
         $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //当前执行文件名
         $app_root = IS_CLI ? DS : ROOT_DIR . DS; //app_url根路径
-        $url_mode = isset(self::$cfg['url_mode']) ? self::$cfg['url_mode'] : -1;
-        if ($isCLI) { //cli模式请求处理
+        $url_mode = isset($_GET['_url_mode']) ? $_GET['_url_mode'] : self::$cfg['url_mode'];
+        if ($isCLI) { //cli命令脚本模式处理 主要用于脚本命令下执行
             //cli_url_mode请求模式 默认2 PATH_INFO模式
             $url_mode = self::$cfg['url_mode'] = isset(self::$cfg['cli_url_mode'])?self::$cfg['cli_url_mode']:2;
-            if($url_mode == 2){
-                $_SERVER["REQUEST_URI"] = implode('/', array_slice($_SERVER['argv'], 1));
-            }else{
+            if ($url_mode == 2) { // php xxx.php m/c/a "b=1&d=1"|b=1 d=1
+                $_SERVER["REQUEST_URI"] = isset($_SERVER['argv'][1]) ? $_SERVER['argv'][1] : '/';
+                parse_str(implode('&', array_slice($_SERVER['argv'], 2)), $_GET);
+            } else { // php xxx.php "c=x&a=y&b=1&d=1"|c=x a=y b=1 d=1
                 parse_str(implode('&', array_slice($_SERVER['argv'], 1)), $_GET);
             }
         }
@@ -622,7 +624,7 @@ final class myphp{
     }
     // app项目初始化
     private static function init_app($path, $isCLI = IS_CLI){
-        if(!$isCLI && self::$env['MODULE']!='') return; //仅cli下自动生成项目模块
+        if(!$isCLI && self::$env['MODULE']!='') return; //仅cli命令模式下自动生成项目模块
         if(is_file($path .'/index.htm')) return;
         // 创建项目目录
         if(!is_dir($path)) mkdir($path,0755, true);
