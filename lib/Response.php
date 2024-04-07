@@ -12,14 +12,24 @@ class Response
     public $body;
 
     /**
-     * @var resource|array 文件指针资源|[文件指针资源,起始位置,结束位置]
+     * @var string 输出文件
      */
-    public $stream;
-    public $steamLimit = 0; //限制每秒读取大小 单位KB 0不限制
-    public $isSent = false;
-
+    private $_outFile;
     /**
-     * @var array 发送文件信息 [文件路径,起始位置,读取长度]
+     * @var array 分片起始结束位置[begin,end]
+     */
+    private $_range = [];
+    /**
+     * @var int 限制每秒读取大小 KB 0不限制
+     */
+    public $secLimitSize = 0;
+    /**
+     * @var int 默认分块输出大小 MB
+     */
+    public $chunkSize = 2;
+    public $isSent = false;
+    /**
+     * @var array 发送文件信息 [文件路径,起始位置,读取长度:0为所有]
      */
     public $file = [];
 
@@ -168,69 +178,56 @@ class Response
     }
 
     /**
-     * @param string $filePath
-     * @param null|string $attachmentName
-     * @param array $options
+     * @param string|resource $file
+     * @param int $offset
+     * @param int $size
+     * @param bool $inline
+     * @param null $attachmentName
      * @return $this
      * @throws \Exception
      */
-    public function sendFile($filePath, $attachmentName = null, $options = [])
+    public function sendFile($file, $offset=0, $size=0, $inline=false, $attachmentName=null, $mimeType='')
     {
-        if (!is_file($filePath)) {
-            throw new \InvalidArgumentException('file does not exist', 404);
-        }
-        if (!isset($options['mimeType'])) {
-            $options['mimeType'] = self::minMimeType($filePath);
-        }
-        if ($attachmentName === null) {
-            $attachmentName = basename($filePath);
-        }
-        $handle = fopen($filePath, 'rb');
-        $this->file = [$filePath, 0, -1];
-        $this->sendStreamAsFile($handle, $attachmentName, $options);
-        return $this;
-    }
-
-    /**
-     * @param resource $handle
-     * @param string $filename
-     * @param array $options
-     * @return $this
-     * @throws \Exception
-     */
-    public function sendStreamAsFile($handle, $filename, $options = [])
-    {
-        if (!is_resource($handle)) {
-            throw new \InvalidArgumentException('Stream must be a resource');
-        }
-        if (isset($options['fileSize'])) {
-            $fileSize = $options['fileSize'];
-        } else {
-            fseek($handle, 0, SEEK_END);
-            $fileSize = ftell($handle);
+        if (is_resource($file)) {
+            $meta = stream_get_meta_data($file); //取文件的实际路径
+            //fclose($file);
+            if (is_file($meta['uri'])) {
+                $file = $meta['uri'];
+            } else {
+                throw new \InvalidArgumentException('file does not exist', 500);
+            }
+        } elseif (!is_file($file)) {
+            throw new \Exception('file does not exist', 404);
         }
 
-        $range = self::getRange($fileSize);
-        if ($range === false) {
-            $this->withHeader('Content-Range', 'bytes */' . $fileSize);
-            throw new \Exception(416);
-        }
+        $this->file = [$file, $offset, $size];
+        $this->_outFile = $file;
+        if ($inline !== null) { //文件下载 可能分片传输  null时文件直接全部输出
+            if ($size == 0) $size = filesize($file);
+            if ($mimeType === '') $mimeType = self::minMimeType($file);
+            if ($attachmentName === null) $attachmentName = basename($file);
 
-        list($begin, $end) = $range;
-        if ($begin != 0 || $end != $fileSize - 1) {
-            $this->setStatusCode(206)->withHeader('Content-Range', "bytes $begin-$end/$fileSize");
-        } else {
-            $this->setStatusCode(200);
-        }
+            //取分片信息
+            if (isset($_SERVER['HTTP_RANGE'])) {
+                $this->_range = self::getRange($size);
+                if ($this->_range === false) {
+                    $this->withHeader('Content-Range', 'bytes */' . $size);
+                    throw new \Exception(416);
+                }
 
-        $length = $end - $begin + 1;
-        $mimeType = isset($options['mimeType']) ? $options['mimeType'] : 'application/octet-stream';
-        $this->setDownloadHeaders($filename, $mimeType, !empty($options['inline']), $length);
-
-        $this->stream = [$handle, $begin, $end];
-        if ($this->file) { //是文件 记录起始和读取长度
-            $this->file[1] = $begin;
-            $this->file[2] = $length;
+                list($begin, $end) = $this->_range;
+                if ($begin != 0 || $end != $size - 1) {
+                    $this->setStatusCode(206)->withHeader('Content-Range', "bytes $begin-$end/$size");
+                } else {
+                    $this->setStatusCode(200);
+                }
+                //分片读取长度
+                $size = $end - $begin + 1;
+                //记录起始和读取长度
+                $this->file[1] = $begin;
+                $this->file[2] = $size;
+            }
+            $this->setDownloadHeaders($attachmentName, $mimeType, $inline, $size);
         }
         return $this;
     }
@@ -238,7 +235,7 @@ class Response
     /**
      * @param string $filename
      * @param null|string $mimeType
-     * @param bool $inline
+     * @param bool $inline 表示在浏览器中直接显示数据
      * @param null|int $contentLength
      * @return $this
      */
@@ -313,10 +310,11 @@ class Response
 
     public function clear()
     {
-        $this->stream = null;
+        $this->_outFile = null;
         $this->body = null;
         $this->isSent = false;
         $this->file = [];
+        $this->_range = [];
     }
 
     public function send()
@@ -343,17 +341,18 @@ class Response
     //输出内容
     protected function sendBody()
     {
-        if ($this->stream === null) {
+        if ($this->_outFile === null) {
             echo is_array($this->body) ? Helper::toJson($this->body) : $this->body;
             return;
         }
 
         set_time_limit(0); // Reset time limit for big files
-        $perLimit = $this->steamLimit > 0; //每秒限制?
-        $chunkSize = $perLimit ? $this->steamLimit * 1024 : 2 * 1024 * 1024; // 2MB per chunk
+        $perLimit = $this->secLimitSize > 0; //每秒限制?
+        $chunkSize = $perLimit ? $this->secLimitSize * 1024 : $this->chunkSize * 1024 * 1024; // 2MB per chunk
 
-        if (is_array($this->stream)) {
-            list($handle, $begin, $end) = $this->stream;
+        $handle = fopen($this->_outFile, 'rb');
+        if ($this->_range) {
+            list($begin, $end) = $this->_range;
             fseek($handle, $begin);
 
             #Log::write($begin, 'start '.$_SERVER['REMOTE_PORT']);
@@ -368,22 +367,22 @@ class Response
                     sleep(1); //延时
                 }
             }
-            fclose($handle);
         } else {
-            while (!feof($this->stream)) {
-                echo fread($this->stream, $chunkSize);
+            while (!feof($handle)) {
+                echo fread($handle, $chunkSize);
                 flush();
                 if ($perLimit) {
                     sleep(1); //延时
                 }
             }
-            fclose($this->stream);
         }
+        fclose($handle);
     }
 
     /**
+     * 分片请求信息
      * @param int $fileSize
-     * @return bool|int[]
+     * @return bool|int[] [start,end]
      */
     public static function getRange($fileSize)
     {
