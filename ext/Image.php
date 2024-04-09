@@ -8,9 +8,15 @@ class Image
      */
     public static $rawString = false;
     /**
-     * @var int jpg图片质量
+     * 指定输出类型 jpg,png,gif,webp,bmp
+     * @var string
+     */
+    public static $outType = '';
+    /**
+     * @var int jpg|webp图片质量
      */
     public static $quality = 75;
+
     /**
      * 取得图像信息
      * @param string $img 图像文件名
@@ -41,10 +47,11 @@ class Image
      * @param string $image
      * @param string $out
      * @param int $quality
+     * @param null|array $info
      * @return bool
      */
-    public static function optimize($image, $out = '', $quality = -1){
-        $info = self::getImageInfo($image); // 获取原图信息
+    public static function optimize($image, $out = '', $quality = -1, $info=null){
+        if ($info === null) $info = self::getImageInfo($image); // 获取原图信息
         if ($info === false) return false;
         if ($out == '') {
             if (self::$rawString) {
@@ -55,8 +62,6 @@ class Image
         }
 
         $type = $info['type'];
-        $allowType = ',jpg,jpeg,png,webp,';
-        if(strpos($allowType, ','.$type.',')===false) return false;
         //载入原图
         if (self::$rawString) {
             //self::$rawString = false; //Reset
@@ -65,18 +70,28 @@ class Image
             $imagecreatefrom = 'imagecreatefrom' . $type;
             $srcImg = $imagecreatefrom($image);
         }
+        if (!$srcImg) return false;
 
         if ($quality == -1) $quality = self::$quality; //默认质量
+        if (self::$outType) { //指定输出类型
+            $type = self::$outType;
+            self::$outType = '';
+        }
         // 生成图片
         if ($type == 'jpeg' || $type == 'jpg') {
             imagejpeg($srcImg, $out, $quality);
         } elseif ($type == 'png') {
             imagesavealpha($srcImg, true); //保持完整的 alpha 通道信息
-            imagepng($srcImg, $out); //默认压缩
+            imagepng($srcImg, $out, 9); //默认压缩
         } elseif ($type == 'webp') {
-            imagewebp($srcImg, $out);
+            imagewebp($srcImg, $out, $quality);
         } else {
-            return false;
+            $imageFun = 'image' . $type;
+            if (function_exists($imageFun)) {
+                $imageFun($srcImg, $out);
+            } else {
+                return false;
+            }
         }
 
         imagedestroy($srcImg);
@@ -103,7 +118,7 @@ class Image
         $srcHeight = $info['height'];
         $type = $info['type'];
         if ($maxWidth == 0 && $maxHeight == 0) {
-            $result = self::optimize($image, $thumbName);
+            $result = self::optimize($image, $thumbName, $quality, $info);
             return $result ? $type : false; //优化返回
         } elseif ($maxWidth == 0) { //固定高度
             $maxWidth = intval($srcWidth * $maxHeight / $srcHeight);
@@ -116,7 +131,7 @@ class Image
         unset($info);
         $scale = min($maxWidth / $srcWidth, $maxHeight / $srcHeight); // 计算缩放比例
         if ($scale >= 1) { //超出原图大小不缩略优化返回
-            $result = self::optimize($image, $thumbName);
+            $result = self::optimize($image, $thumbName, $quality, $info);
             return $result ? $type : false;
         } else { // 缩略图尺寸
             $width = (int)($srcWidth * $scale);
@@ -142,6 +157,12 @@ class Image
         } else {
             $imagecreatefrom = 'imagecreatefrom' . $type;
             $srcImg = function_exists($imagecreatefrom) ? $imagecreatefrom($image) : imagecreatefromjpeg($image);
+        }
+        if (!$srcImg) return false;
+
+        if (self::$outType) { //指定输出类型
+            $type = self::$outType;
+            self::$outType = '';
         }
 
         //创建缩略图
@@ -177,9 +198,9 @@ class Image
         if ($type == 'jpeg' || $type == 'jpg') {
             imagejpeg($thumbImg, $thumbName, $quality);
         } elseif ($type == 'png') {
-            imagepng($thumbImg, $thumbName);
+            imagepng($thumbImg, $thumbName, 9);
         } elseif ($type == 'webp') {
-            imagewebp($thumbImg, $thumbName);
+            imagewebp($thumbImg, $thumbName, $quality);
         } else {
             $imageFun = 'image' . $type;
             if (function_exists($imageFun)) {
