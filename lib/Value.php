@@ -58,7 +58,7 @@ class Value{
      * @return array|bool|float|int|string
      * @throws \RuntimeException
      */
-    public static function get(&$data, $name, $rule=null, $default=null, $strict=false){
+    public static function get(&$data, $name, $rule='', $default=null, $strict=false){
         if (strpos($name, '.')) { //多维数组
             $val = Helper::getValue($data, $name);
         } else {
@@ -89,6 +89,10 @@ class Value{
      * filter:fun1,fun2,/regx/i正则过滤
      */
     public static function parseType(&$rule, &$type='s', &$min=null, &$max=null, &$filter=null, &$digit=0){
+        if (!$rule) {
+            $type='s';
+            return;
+        }
         if(strpos($rule,':')!==false){ // 指定过滤方法
             list($rule,$filter) = explode(':',$rule,2);
         }
