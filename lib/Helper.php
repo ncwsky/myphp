@@ -142,7 +142,7 @@ class Helper{
         return $offset;
     }
     // 跳转提示信息输出: ([0,1]:)信息标题, url, 辅助信息, 等待时间（秒） 用于前端自动定义信息输出模板
-    public static function outMsg($message, $url='', $info='', $time = 1) {
+    public static function outMsg($msg, $url='', $info='', $time = 1) {
         if ($url=='') {
             $jumpUrl = 'javascript:window.history.back()';
             $js = 'window.history.back()';
@@ -153,11 +153,11 @@ class Helper{
             $jumpUrl = $url;
             $js = "window.location='$jumpUrl'";
         }
-        $ok = substr($message, 0, 2); //提示状态 默认为普通
+        $ok = substr($msg, 0, 2); //提示状态 默认为普通
         $code = 0;
         $flag = 'normal'; //普通提示
         if ($ok == '1:' || $ok == '0:') {
-            $message = substr($message, 2);
+            $msg = substr($msg, 2);
             if ($ok == '0:') {
                 $code = 1;
                 $flag = 'error'; //错误提示
@@ -168,14 +168,14 @@ class Helper{
 
         if (ob_get_length() !== false) ob_clean();//清除页面
         if (self::isAjax()) { //ajax输出
-            $json = array('code' => $code, 'msg' => $message, 'url' => $jumpUrl, 'info' => $info, 'time' => $time);
+            $json = ['code' => $code, 'msg' => $msg, 'data'=>['_url' => $jumpUrl, 'info' => $info]];
             if (IS_CLI) return self::toJson($json);
             exit(self::toJson($json));
         }
 
         $out_html = '<!doctype html><html><head><meta charset="utf-8"><title>'.($url!='nil'?'跳转提示':'信息提示').'</title><style type="text/css">*{padding:0;margin:0}body{background:#fff;font-family:"Microsoft YaHei";color:#333;font-size:100%}.system-message{padding:1.5em 3em}.system-message h1{font-size:6.25em;font-weight:400;line-height:120%;margin-bottom:.12em}.system-message .jump{padding-top:.625em}.system-message .jump a{color:#333}.system-message .success{color:#207E05}.system-message .error{color:#da0404}.system-message .normal,.system-message .success,.system-message .error{line-height:1.8em;font-size:2.25em}.system-message .detail{font-size:1.2em;line-height:160%;margin-top:.8em}</style></head><body><div class="system-message">';
 
-        $out_html .= '<h1>'. ($code ? ':(' : ':)').'</h1><p class="'.$flag.'">'.$message.'</p>'; //输出
+        $out_html .= '<h1>'. ($code ? ':(' : ':)').'</h1><p class="'.$flag.'">'.$msg.'</p>'; //输出
 
         $out_html .= $info!=''?'<p class="detail">'.$info.'</p>':'';
         if($url!='nil') //提示不跳转
