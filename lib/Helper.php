@@ -168,7 +168,7 @@ class Helper{
 
         if (ob_get_length() !== false) ob_clean();//清除页面
         if (self::isAjax()) { //ajax输出
-            $json = ['code' => $code, 'msg' => $msg, 'data'=>['_url' => $jumpUrl, 'info' => $info]];
+            $json = ['code' => $code, 'msg' => $msg, 'data'=>['_url' => $jumpUrl, 'info' => $info, 'time'=>$time]];
             if (IS_CLI) return self::toJson($json);
             exit(self::toJson($json));
         }
