@@ -232,6 +232,10 @@ class Log{
 
         $dir = $level == '_def' ? '_def' : self::$dir;
         $file = $level == '_def' ? self::$logDir . 'log.log' : self::$file;
+        if (empty(self::$instance->handler[$dir])) { //log.log没有权限时这里为空
+            error_log($msg . ' write ' . $file . " fail(Permission?)" . PHP_EOL);
+            return;
+        }
         self::truncate(self::$instance->handler[$dir], $file);
 
         if ($level && $level != '_def') $msg = '['.date('Y-m-d H:i:s').']['.$level.'] '.$msg;

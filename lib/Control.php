@@ -82,7 +82,16 @@ class Control
      */
     protected function _after($result){
         if (!empty(myphp::$cfg['gzip'])) {
-            if (is_array($result)) { // || is_object($result)
+            if ($result instanceof \myphp\Response) {
+                $body = $result->getBody();
+                if (strlen($body) > myphp::$cfg['gzip_min_length']) {
+                    myphp::setHeader('Content-Encoding', 'gzip');
+                    $result->body = gzencode($body, myphp::$cfg['gzip_comp_level']);
+                }
+                return $result;
+            } elseif (is_object($result)) {
+                return $result;
+            } elseif (is_array($result)) { // || is_object($result)
                 $result = Helper::toJson($result);
             }
             if (strlen($result) > myphp::$cfg['gzip_min_length']) {

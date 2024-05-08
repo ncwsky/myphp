@@ -284,12 +284,10 @@ final class myphp{
                     return false;
                 }
             }
-            if (!isset($reqKey)) {
-                // 缓存key名
-                $reqKey = 'req';
-                foreach ($_GET as $v) {
-                    $reqKey .= '_' . str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], '', $v);
-                }
+            // 缓存key名
+            $reqKey = 'req'.str_replace('/','.', $ca);
+            foreach ($_GET as $v) {
+                $reqKey .= '_' . str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], '', $v);
             }
         } elseif (self::$cfg['req_cache'] instanceof \Closure) { //自定义请求缓存键名处理
             $reqKey = call_user_func_array(self::$cfg['req_cache'], $_GET);
@@ -305,11 +303,11 @@ final class myphp{
                 }
             }
 
-            self::$req_cache = array($reqKey, self::$cfg['req_cache_expire']); //记录缓存键名 默认过期时间 用于send
+            self::$req_cache = [$reqKey, self::$cfg['req_cache_expire']]; //记录缓存键名 默认过期时间 用于send
         }
         return false;
     }
-    public static $httpCodeStatus = array(
+    public static $httpCodeStatus = [
         100 => 'Continue',
         101 => 'Switching Protocols',
         102 => 'Processing',
@@ -344,7 +342,7 @@ final class myphp{
         502 => 'Bad Gateway',
         503 => 'Service Unavailable',
         504 => 'Gateway Time-out',
-    );
+    ];
     //http状态输出
     public static function httpCode($code=200){
         if(!isset(self::$httpCodeStatus[$code])) $code=200;
@@ -359,7 +357,7 @@ final class myphp{
             if (is_array($val)) {
                 $replace = true;
                 foreach ($val as $v) {
-                    header($name . ':' . $val, $replace);
+                    header($name . ':' . $v, $replace);
                     $replace = false;
                 }
             } else {
@@ -373,6 +371,8 @@ final class myphp{
         if (is_array($name)) {
             self::$header = array_merge(self::$header, $name);
         } else {
+            //首字母大写
+            if (strpos($name, '-')) $name = strtr(ucwords(strtr($name, '-', ' ')), ' ', '-');
             if ($val === null) {
                 unset(self::$header[$name]);
             } else {
@@ -466,33 +466,30 @@ final class myphp{
             }
         }
         //控制器和方法是否为空，为空则使用默认
-        if (empty($_GET['c'])) {
-            $_GET['c'] = self::$cfg['def_control'];
-        }
-        if (empty($_GET['a'])) {
-            $_GET['a'] = self::$cfg['def_action'];
-        }
+        if (empty($_GET['c'])) $_GET['c'] = self::$cfg['def_control'];
+        if (empty($_GET['a'])) $_GET['a'] = self::$cfg['def_action'];
+
         self::$env['c'] = $_GET['c'];
         self::$env['a'] = $_GET['a'];
+        self::$env['m'] = isset($_GET['m']) ? $_GET['m'] : '';
         self::$env['app_namespace'] = basename(APP_PATH);
         //自动指定app顶层命名空间目录 //realpath目录不存在时会false
         if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
             self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
         }
         //指定项目模块
-        $module = isset($_GET['m']) ? $_GET['m'] : '';
-        if ($module != '') {
-            if (isset(self::$cfg['module_maps'][$module])) {
-                if(self::$cfg['module_maps'][$module][0] == DS){ //项目根目录
-                    $app_path = ROOT . self::$cfg['module_maps'][$module];
-                    self::$env['app_namespace'] = strtr(substr(self::$cfg['module_maps'][$module], 1), DS, '\\');
+        if (self::$env['m'] != '') {
+            if (isset(self::$cfg['module_maps'][self::$env['m']])) {
+                if(self::$cfg['module_maps'][self::$env['m']][0] == DS){ //项目根目录
+                    $app_path = ROOT . self::$cfg['module_maps'][self::$env['m']];
+                    self::$env['app_namespace'] = strtr(substr(self::$cfg['module_maps'][self::$env['m']], 1), DS, '\\');
                 } else { //相对项目目录
-                    $app_path = APP_PATH . DS . self::$cfg['module_maps'][$module];
-                    self::$env['app_namespace'] .= '\\'. strtr(self::$cfg['module_maps'][$module], DS, '\\');
+                    $app_path = APP_PATH . DS . self::$cfg['module_maps'][self::$env['m']];
+                    self::$env['app_namespace'] .= '\\'. strtr(self::$cfg['module_maps'][self::$env['m']], DS, '\\');
                 }
             } else { //子模块默认 module 目录下
-                $app_path = APP_PATH . DS . 'module' . DS . $module;
-                self::$env['app_namespace'] .= '\\module\\'.$module;
+                $app_path = APP_PATH . DS . 'module' . DS . self::$env['m'];
+                self::$env['app_namespace'] .= '\\module\\'.self::$env['m'];
             }
             //引入模块配置
             self::loadConfig($app_path);
@@ -513,12 +510,12 @@ final class myphp{
 
         $_url = $_app;
         if ($url_mode == 2) {
-            if ($module) $_url .= $module . '/';
+            if (self::$env['m']) $_url .= self::$env['m'] . '/';
             $_url .= self::$env['c'];
             $_base_url = $_url . '/' . self::$env['a'];
         } else {
-            if ($module) {
-                $_url = $_app . '?m=' . $module . '&c=' . self::$env['c'];
+            if (self::$env['m']) {
+                $_url = $_app . '?m=' . self::$env['m'] . '&c=' . self::$env['c'];
             } else {
                 $_url = $_app . '?c=' . self::$env['c'];
             }
@@ -532,7 +529,7 @@ final class myphp{
             'BASE_URL' => $_base_url,
             'CONTROL' => (strpos(self::$env['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['c']), ' ')) : ucfirst(self::$env['c'])) . 'Act',
             'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰  lcfirst首字母转小写
-            'MODULE' => $module,
+            'MODULE' => self::$env['m'],
             'MODULE_PATH' => $app_path,
             //路径 自动生成
             'CACHE_PATH' => $app_path . DS . 'cache',
@@ -624,7 +621,7 @@ final class myphp{
     }
     // app项目初始化
     private static function init_app($path, $isCLI = IS_CLI){
-        if(!$isCLI && self::$env['MODULE']!='') return; //仅cli命令模式下自动生成项目模块
+        if(!$isCLI && self::$env['MODULE']!='') return; //仅cli下自动生成项目模块
         if(is_file($path .'/index.htm')) return;
         // 创建项目目录
         if(!is_dir($path)) mkdir($path,0755, true);

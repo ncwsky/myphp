@@ -467,7 +467,8 @@ function sys_auth($string, $operation = 'ENCODE', $key = '', $expiry = 0) {
     if($operation == 'ENCODE') {
         return $runtokey . str_replace('=', '', base64_encode($result));
     } else {
-        if((substr($result, 0, 10) == 0 || substr($result, 0, 10) - time() > 0) && substr($result, 10, 16) == substr(md5(substr($result, 26).$egiskeys), 0, 16)) {
+        $time = (int)substr($result, 0, 10);
+        if(($time == 0 || $time - time() > 0) && substr($result, 10, 16) == substr(md5(substr($result, 26).$egiskeys), 0, 16)) {
             return substr($result, 26);
         } else {
             return null;

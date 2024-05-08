@@ -62,7 +62,10 @@ class Response
      */
     public function withHeaders($headers)
     {
-        \myphp::$header = \array_merge_recursive(\myphp::$header, $headers);
+        foreach ($headers as $name => $value) {
+            \myphp::setHeader($name, $value);
+        }
+        //\myphp::$header = \array_replace_recursive(\myphp::$header, $headers);
         return $this;
     }
 
@@ -136,6 +139,16 @@ class Response
      */
     public function setStatusCode($code)
     {
+        \myphp::$statusCode = (int)$code;
+        return $this;
+    }
+
+    /**
+     * @param int $code
+     * @param string $reasonPhrase
+     * @return $this
+     */
+    public function withStatus(int $code, string $reasonPhrase=''){
         \myphp::$statusCode = (int)$code;
         return $this;
     }

@@ -143,6 +143,7 @@ class Helper{
     }
     // 跳转提示信息输出: ([0,1]:)信息标题, url, 辅助信息, 等待时间（秒） 用于前端自动定义信息输出模板
     public static function outMsg($msg, $url='', $info='', $time = 1) {
+        $is_url = false;
         if ($url=='') {
             $jumpUrl = 'javascript:window.history.back()';
             $js = 'window.history.back()';
@@ -152,6 +153,7 @@ class Helper{
         } else {
             $jumpUrl = $url;
             $js = "window.location='$jumpUrl'";
+            $is_url = true;
         }
         $ok = substr($msg, 0, 2); //提示状态 默认为普通
         $code = 0;
@@ -168,7 +170,9 @@ class Helper{
 
         if (ob_get_length() !== false) ob_clean();//清除页面
         if (self::isAjax()) { //ajax输出
-            $json = ['code' => $code, 'msg' => $msg, 'data'=>['_url' => $jumpUrl, 'info' => $info, 'time'=>$time]];
+            $data = ['info' => $info, 'time' => $time];
+            if ($is_url) $data['_url'] = $jumpUrl;
+            $json = ['code' => $code, 'msg' => $msg, 'data' => $data];
             if (IS_CLI) return self::toJson($json);
             exit(self::toJson($json));
         }
@@ -179,7 +183,7 @@ class Helper{
 
         $out_html .= $info!=''?'<p class="detail">'.$info.'</p>':'';
         if($url!='nil') //提示不跳转
-            $out_html .= '<p class="jump">页面自动 <a id="href" href="'.$jumpUrl.'">跳转</a>  等待时间： <b id="time">'.$time.'</b><!--<br><a href="'.$jumpUrl.'">如未跳转请点击此处手工跳转</a>--></p></div><script type="text/javascript">var pgo=0,t=setInterval(function(){var time=document.getElementById("time");var val=parseInt(time.innerHTML)-1;time.innerHTML=val;if(val<=0){clearInterval(t);if(pgo==0){pgo=1;'.$js.';}}},1000);</script></body></html>';
+            $out_html .= '<p class="jump">页面自动 <a id="href" href="'.$jumpUrl.'">跳转</a>  等待时间： <b id="time">'.$time.'</b></p></div><script type="text/javascript">var pgo=0,t=setInterval(function(){var time=document.getElementById("time");var val=parseInt(time.innerHTML)-1;time.innerHTML=val;if(val<=0){clearInterval(t);if(pgo==0){pgo=1;'.$js.';}}},1000);</script></body></html>';
         if(IS_CLI) {
             \myphp::conType('text/html');
             return $out_html;
