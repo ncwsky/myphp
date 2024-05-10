@@ -196,26 +196,6 @@ function array_walk_merge(&$arr1, &$arr2, $strict=false){
 }
 
 /**
- * $arr2合并覆盖$arr1
- * @param array $arr1
- * @param array $arr2
- */
-function array_cover_merge(&$arr1, &$arr2)
-{
-    foreach ($arr2 as $k => $v) {
-        if (isset($arr1[$k])) {
-            if (is_array($v) && is_array($arr1[$k])) {
-                array_cover_merge($arr1[$k], $v);
-            } else {
-                $arr1[$k] = $v;
-            }
-        } else {
-            $arr1[$k] = $v;
-        }
-    }
-}
-
-/**
  * 二维数组 排序
  * @param array $array 传入的数组
  * @param string $row_id 数组想排序的项
@@ -377,7 +357,7 @@ function verifyCsrfToken()
 {
     if (in_array(\myphp\Request::method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
         $csrfToken = (string)session('csrf_token');
-        if ($csrfToken === '' || ($csrfToken !== ($_POST['csrf_token'] ?? '') && $csrfToken !== $this->header('X-Csrf-Token'))) {
+        if ($csrfToken === '' || ($csrfToken !== ($_POST['csrf_token'] ?? '') && $csrfToken !== ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) {
             return false;
         }
     }

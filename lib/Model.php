@@ -127,9 +127,8 @@ class Model implements \ArrayAccess
         if ($this->tbName && empty($this->fieldRule)) { //获取表字段
             $this->db->getFields($this->tbName, $this->prikey, $this->fields, $this->fieldRule, $this->autoIncrement);
         }
-        if ($this->extRule) {
-            array_cover_merge($this->fieldRule, $this->extRule);
-            //$this->fieldRule = array_merge($this->fieldRule, $this->extRule);
+        if ($this->extRule) { //合并
+            $this->fieldRule = array_replace_recursive($this->fieldRule, $this->extRule);
         }
     }
     public function __clone(){
@@ -139,14 +138,17 @@ class Model implements \ArrayAccess
      * 设置扩展字段过滤规则
      * @param string|array $name id|[id'=>['rule'=>'%d{1,10}','def'=>0]]
      * @param null|array $rule ['rule'=>'%d{1,10}','def'=>0]|null
+     * @param bool $merge 真替换合并,否时替换覆盖
      */
-    public function setRule($name, $rule=null){
+    public function setRule($name, $rule=null, $merge=true){
         if (is_array($name)) {
-            array_cover_merge($this->fieldRule, $name);
-            //$this->fieldRule = array_merge($this->fieldRule, $name);
+            $this->fieldRule = $merge ? array_replace_recursive($this->fieldRule, $name) : array_merge($this->fieldRule, $name);
         } else {
-            array_cover_merge($this->fieldRule[$name], $rule);
-            //$this->fieldRule[$name] = $rule;
+            if (isset($this->fieldRule[$name]) && $merge) {
+                $this->fieldRule[$name] = array_replace_recursive($this->fieldRule[$name], $rule);
+            } else {
+                $this->fieldRule[$name] = $rule;
+            }
         }
     }
     public function rules(){
