@@ -8,7 +8,7 @@ function e404(){header("HTTP/1.1 404 Not Found");header('Status:404 Not Found');
  * @param string $url 重定向的URL地址
  * @param integer $time 重定向的等待时间（秒）
  * @param string $msg 重定向前的提示信息
- * @return void
+ * @return string|void
  */
 function redirect($url, $time=0, $msg='') {
     if ($time && empty($msg)) {
@@ -356,6 +356,34 @@ function get_url() {
 }
 
 /**
+ * 生成csrf-token
+ * @param string $type input:隐藏表彰文本项 meta:head meta 默认:仅token
+ * @return string
+ */
+function csrfToken($type = '')
+{
+    $token = random(14, '01'); //bin2hex(random_bytes(8));
+    session('csrf_token', $token);
+    if ($type == 'input') return '<input type="hidden" name="csrf_token" value="' . $token . '">';
+    elseif ($type == 'meta') return '<meta name="csrf_token" content="' . $token . '">';
+
+    return $token;
+}
+/**
+ * 校验csrf
+ * @return bool
+ */
+function verifyCsrfToken()
+{
+    if (in_array(\myphp\Request::method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+        $csrfToken = (string)session('csrf_token');
+        if ($csrfToken === '' || ($csrfToken !== ($_POST['csrf_token'] ?? '') && $csrfToken !== $this->header('X-Csrf-Token'))) {
+            return false;
+        }
+    }
+    return true;
+}
+/**
  * 产生随机字符串
  *
  * @param int $len 输出长度
@@ -396,7 +424,7 @@ function my_hash($verify=false, $echo=true){
         }
     } else {
         if (!$my_hash) {
-            $my_hash = random(6, 'abcdefghigklmnopqrstuvwxwyABCDEFGHIGKLMNOPQRSTUVWXWY0123456789');
+            $my_hash = random(8,'01'); //bin2hex(random_bytes(6));
             session('my_hash', $my_hash);
         }
         return $my_hash;
@@ -743,6 +771,7 @@ function session($name='', $value='') {
             \myphp\Session::set($name, $value);
         }
     }
+    return null;
 }
 
 /**
@@ -776,6 +805,7 @@ function cache($name, $value='', $option=null) {
             $cache->set($name, $value, is_numeric($option)?$option:0);
         }
     }
+    return null;
 }
 
 //递归自定方法数组处理 传址
@@ -854,8 +884,8 @@ function Q($name, $defVal='', $datas=null) {
             $val = isset($input[$name]) ? $input[$name] : null;
         }
     }
-    if($filter===null) $filter = true; #使用默认过滤处理
-    elseif($filter==='null') $filter = null; #禁用默认过滤
+    //if($filter===null) $filter = true; #使用默认过滤处理 取消
+    if($filter==='null') $filter = null; #禁用默认过滤
 
     \myphp\Value::type2val($val, [$type, 'min' => $min, 'max' => $max, 'digit' => $digit, 'filter' => $filter], $defVal);
 

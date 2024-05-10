@@ -9,7 +9,9 @@ class Control
     /**
      * @var View|null
      */
-    protected $view = null; //模板实例
+    public $view = null; //模板实例
+    public $enableCsrf = false;
+    public $htmlEncode = false; //对模板数据html实体处理
     /**
      * @var Response|null
      */
@@ -72,7 +74,15 @@ class Control
      * @throws \Exception
      */
     protected function _before(){
-        $this->request->checkCsrfToken();
+        if ($this->enableCsrf) {
+            if ($this->request::method() == 'GET') {
+                //$this->view->vars['csrfToken'] = $this->request->csrfToken();
+            } else {
+                if (!verifyCsrfToken()) {
+                    throw new \Exception('Unable to verify your data submission.', 400);
+                }
+            }
+        }
         return true;
     }
 
@@ -123,10 +133,11 @@ class Control
         return $this;
     }
     //在子类控制器及方法中调用 显示模板 非cli模式下使用
-    final function display($file = '', $var = null)
+    final function display($file = '', $var = null, $htmlEncode=null)
     {
         myphp::conType('text/html');
-        $content = $this->view->fetch($file, $var);
+        if ($htmlEncode === null) $htmlEncode = $this->htmlEncode;
+        $content = $this->view->fetch($file, $var, $htmlEncode);
         if (IS_CLI) return $content;
         ob_start();
         echo $content;
@@ -138,11 +149,13 @@ class Control
      * 在子类控制器及方法中调用 取得页面内容
      * @param string $file
      * @param null $var
+     * @param bool $htmlEncode
      * @return Response
      */
-    final function fetch($file = '', $var=null)
+    final function fetch($file = '', $var=null, $htmlEncode=null)
     {
-        $this->response->body = $this->view->fetch($file, $var);
+        if ($htmlEncode === null) $htmlEncode = $this->htmlEncode;
+        $this->response->body = $this->view->fetch($file, $var, $htmlEncode);
         return $this->response->setContentType(Response::CONTENT_TYPE_HTML);
         //\myphp::conType('text/html');
         //return $this->view->fetch($file, $var);

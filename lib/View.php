@@ -43,11 +43,19 @@ class View
     }
 
     //取得页面内容
-    public function fetch($file = '', &$var = null)
+    public function fetch($file = '', &$var = null, $htmlEncode=false)
     {
         if ($file == '') $file = myphp::env('a') . $this->template->suffix;
         if (is_array($var)) {    //如果是数组，那么将它合并到属性$vars中
             $this->vars = array_merge($this->vars, $var);
+        }
+
+        if ($htmlEncode) { //对模板变量数据html实体处理
+            array_walk_recursive($this->vars, function(&$v, $k){
+                if (is_string($v) && !is_numeric($v)) {
+                    $v = htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                }
+            });
         }
 
         $cacheFile = $this->template->cacheFile($file);
