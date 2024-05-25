@@ -65,7 +65,6 @@ class Response
         foreach ($headers as $name => $value) {
             \myphp::setHeader($name, $value);
         }
-        //\myphp::$header = \array_replace_recursive(\myphp::$header, $headers);
         return $this;
     }
 
@@ -148,7 +147,7 @@ class Response
      * @param string $reasonPhrase
      * @return $this
      */
-    public function withStatus(int $code, string $reasonPhrase=''){
+    public function withStatus(int $code, string $reasonPhrase='') {
         \myphp::$statusCode = (int)$code;
         return $this;
     }
@@ -217,7 +216,7 @@ class Response
         $this->_outFile = $file;
         if ($inline !== null) { //文件下载 可能分片传输  null时文件直接全部输出
             if ($size == 0) $size = filesize($file);
-            if ($mimeType === '') $mimeType = self::minMimeType($file);
+            if ($mimeType === '') $mimeType = Helper::minMimeType($file);
             if ($attachmentName === null) $attachmentName = basename($file);
 
             //取分片信息
@@ -426,60 +425,4 @@ class Response
         return [$start, $end];
     }
 
-    /**
-     * 简要的mime_type类型
-     * @param string $filename
-     * @return string
-     */
-    public static function minMimeType($filename)
-    {
-        if (function_exists('mime_content_type')) {
-            return mime_content_type($filename);
-        }
-
-        static $mimeType = array(
-            'bmp' => 'image/bmp',
-            'gif' => 'image/gif',
-            'jpe' => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'jpg' => 'image/jpeg',
-            'png' => 'image/png',
-            'webp' => 'image/webp',
-            'ico' => 'image/x-icon',
-
-            'aac' => 'audio/aac',
-            'mp3' => 'audio/mpeg',
-            'wav' => 'audio/x-wav',
-            'ogg' => 'audio/ogg',
-
-            'avi' => 'video/x-msvideo',
-            'mp4' => 'video/mp4',
-            'mpeg' => 'video/mpeg',
-            'ogv' => 'video/ogg',
-            'webm' => 'video/webm',
-            'flv' => 'video/x-flv',
-
-            'txt' => 'text/plain',
-            'csv' => 'text/csv',
-            'xml' => 'application/xml',
-            'pdf' => 'application/pdf',
-            'doc' => 'application/msword',
-            'ppt' => 'application/vnd.ms-powerpoint',
-            'xls' => 'application/vnd.ms-excel',
-            'xlt' => 'application/vnd.ms-excel',
-
-            'tar' => 'application/x-tar',
-            '7z' => 'application/x-7z-compressed',
-            'rar' => 'application/x-rar-compressed',
-            'zip' => 'application/zip',
-        );
-        $mime = 'application/octet-stream';
-        $pos = strrpos($filename, '.');
-        if (!$pos) return $mime;
-        $type = strtolower(substr($filename, $pos + 1));
-        if (isset($mimeType[$type])) {
-            $mime = $mimeType[$type];
-        }
-        return $mime;
-    }
 }

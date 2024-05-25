@@ -254,6 +254,62 @@ class Helper{
         //isset($_SERVER['HTTP_ACCEPT']) && ( $_SERVER['HTTP_ACCEPT']=='text/javascript, application/javascript, */*' || $_SERVER['HTTP_ACCEPT']=='application/json, text/javascript, */*')
         return Request::isAjax();
     }
+    /**
+     * 简要的mime_type类型
+     * @param string $filename
+     * @return string
+     */
+    public static function minMimeType($filename)
+    {
+        if (function_exists('mime_content_type')) {
+            return mime_content_type($filename);
+        }
+
+        static $mimeType = array(
+            'bmp' => 'image/bmp',
+            'gif' => 'image/gif',
+            'jpe' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'jpg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'ico' => 'image/x-icon',
+
+            'aac' => 'audio/aac',
+            'mp3' => 'audio/mpeg',
+            'wav' => 'audio/x-wav',
+            'ogg' => 'audio/ogg',
+
+            'avi' => 'video/x-msvideo',
+            'mp4' => 'video/mp4',
+            'mpeg' => 'video/mpeg',
+            'ogv' => 'video/ogg',
+            'webm' => 'video/webm',
+            'flv' => 'video/x-flv',
+
+            'txt' => 'text/plain',
+            'csv' => 'text/csv',
+            'xml' => 'application/xml',
+            'pdf' => 'application/pdf',
+            'doc' => 'application/msword',
+            'ppt' => 'application/vnd.ms-powerpoint',
+            'xls' => 'application/vnd.ms-excel',
+            'xlt' => 'application/vnd.ms-excel',
+
+            'tar' => 'application/x-tar',
+            '7z' => 'application/x-7z-compressed',
+            'rar' => 'application/x-rar-compressed',
+            'zip' => 'application/zip',
+        );
+        $mime = 'application/octet-stream';
+        $pos = strrpos($filename, '.');
+        if (!$pos) return $mime;
+        $type = strtolower(substr($filename, $pos + 1));
+        if (isset($mimeType[$type])) {
+            $mime = $mimeType[$type];
+        }
+        return $mime;
+    }
     //json_encode 缩写
     public static function toJson($res, $option=0){
         if ($option == 0 && defined('JSON_UNESCAPED_UNICODE')) {

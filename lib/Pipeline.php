@@ -71,9 +71,9 @@ class Pipeline
      */
     public function then(\Closure $destination)
     {
-        $pipeline = array_reduce(
-            array_reverse($this->pipes),
-            function ($carry, $pipe) { //$carry上一次迭代的返回值, $pipe本次迭代的值,
+        $pipeline = array_reduce( //用回调函数迭代地将数组简化为单一的值
+            array_reverse($this->pipes), //array:输入数据取相反数组数据
+            function ($carry, $pipe) { //callback:回调函数, $carry上一次迭代的返回值, $pipe本次迭代的值,
                 return function ($passable) use ($carry, $pipe) {
                     try {
                         if (is_callable($pipe)) {
@@ -89,7 +89,7 @@ class Pipeline
                     }
                 };
             },
-            function ($passable) use ($destination) {
+            function ($passable) use ($destination) { //initial:初始值
                 //所有管道处理汇总后到这里
                 try {
                     return $destination($passable);

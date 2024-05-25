@@ -84,6 +84,8 @@ return array(
     'cookie_same_site' => false,
     //中间件
     'middleware' => [
+        //\myphp\middleware\Cors::class,
+        //\myphp\middleware\Options::class
         //'xx::class', ...
     ],
 	//权限验证

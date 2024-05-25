@@ -10,7 +10,7 @@ class HttpReqInfo
     /**
      * @var null|array
      */
-    public $headers = null;
+    protected $headers = null;
 
     public static $isProxy = false;
     public static $ipHeaders = ['HTTP_X_REAL_IP', 'HTTP_X_FORWARDED_FOR'];
@@ -233,6 +233,15 @@ class HttpReqInfo
         return isset($this->headers[$header_name]) ? $this->headers[$header_name] : $default;
     }
 
+    public function getHeaders()
+    {
+        return $this->header();
+    }
+
+    public function getHeader(string $name)
+    {
+        return $this->header($name);
+    }
     /**
      * 设置指定请求头信息
      * @param $name

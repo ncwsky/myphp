@@ -2,11 +2,12 @@
 
 use myphp\Helper;
 use myphp\Log;
+use myphp\Response;
 
 final class myphp{
     use MyMsg;
-    public static $beforeFun = null; //Control_run之前的处理回调 \Closure() @return void|throw|\myphp\Response
-    public static $authFun = null; //自定义验证回调方法 \Closure @return void|false|throw|\myphp\Response
+    public static $beforeFun = null; //Control_run之前的处理回调 \Closure() @return void|throw|Response
+    public static $authFun = null; //自定义验证回调方法 \Closure @return void|false|throw|Response
     public static $sendFun = null; //自定义输出处理 \Closure($code, $data, $header)
     public static $lang = [];
     public static $env = []; //Run执行时的环境值 array
@@ -139,13 +140,13 @@ final class myphp{
 
     /**
      * 执行c->a
-     * @return mixed|\myphp\Response|null
+     * @return mixed|Response|null
      * @throws Exception
      */
     private static function _runCA(){
         //权限验证处理
         $res = self::$authFun instanceof \Closure ? call_user_func(self::$authFun) : self::Auth();
-        if ($res instanceof \myphp\Response) return $res;
+        if ($res instanceof Response) return $res;
         if (false === $res) return self::res()->withBody(Helper::outMsg('auth fail'));
         // 请求缓存处理
         $res = self::reqCache();
@@ -160,7 +161,7 @@ final class myphp{
             $instance = new $control();
             $res = $instance->_run(self::$env['ACTION']);
         }
-        if ($res !== null && !$res instanceof \myphp\Response) {
+        if ($res !== null && !$res instanceof Response) {
             self::res()->body = $res;
             $res = self::res();
         }
@@ -178,7 +179,7 @@ final class myphp{
         self::$sendFun = $sendFun;
         try {
             /**
-             * @var \myphp\Response|null $res
+             * @var Response|null $res
              */
             $res = null;
             //有中间件配置时走管道模式
@@ -187,7 +188,7 @@ final class myphp{
                 if(self::$beforeFun instanceof \Closure){
                     array_unshift(self::$cfg['middleware'], function($request, $next){
                         $data = call_user_func(self::$beforeFun);
-                        if ($data instanceof \myphp\Response) return $data;
+                        if ($data instanceof Response) return $data;
                         return $next($request);
                     });
                 }
@@ -200,7 +201,7 @@ final class myphp{
                 if (self::$beforeFun instanceof \Closure) {
                     $res = call_user_func(self::$beforeFun);
                 }
-                if ($res === null || !$res instanceof \myphp\Response) {
+                if ($res === null || !$res instanceof Response) {
                     $res = self::_runCA();
                 }
             }
@@ -229,14 +230,14 @@ final class myphp{
     }
 
     /** 输出数据到页面
-     * @param mixed|\myphp\Response $res
+     * @param mixed|Response $res
      * @param int $code
      * @param int $expire //请求缓存时间
      * @throws Exception
      */
     public static function send($res, $code=200, $expire=0){
         //非response处理
-        if (! $res instanceof \myphp\Response) {
+        if (! $res instanceof Response) {
             self::$statusCode = $code;
             self::res()->body = $res;
             $res = self::res();
@@ -266,7 +267,7 @@ final class myphp{
     }
     /**
      * 请求缓存处理
-     * @return false|\myphp\Response
+     * @return false|Response
      * @throws Exception
      */
     private static function reqCache(){
@@ -571,7 +572,7 @@ final class myphp{
     }
     /**
      * 权限验证处理 在config.php配置中设置开启
-     * @return \myphp\Response|bool|void
+     * @return Response|bool|void
      */
     public static function Auth(){
         if(!self::$cfg['auth_on']) return;
@@ -600,7 +601,7 @@ final class myphp{
         //仅登陆验证
         if(strpos( self::$cfg['auth_login_model'] , ','.$c.',')!==false || strpos( self::$cfg['auth_login_action'] , ','.$c.'/'.$a.',')!==false){
             $res = $auth->$auth_login();
-            if ($res instanceof \myphp\Response) return $res;
+            if ($res instanceof Response) return $res;
             if (!$res) {
                 $redirect = (strpos(self::$cfg['auth_gateway'], 'http') === 0 ? '' : ROOT_DIR) . self::$cfg['auth_gateway'];
                 if (!Helper::isAjax() || $c == self::$cfg['def_control']) {
@@ -797,13 +798,13 @@ final class myphp{
         return self::$container[$k];
     }
     /**
-     * @return \myphp\Response
+     * @return Response
      */
     public static function res()
     {
         $k = 'response';
         if (!isset(self::$container[$k])) {
-            self::$container[$k] = new \myphp\Response();
+            self::$container[$k] = new Response();
         }
         return self::$container[$k];
     }
@@ -876,63 +877,61 @@ final class myphp{
             //    $uri = self::$cfg['url_maps'][Helper::getMethod().' '.$url];
         }else{ //动态url '/news/<id>[-<page>][-<pl>]'=>'info/lists?<id>[&<page>][&<pl>]',
             foreach(self::$cfg['url_maps'] as $k=>$v){
-                $reg_match = false;
-                if(false!==$pos=strpos($k,'<')){ //是动态执行分析
-                    $reg_match = true; $vars = array(); //解析变量数组
-                    if(strpos($k,'[')){ //可选参数或特殊regx模式
-                        $k = str_replace(array('[',']'),array('(',')?'),$k);
-                        //$reg_match = true;
-                    }
-                    do{
-                        $end = strpos($k,'>',$pos);
-                        $var = $__var = substr($k,$pos+1,$end-$pos-1);
-                        $regx='(\w+)'; //字符数字下划线
-                        if($depr=strpos($__var,'\\')){
-                            $type = substr($__var,-1);
-                            $var = substr($__var,0,$depr);
-                            if($type=='d'){ //仅数字
-                                $regx='(\d+)';
-                            }elseif($type=='s'){ //仅字母
-                                $regx='([A-Za-z]+)';
-                            }elseif($type=='a'){ //非空白字符
-                                $regx='(\S+)';
-                            }elseif($type=='!'){ //正则 <all\*!> -> '*'=>'(.*)'
-                                $x = substr($__var,$depr+1,-1);
-                                $regx = isset(self::$cfg['url_maps_regx'][$x]) ? self::$cfg['url_maps_regx'][$x] : '([\w=]+)';
-                                $regx = str_replace('.','#dot',$regx);
-                            }
-                        }
-                        $vars[$var]=true;
-                        if(substr($k,$end+1,2)==')?')//可选 "]"->")?"
-                            $vars[$var]=false;
-                        $k = str_replace('<'.$__var.'>',$regx,$k);
-                        $pos=strpos($k,'<',$pos);
-                    } while ($pos);
+                $pos = strpos($k, '<');
+                if (false === $pos) continue; //非动态url
 
-                    $k = str_replace(array('.','#','#dot'),array('\.','\#','.'),$k);
+                //是动态执行分析
+                $vars = []; //解析变量数组
+                if(strpos($k,'[')){ //可选参数或特殊regx模式
+                    $k = str_replace(array('[',']'),array('(',')?'),$k);
                 }
-
-                if($reg_match){
-                    //Log::trace($k.'|||'.$url);Log::trace($vars);
-                    if (preg_match ('#^'.$k.'$#u', $url, $regArr)) {
-                        $count = count($regArr);
-                        if(isset($vars) && $count>1){
-                            //var_dump($regArr);
-                            $count -= 1; //排除正则全匹配的第一项
-                            $i = 1;
-                            foreach($vars as $_k=>$_v){
-                                if($_v) $vars[$_k]=$regArr[$i];
-                                else $vars[$_k]=$regArr[++$i]; //可选 因是双括号匹配 目标索引得加1
-                                if(++$i>$count) break;
-                            }
-                            //$_GET = $vars;
-                            $_GET = array_merge($_GET, $vars);
-                            unset($regArr, $vars);
+                do{
+                    $end = strpos($k,'>',$pos);
+                    $var = $__var = substr($k,$pos+1,$end-$pos-1);
+                    $regx='(\w+)'; //字符数字下划线
+                    if($depr=strpos($__var,'\\')){
+                        $type = substr($__var,-1);
+                        $var = substr($__var,0,$depr);
+                        if($type=='d'){ //仅数字
+                            $regx='(\d+)';
+                        }elseif($type=='s'){ //仅字母
+                            $regx='([A-Za-z]+)';
+                        }elseif($type=='a'){ //非空白字符
+                            $regx='(\S+)';
+                        }elseif($type=='!'){ //正则 <all\*!> -> '*'=>'(.*)'
+                            $x = substr($__var,$depr+1,-1);
+                            $regx = isset(self::$cfg['url_maps_regx'][$x]) ? self::$cfg['url_maps_regx'][$x] : '([\w=]+)';
+                            $regx = str_replace('.','#dot',$regx);
                         }
-                        //var_dump($_GET);//Log::trace($_GET);
-                        $uri = $v;
-                        break;
                     }
+                    $vars[$var]=true;
+                    if(substr($k,$end+1,2)==')?')//可选 "]"->")?"
+                        $vars[$var]=false;
+                    $k = str_replace('<'.$__var.'>',$regx,$k);
+                    $pos=strpos($k,'<',$pos);
+                } while ($pos);
+
+                $k = str_replace(array('.','#','#dot'),array('\.','\#','.'),$k);
+                //todo 缓存解析后的动态url规则
+                //Log::trace($k.'|||'.$url);Log::trace($vars);
+                if (preg_match ('#^'.$k.'$#u', $url, $regArr)) {
+                    $count = count($regArr);
+                    if(isset($vars) && $count>1){
+                        //var_dump($regArr);
+                        $count -= 1; //排除正则全匹配的第一项
+                        $i = 1;
+                        foreach($vars as $_k=>$_v){
+                            if($_v) $vars[$_k]=$regArr[$i];
+                            else $vars[$_k]=$regArr[++$i]; //可选 因是双括号匹配 目标索引得加1
+                            if(++$i>$count) break;
+                        }
+                        //$_GET = $vars;
+                        $_GET = array_merge($_GET, $vars);
+                        unset($regArr, $vars);
+                    }
+                    //var_dump($_GET);//Log::trace($_GET);
+                    $uri = $v;
+                    break;
                 }
             }
         }
@@ -1171,6 +1170,14 @@ trait MyMsg
             self::msg($msg, $code);
             return false;
         }
+    }
+
+    //错误提示设置并返回null
+    public static function errNil($msg, $code = 1)
+    {
+        self::$myMsg = $msg;
+        self::$myCode = $code;
+        return null;
     }
 }
 /**
