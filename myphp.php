@@ -11,8 +11,6 @@ final class myphp{
     public static $sendFun = null; //自定义输出处理 \Closure($code, $data, $header)
     public static $lang = [];
     public static $env = []; //Run执行时的环境值 array
-    public static $header = [];
-    public static $statusCode = 200;
     /**
      * 管道模式
      * @var \myphp\Pipeline
@@ -140,7 +138,7 @@ final class myphp{
 
     /**
      * 执行c->a
-     * @return mixed|Response|null
+     * @return Response|void|null
      * @throws Exception
      */
     private static function _runCA(){
@@ -167,6 +165,41 @@ final class myphp{
         }
         return $res;
     }
+
+    /**
+     * @return mixed|Response|null
+     * @throws Exception
+     */
+    public static function handle(){
+        /**
+         * @var Response|null $res
+         */
+        $res = null;
+        //有中间件配置时走管道模式
+        if (self::$cfg['middleware']) {
+            //前置处理
+            if(self::$beforeFun instanceof \Closure){
+                array_unshift(self::$cfg['middleware'], function($request, $next){
+                    $data = call_user_func(self::$beforeFun);
+                    if ($data instanceof Response) return $data;
+                    return $next($request);
+                });
+            }
+            //c->a执行
+            $res = self::$pipe->send(self::req())->through(self::$cfg['middleware'])->then(function ($request){
+                return self::_runCA();
+            });
+        } else {
+            //前置处理
+            if (self::$beforeFun instanceof \Closure) {
+                $res = call_user_func(self::$beforeFun);
+            }
+            if ($res === null || !$res instanceof Response) {
+                $res = self::_runCA();
+            }
+        }
+        return $res;
+    }
     /**
      * 运行程序 $isCli 可设置CLI模式下false用于解析数据的参数
      * @param null $sendFun
@@ -178,38 +211,12 @@ final class myphp{
         self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法及初始化
         self::$sendFun = $sendFun;
         try {
-            /**
-             * @var Response|null $res
-             */
-            $res = null;
-            //有中间件配置时走管道模式
-            if (self::$cfg['middleware']) {
-                //前置处理
-                if(self::$beforeFun instanceof \Closure){
-                    array_unshift(self::$cfg['middleware'], function($request, $next){
-                        $data = call_user_func(self::$beforeFun);
-                        if ($data instanceof Response) return $data;
-                        return $next($request);
-                    });
-                }
-                //c->a执行
-                $res = self::$pipe->send(self::req())->through(self::$cfg['middleware'])->then(function ($request){
-                    return self::_runCA();
-                });
-            } else {
-                //前置处理
-                if (self::$beforeFun instanceof \Closure) {
-                    $res = call_user_func(self::$beforeFun);
-                }
-                if ($res === null || !$res instanceof Response) {
-                    $res = self::_runCA();
-                }
-            }
-            $res!==null && self::send($res, self::$statusCode, self::req()->expire);
+            $res = self::handle();
+            $res!==null && self::send($res, self::res()->getStatusCode(), self::req()->expire);
         } catch (\Exception $e) {
             $errCode = $e->getCode();
             //匹配状态码时 //$errCode==404 || $errCode==200
-            if ($errCode >= 200 && $errCode < 500 && isset(self::$httpCodeStatus[$errCode])) {
+            if ($errCode >= 200 && $errCode < 500 && isset(Response::$phrases[$errCode])) {
                 self::send($e->getMessage(), $errCode);
             } else {
                 self::send($e->getMessage() . (self::$cfg['debug'] ? "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : ''), 500);
@@ -225,8 +232,6 @@ final class myphp{
         self::$cfg = $_init_cfg;
         self::$env = [];
         self::$lang = [];
-        self::$header = [];
-        self::$statusCode = 200;
     }
 
     /** 输出数据到页面
@@ -238,36 +243,35 @@ final class myphp{
     public static function send($res, $code=200, $expire=0){
         //非response处理
         if (! $res instanceof Response) {
-            self::$statusCode = $code;
-            self::res()->body = $res;
+            self::res()->setStatusCode($code)->body = $res;
             $res = self::res();
         }
         //有请求缓存设置
         if (200 == $code && self::$req_cache) {
             if ($expire > 0) self::$req_cache[1] = $expire;
-            self::$header['Cache-Control'] = 'max-age=' . self::$req_cache[1] . ',must-revalidate';
-            self::$header['Last-Modified'] = gmdate('D, d M Y H:i:s') . ' GMT';
-            self::$header['Expires'] = gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME'] + self::$req_cache[1]) . ' GMT';
+            $res->header['Cache-Control'] = 'max-age=' . self::$req_cache[1] . ',must-revalidate';
+            $res->header['Last-Modified'] = gmdate('D, d M Y H:i:s') . ' GMT';
+            $res->header['Expires'] = gmdate('D, d M Y H:i:s', $_SERVER['REQUEST_TIME'] + self::$req_cache[1]) . ' GMT';
             //缓存内容和输出头
-            self::$cfg['cache'] && self::cache()->set(self::$req_cache[0], [$res->body, self::$header], self::$req_cache[1]);
+            self::$cfg['cache'] && self::cache()->set(self::$req_cache[0], [$res->body, $res->header], self::$req_cache[1]);
         }
         //默认输出类型设置
-        if(!isset(self::$header['Content-Type'])){
-            self::conType(Helper::isAjax() ? 'application/json' : 'text/html');
+        if (!isset($res->header['Content-Type'])) {
+            $res->setContentType(Helper::isAjax() ? Response::CONTENT_TYPE_JSON : Response::CONTENT_TYPE_HTML);
         }
         // 监听res_send
         \myphp\Hook::listen('res_send', $res);
         if (self::$sendFun === null) {
             $res->send();
         } else {
-            call_user_func_array(self::$sendFun, [$code, &$res, &self::$header]);
+            call_user_func_array(self::$sendFun, [$code, &$res, &$res->header]);
         }
         // 监听res_end
         \myphp\Hook::listen('res_end', $res);
     }
     /**
      * 请求缓存处理
-     * @return false|Response
+     * @return Response|false
      * @throws Exception
      */
     private static function reqCache(){
@@ -298,7 +302,7 @@ final class myphp{
             if (self::$cfg['cache']){
                 //有页面缓存
                 if($res = self::cache()->get($reqKey)) {
-                    self::setHeader($res[1]);
+                    self::res()->setHeader($res[1]);
                     self::res()->body = $res[0];
                     return self::res()->setStatusCode(200);
                 }
@@ -308,89 +312,9 @@ final class myphp{
         }
         return false;
     }
-    public static $httpCodeStatus = [
-        100 => 'Continue',
-        101 => 'Switching Protocols',
-        102 => 'Processing',
-        200 => 'OK',
-        201 => 'Created',
-        202 => 'Accepted',
-        203 => 'Non-Authoritative Information',
-        204 => 'No Content',
-        205 => 'Reset Content',
-        206 => 'Partial Content',
-        300 => 'Multiple Choices',
-        301 => 'Moved Permanently',
-        302 => 'Found',
-        303 => 'See Other',
-        304 => 'Not Modified',
-        305 => 'Use Proxy',
-        400 => 'Bad Request',
-        401 => 'Unauthorized',
-        403 => 'Forbidden',
-        404 => 'Not Found',
-        405 => 'Method Not Allowed',
-        409 => 'Conflict',
-        410 => 'Gone',
-        412 => 'Precondition Failed',
-        413 => 'Request Entity Too Large',
-        415 => 'Unsupported Media Type',
-        416 => 'Range Not Satisfiable',
-        423 => 'Locked',
-        460 => 'Checksum Mismatch',
-        500 => 'Internal Server Error',
-        501 => 'Not Implemented',
-        502 => 'Bad Gateway',
-        503 => 'Service Unavailable',
-        504 => 'Gateway Time-out',
-    ];
-    //http状态输出
-    public static function httpCode($code=200){
-        if(!isset(self::$httpCodeStatus[$code])) $code=200;
-        $msg = self::$httpCodeStatus[$code];
-        $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1');
-        header($protocol.' '.$code.' '.$msg);
-    }
-    //http头输出
-    public static function sendHeader(){
-        if(!self::$header) return;
-        foreach (self::$header as $name => $val) {
-            if (is_array($val)) {
-                $replace = true;
-                foreach ($val as $v) {
-                    header($name . ':' . $v, $replace);
-                    $replace = false;
-                }
-            } else {
-                header($name . ':' . $val);
-            }
-        }
-        self::$header = [];
-    }
     //输出头设置
     public static function setHeader($name, $val=null, $append=false){
-        if (is_array($name)) {
-            self::$header = array_merge(self::$header, $name);
-        } else {
-            //首字母大写
-            if (strpos($name, '-')) $name = strtr(ucwords(strtr($name, '-', ' ')), ' ', '-');
-            if ($val === null) {
-                unset(self::$header[$name]);
-            } else {
-                if ($append) {
-                    if (isset(self::$header[$name])) {
-                        if (!is_array(self::$header[$name])) {
-                            self::$header[$name] = (array)self::$header[$name];
-                        }
-                    } else {
-                        self::$header[$name] = [];
-                    }
-                    self::$header[$name][] = $val;
-                } else {
-                    self::$header[$name] = $val;
-                }
-            }
-        }
+        self::res()->setHeader($name, $val, $append);
     }
     public static function rawBody(){
         return self::req()->rawBody();
@@ -401,7 +325,7 @@ final class myphp{
     //输出类型设置
     public static function conType($conType, $charset = '')
     {
-        self::$header['Content-Type'] = $conType . '; charset=' . ($charset ?: self::$cfg['charset']);
+        self::res()->setContentType($conType, $charset);
     }
     /**
      * 解析URL获得控制器的与方法
@@ -707,10 +631,6 @@ final class myphp{
 
         if(!defined('APP_PATH')){
             define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']) . '/app');
-            if (!IS_CLI) {
-                self::conType(Helper::isAjax() ? 'application/json' : 'text/html'); //默认输出类型设置
-                self::sendHeader();
-            }
         }
         self::$pipe = new \myphp\Pipeline();
     }
@@ -795,7 +715,11 @@ final class myphp{
         if (!isset(self::$container[$k])) {
             self::$container[$k] = new \myphp\Request();
         }
-        return self::$container[$k];
+        if (!isset(self::$env[$k])) {
+            self::$env[$k] = clone self::$container[$k]; //每次请求使用新的对象
+        }
+        return self::$env[$k];
+        //return self::$container[$k];
     }
     /**
      * @return Response
@@ -806,7 +730,11 @@ final class myphp{
         if (!isset(self::$container[$k])) {
             self::$container[$k] = new Response();
         }
-        return self::$container[$k];
+        if (!isset(self::$env[$k])) {
+            self::$env[$k] = clone self::$container[$k]; //每次请求使用新的对象
+        }
+        return self::$env[$k];
+        //return self::$container[$k];
     }
     /**
      * db实例化

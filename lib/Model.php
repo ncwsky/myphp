@@ -341,6 +341,7 @@ class Model implements \ArrayAccess
             if($this->_oldData){
                 $this->_data = array_merge($this->_oldData,$this->_data);
             }
+            $this->db->resetOptions(); //清除执行的条件 防条件被附加到下次执行的条件中
             $this->afterSave(false, $changed);
         } else {
             $result = $this->db->add($this->_data); //返回新增id

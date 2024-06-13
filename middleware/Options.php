@@ -21,10 +21,11 @@ class Options
     public function process(Request $request, \Closure $next)
     {
         if (Request::method() == 'OPTIONS') {
-            if (!isset(\myphp::$header['Allow'])) {
-                \myphp::setHeader('Allow', $this->allow);
+            $res = \myphp::res();
+            if (!isset($res->header['Allow'])) {
+                $res->setHeader('Allow', $this->allow);
             }
-            return \myphp::res();
+            return $res;
         }
         return $next($request);
     }

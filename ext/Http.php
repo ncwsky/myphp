@@ -562,7 +562,7 @@ class Http
         if (is_array($header)) {
             $headers = '';
             foreach ($header as $k => $v) {
-                $headers .= "\r\n" . (is_int($k) ? $v : $k . ':' . $v);
+                $headers .= "\r\n" . (is_int($k) ? $v : $k . ': ' . $v);
             }
             return substr($headers, 2);
         }

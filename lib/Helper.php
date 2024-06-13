@@ -185,7 +185,7 @@ class Helper{
         if($url!='nil') //提示不跳转
             $out_html .= '<p class="jump">页面自动 <a id="href" href="'.$jumpUrl.'">跳转</a>  等待时间： <b id="time">'.$time.'</b></p></div><script type="text/javascript">var pgo=0,t=setInterval(function(){var time=document.getElementById("time");var val=parseInt(time.innerHTML)-1;time.innerHTML=val;if(val<=0){clearInterval(t);if(pgo==0){pgo=1;'.$js.';}}},1000);</script></body></html>';
         if(IS_CLI) {
-            \myphp::conType('text/html');
+            \myphp::res()->setContentType(Response::CONTENT_TYPE_HTML);
             return $out_html;
         }
         exit($out_html);

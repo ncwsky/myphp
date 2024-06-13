@@ -88,14 +88,14 @@ class Control
 
     /**
      * @param $result
-     * @return mixed
+     * @return Response|mixed|null
      */
     protected function _after($result){
         if (!empty(myphp::$cfg['gzip'])) {
-            if ($result instanceof \myphp\Response) {
+            if ($result instanceof Response) {
                 $body = $result->getBody();
                 if (strlen($body) > myphp::$cfg['gzip_min_length']) {
-                    myphp::setHeader('Content-Encoding', 'gzip');
+                    $result->setHeader('Content-Encoding', 'gzip');
                     $result->body = gzencode($body, myphp::$cfg['gzip_comp_level']);
                 }
                 return $result;
@@ -105,14 +105,19 @@ class Control
                 $result = Helper::toJson($result);
             }
             if (strlen($result) > myphp::$cfg['gzip_min_length']) {
-                myphp::setHeader('Content-Encoding', 'gzip');
+                $this->response->setHeader('Content-Encoding', 'gzip');
                 $result = gzencode($result, myphp::$cfg['gzip_comp_level']);
             }
         }
         return $result;
     }
 
-    //执行动作
+    /**
+     * 执行动作
+     * @param string $action
+     * @return mixed|Response|null
+     * @throws \Exception
+     */
     final function _run($action)
     {
         //判断实例中是否存在action方法，不存在则提示错误
@@ -135,7 +140,7 @@ class Control
     //在子类控制器及方法中调用 显示模板 非cli模式下使用
     final function display($file = '', $var = null, $htmlEncode=null)
     {
-        myphp::conType('text/html');
+        $this->response->setContentType(Response::CONTENT_TYPE_HTML);
         if ($htmlEncode === null) $htmlEncode = $this->htmlEncode;
         $content = $this->view->fetch($file, $var, $htmlEncode);
         if (IS_CLI) return $content;
@@ -157,8 +162,6 @@ class Control
         if ($htmlEncode === null) $htmlEncode = $this->htmlEncode;
         $this->response->body = $this->view->fetch($file, $var, $htmlEncode);
         return $this->response->setContentType(Response::CONTENT_TYPE_HTML);
-        //\myphp::conType('text/html');
-        //return $this->view->fetch($file, $var);
     }
     final static function redirect($url, $code=302){
         return myphp::res()->redirect($url, $code);
@@ -173,8 +176,6 @@ class Control
     {
         myphp::res()->body = $data;
         return myphp::res()->setContentType(Response::CONTENT_TYPE_HTML);
-        //\myphp::conType('text/html');
-        //return $data;
     }
 
     /**
@@ -186,8 +187,6 @@ class Control
     final static function json($data, $encode=true){
         myphp::res()->body = $encode ? Helper::toJson($data) : $data;
         return myphp::res()->setContentType(Response::CONTENT_TYPE_JSON);
-        //\myphp::conType('application/json');
-        //return Helper::toJson($data);
     }
 
     /**
@@ -205,8 +204,6 @@ class Control
         }
         myphp::res()->body = $jsonp_call . '(' . $data . ');';
         return myphp::res()->setContentType(Response::CONTENT_TYPE_JSONP);
-        //\myphp::conType('application/javascript');
-        //return $jsonp_call . '(' . $data . ');';
     }
 
     /**
@@ -218,7 +215,5 @@ class Control
     final static function xml($data, $encode=true){
         myphp::res()->body = $encode ? Helper::toXml($data) : $data;
         return myphp::res()->setContentType(Response::CONTENT_TYPE_XML);
-        //\myphp::conType('application/xml');
-        //return Helper::toXml($data);
     }
 }

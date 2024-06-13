@@ -105,7 +105,7 @@ class Value{
             }
             #非64位的max min将会是数字字符串
             if(PHP_INT_SIZE === 8){
-                if ($type == 'f') {
+                if (strpos($rule,'f') !== false) {
                     if($max!==null) $max = $max === '' ? null : (float)$max;
                     if($min!==null) $min = $min === '' ? null : (float)$min;
                 } else {
@@ -124,7 +124,7 @@ class Value{
                 $type=substr($type,-1);
             }
         } else {
-            $type = 's';
+            $type = $rule; //兼容未指定%修饰符 非匹配时默认使用s处理
         }
     }
 

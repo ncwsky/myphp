@@ -417,7 +417,7 @@ class Db {
     }
 
     /**
-     * @param array|string $case
+     * @param array|string $case 'xxxx'|['xx'=>1, ...]|['and'|'or', 'xx'=>1, ...]
      * @param null|array|string $args
      * @return string|string[]
      */
@@ -425,12 +425,17 @@ class Db {
 		$where = '';
 		if(is_array($case)){ //数组组合条件
             if ($args !== 'or') $args = 'and';
+            if (isset($case[0]) && ($case[0] == 'and' || $case[0] == 'or')) {
+                $args = $case[0];
+                unset($case[0]);
+            }
 			foreach($case as $k=>$v){
 			    if(is_int($k)){ // '1=1'
                     $field = $v;
                 }else{  // ['a'=>1] || ['a::like'=>'%s%']
                     $operator = '=';
-                    if ($pos = strpos($k, '::')) {
+                    $pos = strpos($k, '::');
+                    if ($pos!==false) {
                         $operator = trim(substr($k, $pos + 2));
                         $operator = $operator == '' ? '=' : ' ' . $operator . ' ';
                         $k = substr($k, 0, $pos);
@@ -461,12 +466,13 @@ class Db {
                             break;
                     }
                 }
-                $where .= ($where == '' ? $field : ' ' . $args . ' ' . $field);
+                $where .= ($where === '' ? $field : ' ' . $args . ' ' . $field);
 			}
-		}elseif(is_string($case)){ //参数绑定方式条件
-			$where = is_array($args)?$this->get_real_sql($case, $args):$case;
-		}
-		return $where;
+            if ($args === 'or') $where = '(' . $where . ')';
+        } elseif (is_string($case)) { //参数绑定方式条件
+            $where = is_array($args) ? $this->get_real_sql($case, $args) : $case;
+        }
+        return $where;
 	}
 	//sql处理 记数
 	private function _run_init(&$sql, $bind=null, $curd=false){

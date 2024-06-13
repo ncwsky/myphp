@@ -670,7 +670,7 @@ function cookie($name, $value='', $option=null) {
                 continue;
             }
             if (IS_CLI) {
-                myphp::$header['Set-Cookie'][] = $name . "=deleted; expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0"
+                myphp::res()->header['Set-Cookie'][] = $name . "=deleted; expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0"
                     . ($config['path'] ? '; Path=' . $config['path'] : '')
                     . ($config['domain'] ? '; Domain=' . $config['domain'] : '')
                     . ($config['secure'] ? '; Secure' : '')
@@ -696,10 +696,10 @@ function cookie($name, $value='', $option=null) {
             return $value;
         }
     } else {
-        if (!isset(myphp::$header['Set-Cookie'])) myphp::$header['Set-Cookie'] = [];
+        if (!isset(myphp::res()->header['Set-Cookie'])) myphp::res()->header['Set-Cookie'] = [];
         if (is_null($value)) {//删除cookie值
             if (IS_CLI) {
-                myphp::$header['Set-Cookie'][] = $name . "=deleted; expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0"
+                myphp::res()->header['Set-Cookie'][] = $name . "=deleted; expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0"
                     . ($config['path'] ? '; Path=' . $config['path'] : '')
                     . ($config['domain'] ? '; Domain=' . $config['domain'] : '')
                     . ($config['secure'] ? '; Secure' : '')
@@ -716,7 +716,7 @@ function cookie($name, $value='', $option=null) {
             }
             $value = $encode ? sys_auth($value, 'ENCODE') : $value;
             if (IS_CLI) {
-                myphp::$header['Set-Cookie'][] = $name . '=' . \rawurlencode($value)
+                myphp::res()->header['Set-Cookie'][] = $name . '=' . \rawurlencode($value)
                     . ($config['expire'] ? '; Expires=' . \gmdate('D, d M Y H:i:s \G\M\T', time() + $config['expire']) : '')
                     . ($config['expire'] ? '; Max-Age=' . $config['expire'] : '')
                     . ($config['path'] ? '; Path=' . $config['path'] : '')

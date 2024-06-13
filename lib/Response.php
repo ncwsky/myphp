@@ -11,6 +11,92 @@ class Response
      */
     public $body;
 
+    public $header = [];
+    /**
+     * @var int
+     */
+    private $statusCode = 200;
+
+    public static $phrases = [
+        // Informational 1xx
+        100 => 'Continue',
+        101 => 'Switching Protocols',
+        102 => 'Processing',
+        103 => 'Early Hints',
+        // Successful 2xx
+        200 => 'OK',
+        201 => 'Created',
+        202 => 'Accepted',
+        203 => 'Non-Authoritative Information',
+        204 => 'No Content',
+        205 => 'Reset Content',
+        206 => 'Partial Content',
+        207 => 'Multi-Status',
+        208 => 'Already Reported',
+        226 => 'IM Used',
+        // Redirection 3xx
+        300 => 'Multiple Choices',
+        301 => 'Moved Permanently',
+        302 => 'Found',
+        303 => 'See Other',
+        304 => 'Not Modified',
+        305 => 'Use Proxy',
+        307 => 'Temporary Redirect',
+        308 => 'Permanent Redirect',
+        // Client Errors 4xx
+        400 => 'Bad Request',
+        401 => 'Unauthorized',
+        402 => 'Payment Required',
+        403 => 'Forbidden',
+        404 => 'Not Found',
+        405 => 'Method Not Allowed',
+        406 => 'Not Acceptable',
+        407 => 'Proxy Authentication Required',
+        408 => 'Request Timeout',
+        409 => 'Conflict',
+        410 => 'Gone',
+        411 => 'Length Required',
+        412 => 'Precondition Failed',
+        413 => 'Payload Too Large',
+        414 => 'URI Too Long',
+        415 => 'Unsupported Media Type',
+        416 => 'Range Not Satisfiable',
+        417 => 'Expectation Failed',
+        418 => 'I\'m a teapot',
+        421 => 'Misdirected Request',
+        422 => 'Unprocessable Entity',
+        423 => 'Locked',
+        424 => 'Failed Dependency',
+        425 => 'Too Early',
+        426 => 'Upgrade Required',
+        428 => 'Precondition Required',
+        429 => 'Too Many Requests',
+        431 => 'Request Header Fields Too Large',
+        451 => 'Unavailable For Legal Reasons',
+        // Server Errors 5xx
+        500 => 'Internal Server Error',
+        501 => 'Not Implemented',
+        502 => 'Bad Gateway',
+        503 => 'Service Unavailable',
+        504 => 'Gateway Timeout',
+        505 => 'HTTP Version Not Supported',
+        506 => 'Variant Also Negotiates',
+        507 => 'Insufficient Storage',
+        508 => 'Loop Detected',
+        510 => 'Not Extended',
+        511 => 'Network Authentication Required',
+    ];
+
+    /**
+     * @var string
+     */
+    private $reasonPhrase = '';
+
+    /**
+     * @var string
+     */
+    private $protocol = '1.1';
+
     /**
      * @var string 输出文件
      */
@@ -56,6 +142,32 @@ class Response
         return $this->body;
     }
 
+    //输出头设置
+    public function setHeader($name, $val=null, $append=false){
+        if (is_array($name)) {
+            $this->header = array_merge($this->header, $name);
+        } else {
+            //首字母大写
+            if (strpos($name, '-')) $name = strtr(ucwords(strtr($name, '-', ' ')), ' ', '-');
+            if ($val === null) {
+                unset($this->header[$name]);
+            } else {
+                if ($append) {
+                    if (isset($this->header[$name])) {
+                        if (!is_array($this->header[$name])) {
+                            $this->header[$name] = (array)$this->header[$name];
+                        }
+                    } else {
+                        $this->header[$name] = [];
+                    }
+                    $this->header[$name][] = $val;
+                } else {
+                    $this->header[$name] = $val;
+                }
+            }
+        }
+        return $this;
+    }
     /**
      * @param array $headers
      * @return $this
@@ -63,7 +175,7 @@ class Response
     public function withHeaders($headers)
     {
         foreach ($headers as $name => $value) {
-            \myphp::setHeader($name, $value);
+            $this->setHeader($name, $value);
         }
         return $this;
     }
@@ -72,12 +184,11 @@ class Response
      * 添加头
      * @param string $name
      * @param string $value
-     * @return $this
+     * @return static
      */
     public function withHeader($name, $value=null)
     {
-        \myphp::setHeader($name, $value);
-        return $this;
+        return $this->setHeader($name, $value);
     }
 
     /**
@@ -86,42 +197,41 @@ class Response
      * @param string $value
      * @return $this
      */
-    public function withAddedHeader($name, $value){
-        \myphp::setHeader($name, $value, true);
-        return $this;
+    public function withAddedHeader($name, $value)
+    {
+        return $this->setHeader($name, $value, true);
     }
 
     /**
      * @param string $name
-     * @return $this
+     * @return static
      */
     public function withoutHeader($name)
     {
-        \myphp::setHeader($name, null);
-        return $this;
+        return $this->setHeader($name, null);
     }
 
     /**
      * @param string $name
      * @param bool $first
-     * @return mixed|null
+     * @return array
      */
     public function getHeader($name, $first = true)
     {
-        if (!isset(\myphp::$header[$name])) return null;
-        if (is_array(\myphp::$header[$name]) && $first) {
-            return reset(\myphp::$header[$name]);
+        if (!isset($this->header[$name])) return [];
+        if (is_array($this->header[$name]) && $first) {
+            return reset($this->header[$name]);
         }
-        return \myphp::$header[$name];
+        return (array)$this->header[$name];
     }
 
     /**
      * @param string $name
-     * @return mixed|null
+     * @return string
      */
     public function getHeaderLine($name)
     {
-        return $this->getHeader($name);
+        return implode(',', $this->getHeader($name));
     }
 
     /**
@@ -129,7 +239,7 @@ class Response
      */
     public function getHeaders()
     {
-        return \myphp::$header;
+        return $this->header;
     }
 
     /**
@@ -138,7 +248,7 @@ class Response
      */
     public function setStatusCode($code)
     {
-        \myphp::$statusCode = (int)$code;
+        $this->statusCode = (int)$code;
         return $this;
     }
 
@@ -148,7 +258,8 @@ class Response
      * @return $this
      */
     public function withStatus(int $code, string $reasonPhrase='') {
-        \myphp::$statusCode = (int)$code;
+        $this->statusCode = (int)$code;
+        $this->reasonPhrase = $reasonPhrase;
         return $this;
     }
 
@@ -157,7 +268,15 @@ class Response
      */
     public function getStatusCode()
     {
-        return \myphp::$statusCode;
+        return $this->statusCode;
+    }
+
+    /**
+     * @return string
+     */
+    public function getReasonPhrase()
+    {
+        return $this->reasonPhrase;
     }
 
     /**
@@ -185,7 +304,7 @@ class Response
      */
     public function setContentType($contentType, $charset = '')
     {
-        \myphp::conType($contentType, $charset);
+        $this->header['Content-Type'] = $contentType . '; charset=' . ($charset ?: \myphp::$cfg['charset']);
         return $this;
     }
 
@@ -325,6 +444,7 @@ class Response
         $this->_outFile = null;
         $this->body = null;
         $this->isSent = false;
+        $this->header = [];
         $this->file = [];
         $this->_range = [];
     }
@@ -334,21 +454,40 @@ class Response
         if ($this->isSent) {
             return;
         }
-        #Log::write(\myphp::req()->header('Range', 'null'),'req '.$_SERVER['REMOTE_PORT']);
         if (!IS_CLI) {
-            #Log::write($this->getHeader('Content-Range').', '.$this->getHeader('Content-Length'), 'res '.\myphp::$statusCode.' '.$_SERVER['REMOTE_PORT']);
-            // 发送状态码
-            \myphp::httpCode(\myphp::$statusCode);
-            $this->sendHeaders();
+            // 发送状态码、头信息
+            $this->sendCode();
+            $this->sendHeader();
         }
         $this->sendBody();
         $this->clear();
         $this->isSent = true;
     }
 
-    protected function sendHeaders(){
-        // 发送头部信息
-        \myphp::sendHeader();
+    //发送状态码
+    public function sendCode($code = 0)
+    {
+        if ($code == 0) $code = $this->statusCode;
+        $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1');
+        header($protocol . ' ' . $code . ' ' . ($this->reasonPhrase ?: (Response::$phrases[$code] ?? '')));
+    }
+
+    //发送头部信息
+    public function sendHeader()
+    {
+        if (!$this->header) return;
+        foreach ($this->header as $name => $val) {
+            if (is_array($val)) {
+                $replace = true;
+                foreach ($val as $v) {
+                    header($name . ':' . $v, $replace);
+                    $replace = false;
+                }
+            } else {
+                header($name . ':' . $val);
+            }
+        }
+        $this->header = [];
     }
     //输出内容
     protected function sendBody()
@@ -425,4 +564,22 @@ class Response
         return [$start, $end];
     }
 
+    public function getProtocolVersion()
+    {
+        return $this->protocol;
+    }
+
+    public function withProtocolVersion(string $version)
+    {
+        if ($version === $this->protocol) {
+            return $this;
+        }
+        $this->protocol = $version;
+        return $this;
+    }
+
+    public function hasHeader(string $name)
+    {
+        return isset($this->header[$name]);
+    }
 }

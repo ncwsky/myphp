@@ -519,12 +519,14 @@ class Redis
     const MULTI                 = 1;
     const PIPELINE              = 2;
 
+    /*
     public function len($str){
         return $this->_is_mb ? mb_strlen($str, '8bit') : strlen($str);
     }
     public function substr($str, $start, $len){
         return $this->_is_mb ? mb_substr($str, $start, $len, '8bit') : substr($str, $start, $len);
     }
+    */
     public function __construct($config = [])
     {
         if (!empty($config)) {
@@ -532,10 +534,12 @@ class Redis
                 $this->$name = $value;
             }
         }
+        /*
+        //func_overload 本特性自 PHP 7.2.0 起废弃，并且自 PHP 8.0.0 起被移除
         if (function_exists('mb_internal_encoding') && (ini_get('mbstring.func_overload')==2 || ini_get('mbstring.func_overload')==7))
         {
             $this->_is_mb = true; // strlen及substr函数被mbstring重载
-        }
+        }*/
     }
     /**
      * Closes the connection when this component is being serialized.
@@ -724,12 +728,12 @@ class Redis
             if (is_array($arg)) { //兼容数组参数
                 $count += count($arg) - 1;
                 foreach ($arg as $item) {
-                    $command .= '$' . $this->len($item) . "\r\n" . $item . "\r\n";
+                    $command .= '$' . strlen($item) . "\r\n" . $item . "\r\n";
                     $srcCommand .= $item . ' ';
                 }
                 continue;
             }
-            $command .= '$' . $this->len($arg) . "\r\n" . $arg . "\r\n";
+            $command .= '$' . strlen($arg) . "\r\n" . $arg . "\r\n";
             $srcCommand .= $arg . ' ';
         }
         $command = '*' . $count . "\r\n" . $command;
@@ -783,7 +787,7 @@ class Redis
         if ($written === false) {
             throw new \Exception("Failed to write to socket.\nRedis command was: " . $command);
         }
-        if ($written !== ($len = $this->len($command))) {
+        if ($written !== ($len = strlen($command))) {
             throw new \Exception("Failed to write to socket. $written of $len bytes written.\nRedis command was: " . $command);
         }
         return $response ? $this->parseResponse($command, $srcCommand) : true;
@@ -801,7 +805,7 @@ class Redis
             throw new \Exception("Failed to read from socket.\nRedis command was: " . $srcCommand);
         }
         $type = $line[0];
-        $line = $this->substr($line, 1, -2);
+        $line = substr($line, 1, -2);
         switch ($type) {
             case '+': // Status reply
                 if ($line === 'OK' || $line === 'PONG') {
@@ -845,10 +849,10 @@ class Redis
                         throw new \Exception("Failed to read from socket.\nRedis command was: " . $srcCommand);
                     }
                     $data .= $block;
-                    $length -= $this->len($block);
+                    $length -= strlen($block);
                 }
-                fread($this->_socket, 2);
-                return $data;//$this->substr($data, 0, -2);
+                fread($this->_socket, 2); //读取结束符
+                return $data;
             case '*': // Multi-bulk replies
                 if ($line == '-1') {
                     return null;
