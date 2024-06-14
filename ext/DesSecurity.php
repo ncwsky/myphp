@@ -119,7 +119,7 @@ class DesSecurity
     private function unPkcsPadding($str)
     {
         //取出最后一个字符串 {15}   ord返回字符的 ASCII 码值
-        $pad = ord($str{strlen($str) - 1});//5
+        $pad = ord($str[strlen($str) - 1]);//5
         //判断$pad的值是否大于本身字符串
         if ($pad > strlen($str)) {
             //如果大于  则多余

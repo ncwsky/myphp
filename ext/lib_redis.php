@@ -202,7 +202,6 @@ class lib_redis{
     public static $isExRedis = null;
     //配置
     protected $options = array(
-        //'name'=>'redis', //创建对象名
         'host' => '127.0.0.1',
         'port' => 6379,
         'password' => '',

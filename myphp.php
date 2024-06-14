@@ -757,7 +757,9 @@ final class myphp{
      */
     public static function redis($name = 'redis'){
         //lib_redis::$isExRedis = false; //不使用redis扩展
-        return lib_redis::getInstance(GetC($name));
+        $conf = GetC($name);
+        if (empty($conf['name'])) $conf['name'] = $name;
+        return lib_redis::getInstance($conf);
     }
     /**
      * 释放容器资源
