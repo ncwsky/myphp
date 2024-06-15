@@ -122,16 +122,15 @@ final class myphp{
     // 获取环境变量的值
     public static function env($name, $def = '')
     {
-        if(isset(self::$env[$name])){
+        if (isset(self::$env[$name])) {
             return self::$env[$name];
         }
-        self::$env[$name] = $def;
         return $def;
     }
     public static function setEnv($name, $val=null){
-        if(is_array($name)){
+        if (is_array($name)) {
             self::$env = self::$env ? array_merge(self::$env, $name) : $name;
-        }else{
+        } else {
             self::$env[$name] = $val;
         }
     }
@@ -194,7 +193,7 @@ final class myphp{
             if (self::$beforeFun instanceof \Closure) {
                 $res = call_user_func(self::$beforeFun);
             }
-            if ($res === null || !$res instanceof Response) {
+            if ($res === null) { // || !$res instanceof Response
                 $res = self::_runCA();
             }
         }
@@ -715,11 +714,11 @@ final class myphp{
         if (!isset(self::$container[$k])) {
             self::$container[$k] = new \myphp\Request();
         }
+        //$id = $k . '.' . self::env('c') . self::env('a');
         if (!isset(self::$env[$k])) {
             self::$env[$k] = clone self::$container[$k]; //每次请求使用新的对象
         }
         return self::$env[$k];
-        //return self::$container[$k];
     }
     /**
      * @return Response
@@ -730,11 +729,11 @@ final class myphp{
         if (!isset(self::$container[$k])) {
             self::$container[$k] = new Response();
         }
+        //$id = $k . '.' . self::env('c') . self::env('a');
         if (!isset(self::$env[$k])) {
             self::$env[$k] = clone self::$container[$k]; //每次请求使用新的对象
         }
         return self::$env[$k];
-        //return self::$container[$k];
     }
     /**
      * db实例化

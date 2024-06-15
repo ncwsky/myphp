@@ -276,7 +276,7 @@ class Response
      */
     public function getReasonPhrase()
     {
-        return $this->reasonPhrase;
+        return $this->reasonPhrase ?: (self::$phrases[$this->statusCode] ?? '');
     }
 
     /**
@@ -465,11 +465,10 @@ class Response
     }
 
     //发送状态码
-    public function sendCode($code = 0)
+    public function sendCode()
     {
-        if ($code == 0) $code = $this->statusCode;
         $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1');
-        header($protocol . ' ' . $code . ' ' . ($this->reasonPhrase ?: (Response::$phrases[$code] ?? '')));
+        header($protocol . ' ' . $this->statusCode . ' ' . $this->getReasonPhrase());
     }
 
     //发送头部信息
