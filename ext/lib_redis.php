@@ -362,4 +362,64 @@ class lib_redis{
     public function clear(){
         return $this->handler->flushDB();
     }
+
+    /**
+     * 加锁 解锁 主要用于保证并发时操作的原子性 会阻塞
+     * @param string $lockKey
+     * @param int $lockTimeout
+     * @return bool|int|mixed
+     */
+    public function lockBlock($lockKey, $lockTimeout=10){
+        if ($lockTimeout == 0) { //释放锁
+            return $this->handler->del($lockKey);
+        }
+        do {
+            $num = $this->handler->incr($lockKey);
+            if ($num === 1) {
+                $this->handler->expire($lockKey, $lockTimeout); //获得锁 加过期时间 防止意外终止锁不释放
+                #sleep(5);
+            } else {
+                #echo 'waiting...'.microtime(),PHP_EOL;
+                usleep(100000); //睡眠，降低抢锁频率，缓解redis压力
+            }
+        } while ($num > 1);
+        return true;
+    }
+
+    /**
+     * 加锁 解锁 主要用于判断是否重复操作
+     * @param string $lockKey
+     * @param int $lockTimeout
+     * @return bool|int|mixed
+     */
+    public function lockOnce($lockKey, $lockTimeout=10){
+        if ($lockTimeout == 0) { //释放锁
+            return $this->handler->del($lockKey);
+        }
+        $num = $this->handler->incr($lockKey);
+        if ($num === 1) {
+            $this->handler->expire($lockKey, $lockTimeout); //获得锁 加过期时间 防止意外终止锁不释放
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * 加锁 解锁 主要用于判断是否重复操作 使用setnx方式
+     * @param $lockKey
+     * @param int $lockTimeout
+     * @return bool|int|mixed
+     */
+    public function lockNX($lockKey, $lockTimeout = 10)
+    {
+        if ($lockTimeout == 0) { //释放锁
+            return $this->handler->del($lockKey);
+        }
+        $result = $this->handler->setnx($lockKey, 1);
+        if ($result === 1 && $lockTimeout) {
+            $this->handler->expire($lockKey, $lockTimeout);
+        }
+        return $result === 1;
+    }
 }

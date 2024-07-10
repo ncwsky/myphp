@@ -31,44 +31,55 @@ class db_pdo extends \myphp\DbBase{
         //PDO::ATTR_TIMEOUT:30 设置连接数据库的超时秒数。
         //PDO::MYSQL_ATTR_USE_BUFFERED_QUERY:false mysql非缓冲查询 查询大量数据时设置false不会出现内存不足的情况
 
-		if(empty($cfg_db['dsn'])){//未设置dsn时
-			switch($cfg_db['dbms']){
-				case 'mysql':// PDO_MYSQL DSN
-					$dsn = 'mysql:dbname='.$cfg_db['name'];
-					if ($cfg_db['server']!='') {
-						$dsn .= ';host='.$cfg_db['server'].($cfg_db['port']!=''?';port='.$cfg_db['port']:'');
-					}elseif (!empty($cfg_db['socket'])) {
-						$dsn .= ';unix_socket='. $cfg_db['socket'];
-					}
-					if($cfg_db['char']!=''){
-						$dsn .= ';charset='.$cfg_db['char'];
-						$options[PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES \''. $cfg_db['char'] .'\'';
-					}
-					break;
-				case 'mssql':// PDO_SQLSRV
-					$dsn = 'sqlsrv:Server='.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ','.$cfg_db['port']).';Database='.$cfg_db['name'];break;
-				case 'oracle':// PDO_OCI DSN
-					$dsn = 'oci:dbname=//'.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ':'.$cfg_db['port']).'/'.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);break;
-				case 'pgsql':// PDO_PGSQL DSN
-					$dsn = 'pgsql:host='.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ';port='.$cfg_db['port']).';dbname='.$cfg_db['name'];break;
-				case 'sqlite':// PDO_SQLITE DSN @sqlite:/opt/databases/mydb.sq3
-					$dsn = 'sqlite:'.$cfg_db['name'];break;
-				default:// PDO_DBLIB DSN
-					$dsn = $cfg_db['dbms'].':host='.$cfg_db['server'].';dbname='.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);break;
-			}
-		}else{
-			$dsn = $cfg_db['dsn'];
-		}
+        $initSql = '';
+        if(empty($cfg_db['dsn'])){//未设置dsn时
+            switch($cfg_db['dbms']){
+                case 'mysql':// PDO_MYSQL DSN
+                    $dsn = 'mysql:dbname='.$cfg_db['name'];
+                    if ($cfg_db['server']!='') {
+                        $dsn .= ';host='.$cfg_db['server'].($cfg_db['port']!=''?';port='.$cfg_db['port']:'');
+                    }elseif (!empty($cfg_db['socket'])) {
+                        $dsn .= ';unix_socket='. $cfg_db['socket'];
+                    }
 
-		try {
-			$this->conn = new PDO($dsn, $cfg_db['user'], $cfg_db['pwd'], $options);
-		} catch(PDOException $e) {
+                    $initCommand = '';
+                    if ($cfg_db['char'] != '') {
+                        $dsn .= ';charset=' . $cfg_db['char'];
+                        $initCommand .= "SET names '" . $cfg_db['char'] . "';";
+                        //$initSql .= "SET names '" . $cfg_db['char'] . "';";
+                    }
+                    if (!empty($cfg_db['timezone'])) {
+                        $initCommand .= "set time_zone='" . $cfg_db['timezone'] . "';";
+                        //$initSql .= "set time_zone='" . $cfg_db['timezone'] . "';";
+                    }
+                    if ($initCommand) $options[PDO::MYSQL_ATTR_INIT_COMMAND] = $initCommand;
+                    //Log::write($initCommand, 'init_command');
+                    break;
+                case 'mssql':// PDO_SQLSRV
+                    $dsn = 'sqlsrv:Server='.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ','.$cfg_db['port']).';Database='.$cfg_db['name'];break;
+                case 'oracle':// PDO_OCI DSN
+                    $dsn = 'oci:dbname=//'.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ':'.$cfg_db['port']).'/'.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);break;
+                case 'pgsql':// PDO_PGSQL DSN
+                    $dsn = 'pgsql:host='.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ';port='.$cfg_db['port']).';dbname='.$cfg_db['name'];
+                    //if ($cfg_db['char'] != '') $initSql .= "SET names '" . $cfg_db['char'] . "';";
+                    //if (!empty($cfg_db['timezone'])) $initSql .= "set time zone='" . $cfg_db['timezone'] . "';";
+                    break;
+                case 'sqlite':// PDO_SQLITE DSN @sqlite:/opt/databases/mydb.sq3
+                    $dsn = 'sqlite:'.$cfg_db['name'];break;
+                default:// PDO_DBLIB DSN
+                    $dsn = $cfg_db['dbms'].':host='.$cfg_db['server'].';dbname='.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);break;
+            }
+        }else{
+            $dsn = $cfg_db['dsn'];
+        }
+
+        try {
+            $this->conn = new PDO($dsn, $cfg_db['user'], $cfg_db['pwd'], $options);
+        } catch(PDOException $e) {
             Log::write('dsn:' . $dsn . '|' . $e->getMessage(), 'db_connect');
-			throw $e;
-		}/*
-        if ($cfg_db['char'] && in_array($cfg_db['dbms'], ['pgsql', 'mysql', 'cubrid'], true)) {
-            $this->conn->exec('SET NAMES ' . $this->conn->quote($cfg_db['char']));
-        }*/
+            throw $e;
+        }
+        //if ($initSql) $this->conn->exec($initSql);
     }
 
     /**

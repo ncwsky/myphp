@@ -120,7 +120,7 @@ use myphp\Log;
  * @method mixed move($key, $db) Move a key to another database. <https://redis.io/commands/move>
  * @method mixed mset(...$keyValuePairs) Set multiple keys to multiple values. <https://redis.io/commands/mset>
  * @method mixed msetnx(...$keyValuePairs) Set multiple keys to multiple values, only if none of the keys exist. <https://redis.io/commands/msetnx>
- * @method mixed multi() Mark the start of a transaction block. <https://redis.io/commands/multi>
+ * @method mixed multi($mode = null) Mark the start of a transaction block. <https://redis.io/commands/multi>
  * @method mixed object($subcommand, ...$argumentss) Inspect the internals of Redis objects. <https://redis.io/commands/object>
  * @method mixed persist($key) Remove the expiration from a key. <https://redis.io/commands/persist>
  * @method mixed pexpire($key, $milliseconds) Set a key's time to live in milliseconds. <https://redis.io/commands/pexpire>

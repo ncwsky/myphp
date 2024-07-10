@@ -50,7 +50,8 @@ class Db {
         'port' => '',   // 端口
         'char' => 'utf8', //数据库编码
         'prefix' => '',  //数据库表前缀
-        'prod' => false  //生产环境
+        'prod' => false,  //生产环境
+        //'timezone'=>'+8:00', //时区
     ];
     /**
      * @var array 链操作方法信息
