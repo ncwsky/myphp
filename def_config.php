@@ -29,12 +29,13 @@ return array(
 		'port' => 3306,   // 端口
 		'char' => 'utf8', //数据库编码
 		'prefix' => '',   //数据库表前缀
+        //'timezone'=>'', //数据库时区 mysql +08:00,pqsql PRC
         'options'=>[]     //辅助配置
 	),
 	'cache' => null, // 'file'
 	'cache_option' => array(
 		'path' => RUNTIME.'/cache',
-		'prefix' => 'cache',
+		'prefix' => '_',
 		'expire' => 0, //默认有效期
 	),
 	'session' => null, /*array(

@@ -142,7 +142,7 @@ final class myphp{
      */
     private static function _runCA(){
         //权限验证处理
-        $res = self::$authFun instanceof \Closure ? call_user_func(self::$authFun) : self::Auth();
+        $res = self::$authFun instanceof \Closure ? call_user_func(self::$authFun) : self::_auth();
         if ($res instanceof Response) return $res;
         if (false === $res) return self::res()->withBody(Helper::outMsg('auth fail'));
         // 请求缓存处理
@@ -337,7 +337,7 @@ final class myphp{
     public static function Analysis($isCLI = IS_CLI){
         $app_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
         //引入app下的配置文件
-        self::loadConfig($app_path);
+        self::loadConfig($app_path . '/config.php');
 
         $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //当前执行文件名
         $app_root = IS_CLI ? DS : ROOT_DIR . DS; //app_url根路径
@@ -416,7 +416,7 @@ final class myphp{
                 self::$env['app_namespace'] .= '\\module\\'.self::$env['m'];
             }
             //引入模块配置
-            self::loadConfig($app_path);
+            self::loadConfig($app_path . '/config.php');
         }
 
         //是否开启模板主题
@@ -462,19 +462,19 @@ final class myphp{
             'LANG_PATH' => $app_path . DS . 'lang',
             'VIEW_PATH' => $view_path,
         ]);
-        self::init_app($app_path, $isCLI);
+        self::_initApp($app_path, $isCLI);
         //通过命名空间加载可不需要指定目录遍历了
         //self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
         //self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
     }
     /**
      * 引入合并配置
-     * @param $app_path
+     * @param string $path
      */
-    private static function loadConfig($app_path){
-        if(!is_file($app_path . '/config.php')) return;
+    public static function loadConfig($path){
+        if(!is_file($path)) return;
 
-        $config = require($app_path . '/config.php');
+        $config = require($path);
         //指定目录
         if(isset($config['class_dir'])){
             $classDir = is_array($config['class_dir']) ? $config['class_dir'] : explode(',', ROOT . str_replace(',', ',' . ROOT, $config['class_dir']));
@@ -497,7 +497,7 @@ final class myphp{
      * 权限验证处理 在config.php配置中设置开启
      * @return Response|bool|void
      */
-    public static function Auth(){
+    private static function _auth(){
         if(!self::$cfg['auth_on']) return;
         $auth_class = self::$cfg['auth_model'];
         $auth_action = self::$cfg['auth_action'];
@@ -518,7 +518,7 @@ final class myphp{
 
         //if (!class_exists($auth_class)) throw new \Exception('class not exists ' . $auth_class, 404);
 
-        $auth = self::app($auth_class);	//引入权限验证类
+        $auth = new $auth_class(); //self::app($auth_class); //引入权限验证类
         //if(!method_exists($auth, $auth_action)) throw new \Exception('auth method not found! ' . $auth_action, 404);
 
         //仅登陆验证
@@ -544,7 +544,7 @@ final class myphp{
         return $auth->$auth_action(); //启动验证方法
     }
     // app项目初始化
-    private static function init_app($path, $isCLI = IS_CLI){
+    private static function _initApp($path, $isCLI = IS_CLI){
         if(!$isCLI && self::$env['MODULE']!='') return; //仅cli下自动生成项目模块
         if(is_file($path .'/index.htm')) return;
         // 创建项目目录
@@ -677,15 +677,6 @@ final class myphp{
     public static function app($name, $option=null){
         if(isset(self::$container[$name])) return self::$container[$name];
 
-        $coreApp = [
-            'request' => 'myphp\Request',
-            'response' => 'myphp\Response',
-        ];
-        if (isset($coreApp[$name])) {
-            self::$container[$name] = new $coreApp[$name]();
-            return self::$container[$name];
-        }
-
         $appConf = null;
         $class = $name;
         if($option){
@@ -710,7 +701,7 @@ final class myphp{
      */
     public static function req()
     {
-        $k = 'request';
+        $k = '__req';
         if (!isset(self::$container[$k])) {
             self::$container[$k] = new \myphp\Request();
         }
@@ -725,7 +716,7 @@ final class myphp{
      */
     public static function res()
     {
-        $k = 'response';
+        $k = '__res';
         if (!isset(self::$container[$k])) {
             self::$container[$k] = new Response();
         }
