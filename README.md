@@ -22,8 +22,12 @@ myphp::Run();	//运行类的Run的方法
 ```
 
 **cli示例**   
-php index.php c-a-id  默认请求模式下(url模式1示例同此示例)     
-php index.php c=index a=test id=23  0 普通模式下 
+>脚本参数输入基本同url地址  
+```
+php index.php m/c/a "b=1&d=1"|b=1 d=1  
+php index.php m/c/a?b=1  
+php index.php "m/c/a?b=1&d=1"  
+```
 
 **模板标签**    
 ```

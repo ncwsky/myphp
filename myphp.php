@@ -351,6 +351,7 @@ final class myphp{
             } else { // php xxx.php "c=x&a=y&b=1&d=1"|c=x a=y b=1 d=1
                 parse_str(implode('&', array_slice($_SERVER['argv'], 1)), $_GET);
             }
+            $_REQUEST = $_GET; //兼容处理
         }
         // 简单 url 映射  //仅支持映射到普通url模式
         $hasMatch = self::parseUrlMap();
@@ -378,7 +379,7 @@ final class myphp{
             if ($pos!==false){
                 if ($isCLI) { //cli 命令模式支持?b=1&d=1
                     parse_str(substr($url, $pos+1), $_GET);
-                    $_REQUEST = array_merge($_REQUEST, $_GET);
+                    $_REQUEST = $_GET;
                 }
                 $url = substr($url, 0, $pos);
             }
