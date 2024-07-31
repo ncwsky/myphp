@@ -1,0 +1,3 @@
+# Ignore all tests, documentation and dot files for archive
+/.gitattributes           export-ignore
+/inc/fzxbsjw.ttf          export-ignore
