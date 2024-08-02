@@ -343,6 +343,7 @@ final class myphp{
         $app_root = IS_CLI ? DS : ROOT_DIR . DS; //app_url根路径
         $url_mode = isset($_GET['_url_mode']) ? $_GET['_url_mode'] : self::$cfg['url_mode'];
         if ($isCLI) { //cli命令脚本模式处理 主要用于脚本命令下执行
+            $_SERVER['IS_CLI_RUN'] = true; //用于区分是否脚本执行
             //cli_url_mode请求模式 默认2 PATH_INFO模式
             $url_mode = self::$cfg['url_mode'] = isset(self::$cfg['cli_url_mode'])?self::$cfg['cli_url_mode']:2;
             if ($url_mode == 2) { // php xxx.php m/c/a "b=1&d=1"|b=1 d=1
@@ -454,7 +455,6 @@ final class myphp{
             'BASE_URL' => $_base_url,
             'CONTROL' => (strpos(self::$env['c'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['c']), ' ')) : ucfirst(self::$env['c'])) . 'Act',
             'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰  lcfirst首字母转小写
-            'MODULE' => self::$env['m'],
             'MODULE_PATH' => $app_path,
             //路径 自动生成
             'CACHE_PATH' => $app_path . DS . 'cache',
@@ -546,7 +546,7 @@ final class myphp{
     }
     // app项目初始化
     private static function _initApp($path, $isCLI = IS_CLI){
-        if(!$isCLI && self::$env['MODULE']!='') return; //仅cli下自动生成项目模块
+        if(!$isCLI && self::$env['m']!='') return; //仅cli下自动生成项目模块
         if(is_file($path .'/index.htm')) return;
         // 创建项目目录
         if(!is_dir($path)) mkdir($path,0755, true);
