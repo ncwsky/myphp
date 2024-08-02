@@ -14,10 +14,6 @@ define('DS', '/');
 //定义MY_PATH常量
 define('MY_PATH', __DIR__);
 
-if (!class_exists('Error')) { //兼容7.0
-    class Error extends \Exception{}
-}
-
 //REQUEST_URI 处理 ORIG_PATH_INFO REDIRECT_PATH_INFO REDIRECT_URL
 if(!IS_CLI && !isset($_SERVER['REQUEST_URI'])){
     if (isset($_SERVER['HTTP_X_REWRITE_URL'])) {
