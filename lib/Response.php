@@ -100,7 +100,7 @@ class Response
     /**
      * @var string 输出文件
      */
-    private $_outFile;
+    public $outFile;
     /**
      * @var array 分片起始结束位置[begin,end]
      */
@@ -321,18 +321,14 @@ class Response
     {
         if (is_resource($file)) {
             $meta = stream_get_meta_data($file); //取文件的实际路径
-            //fclose($file);
-            if (is_file($meta['uri'])) {
-                $file = $meta['uri'];
-            } else {
-                throw new \InvalidArgumentException('file does not exist', 500);
-            }
-        } elseif (!is_file($file)) {
-            throw new \Exception('file does not exist', 404);
+            $file = $meta['uri'];
+        }
+        if (!is_file($file)) {
+            throw new \InvalidArgumentException('file does not exist', 500);
         }
 
         $this->file = [$file, $offset, $size];
-        $this->_outFile = $file;
+        $this->outFile = $file;
         if ($inline !== null) { //文件下载 可能分片传输  null时文件直接全部输出
             if ($size == 0) $size = filesize($file);
             if ($mimeType === '') $mimeType = Helper::minMimeType($file);
@@ -358,7 +354,7 @@ class Response
                 $this->file[1] = $begin;
                 $this->file[2] = $size;
             }
-            $this->setDownloadHeaders($attachmentName, $mimeType, $inline, $size);
+            $this->setDownloadHeaders($attachmentName, $mimeType, $inline, $size); //$size?:null
         }
         return $this;
     }
@@ -441,7 +437,7 @@ class Response
 
     public function clear()
     {
-        $this->_outFile = null;
+        $this->outFile = null;
         $this->body = null;
         $this->isSent = false;
         $this->header = [];
@@ -491,7 +487,7 @@ class Response
     //输出内容
     protected function sendBody()
     {
-        if ($this->_outFile === null) {
+        if ($this->outFile === null) {
             echo is_array($this->body) ? Helper::toJson($this->body) : $this->body;
             return;
         }
@@ -500,7 +496,7 @@ class Response
         $perLimit = $this->secLimitSize > 0; //每秒限制?
         $chunkSize = $perLimit ? $this->secLimitSize * 1024 : $this->chunkSize * 1024 * 1024; // 2MB per chunk
 
-        $handle = fopen($this->_outFile, 'rb');
+        $handle = fopen($this->outFile, 'rb');
         if ($this->_range) {
             list($begin, $end) = $this->_range;
             fseek($handle, $begin);
