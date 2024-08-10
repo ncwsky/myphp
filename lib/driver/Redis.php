@@ -837,7 +837,7 @@ class Redis
                 }
             case ':': // Integer reply
                 // no cast to int as it is in the range of a signed 64 bit integer
-                return $line;
+                return PHP_INT_SIZE === 8 ? (int)$line : $line;
             case '$': // Bulk replies
                 if ($line == '-1') {
                     return null;

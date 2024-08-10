@@ -12,11 +12,16 @@ class Redis implements \SessionHandlerInterface{
         'password'=>'',
         'select'=>0, //选择库
         'timeout'=> 0, //连接超时时间（秒）
-        'pconnect' => false, //持续连接
-        'expire' => 1440, //有效期
-        'server' => array() //从服务器 待实现
+        'pconnect' => true, //持续连接
+        'expire' => 1440 //有效期 为0使用php默认配置
     ];
-	//构造函数
+
+    /**
+     * Redis constructor.
+     * @param null $options = [
+     *
+     * ]
+     */
 	public function __construct($options=null){
         if (is_array($options)) {
             $this->options = array_merge($this->options, $options);
@@ -24,15 +29,7 @@ class Redis implements \SessionHandlerInterface{
         if (empty($this->options['expire'])) {
             $this->options['expire'] = (int)ini_get('session.gc_maxlifetime');
         }
-	}
-	/**
-	 * 类似构造
-	 *
-	 * @param	string	$save_path	session存放目录
-	 * @param	string	$name		session cookie name
-	 * @return	bool
-	 */
-	public function open($save_path, $name){
+
         if ( extension_loaded('redis') ) {
             $func = $this->options['pconnect'] ? 'pconnect' : 'connect';
             $this->handler = new \Redis();
@@ -43,22 +40,31 @@ class Redis implements \SessionHandlerInterface{
             $this->handler->select($this->options['select']);
         }else{
             $this->options['database'] = $this->options['select'];
+            $this->options['retries'] = 1;
             $this->handler = new \myphp\driver\Redis($this->options);
         }
-
+	}
+	/**
+	 * {@inheritdoc}
+	 */
+	public function open($save_path, $name){
 		return $this->handler ? true : false;
 	}
-	//类似析构
+    /**
+     * {@inheritdoc}
+     */
 	public function close(){
-        //$this->handle->close();
-		$this->handle = null;
         return true;
     }
-	//读取数据
+    /**
+     * {@inheritdoc}
+     */
 	public function read($sid){
         return (string)$this->handler->get($this->options['prefix'] . $sid);
     }
-	//写入数据
+    /**
+     * {@inheritdoc}
+     */
     public function write($sid, $data){
 		$expire = $this->options['expire'];
 		$name = $this->options['prefix'].$sid;
@@ -71,10 +77,12 @@ class Redis implements \SessionHandlerInterface{
         return $result ? true : false;
 		
     }
-	//删除会话
+    /**
+     * {@inheritdoc}
+     */
 	public function destroy($sid){
 		//\myphp\Log::trace('destroy:'.$sid);
-        return $this->handler->del($this->options['prefix'].$sid)>0;
+        return (bool)$this->handler->del($this->options['prefix'].$sid)>0;
 	}
 	/**
 	 * 垃圾回收 删除过期session
@@ -86,5 +94,19 @@ class Redis implements \SessionHandlerInterface{
 	 */
     public function gc($maxlifetime){
 		return true;
+    }
+
+    /**
+     * Update sesstion modify time.
+     *
+     * @see https://www.php.net/manual/en/class.sessionupdatetimestamphandlerinterface.php
+     *
+     * @param string $id Session id.
+     * @param string $data Session Data.
+     *
+     * @return bool
+     */
+    public function updateTimestamp($id, $data = ""){
+        return (bool)$this->handler->expire($this->options['prefix'].$id, $this->options['expire']);
     }
 }
