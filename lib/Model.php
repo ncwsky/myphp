@@ -71,7 +71,7 @@ class Model implements \ArrayAccess
     /**
      * @var bool 查询后是否重置sql-options
      */
-    public static $resetOption = true;
+    public static $resetOption = false; //sql组合项执行后是否重置
 
     /**
      * 数据库实例
@@ -239,13 +239,11 @@ class Model implements \ArrayAccess
      */
     public function del()
     {
-        //$trans = clone $this->db;
-        $trans = $this->db;
-        $this->db->resetOption = false; //sql组合项执行后是否重置
-        $trans->beginTrans();
+        //$this->db->resetOption = false; //sql组合项执行后是否重置
+        $this->db->beginTrans();
         try {
             if (!$this->beforeDel()) {
-                $trans->rollBack();
+                $this->db->rollBack();
                 return false;
             }
 
@@ -263,13 +261,13 @@ class Model implements \ArrayAccess
 
             $result = $this->db->del($this->tbName);
             $this->afterDel();
-            $trans->commit();
+            $this->db->commit();
             return $result;
         } catch (\Exception $e) {
-            $trans->rollBack();
+            $this->db->rollBack();
             throw $e;
         } catch (\Throwable $e) {
-            $trans->rollBack();
+            $this->db->rollBack();
             throw $e;
         }
     }
@@ -481,7 +479,6 @@ class Model implements \ArrayAccess
     public function db(){
         return $this->db;
     }
-
     /**
      * @param $num
      * @return \Generator|\SplFixedArray[][]|static[][]|array[][]

@@ -145,7 +145,7 @@ class Value{
         $errCode = 0;
         $filter = $max = $min = null;
         if ($err1 === '') $err1 = $name . ' is invalid';
-        if ($err2 === '') $err2 = $name . ' is invalid';
+        if ($err2 === '') $err2 = $err1;
 
         if($val==='' || $val===null) $errCode = 1;
         elseif(is_string($val)) $val = trim($val);

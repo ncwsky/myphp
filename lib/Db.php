@@ -73,7 +73,6 @@ class Db {
      * @throws Exception
      */
     public function __construct($conf='db', $force=false) {
-        $key = '';
         if (is_string($conf)) {
             if (!isset(myphp::$cfg[$conf])) throw new Exception($conf . 'DB连接配置不存在');
 
@@ -431,16 +430,16 @@ class Db {
                 unset($case[0]);
             }
 			foreach($case as $k=>$v){
-			    if(is_int($k)){ // '1=1'
+                if (is_int($k)) { // '1=1'
                     $field = $v;
-                }else{  // ['a'=>1] || ['a::like'=>'%s%']
+                } else {  // ['a'=>1] || ['a::like'=>'%s%']
                     $operator = '=';
                     $pos = strpos($k, '::');
                     if ($pos!==false) {
                         $operator = trim(substr($k, $pos + 2));
                         $operator = $operator == '' ? '=' : ' ' . $operator . ' ';
                         $k = substr($k, 0, $pos);
-                    }elseif(is_array($v)){
+                    } elseif (is_array($v) || $v instanceof Model) {
                         $operator = ' in ';
                     }
                     switch ($operator){
@@ -454,13 +453,19 @@ class Db {
                         case ' not in ':
                             if (is_array($v)) {
                                 $field = empty($v) ? '1=0' : $k . $operator . '(' . implode(',', $this->parseValue($v)) . ')';
+                            } elseif($v instanceof Model) {
+                                $field = $k . $operator . '(' . $v->select_sql() . ')';
                             } else {
                                 $field = $v === '' ? '1=0' : $k . $operator . '(' . $v . ')';
                             }
                             break;
                         case ' exists ':
                         case ' not exists ':
-                            $field = $k . $operator . '(' . $v . ')';
+                            if($v instanceof Model) {
+                                $field = $k . $operator . '(' . $v->select_sql() . ')';
+                            } else {
+                                $field = $k . $operator . '(' . $v . ')';
+                            }
                             break;
                         default:
                             $field = $k . $operator . $this->parseValue($v);

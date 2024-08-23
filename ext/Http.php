@@ -12,6 +12,9 @@ class Http
     public static $curlRetryCond = null; //curl重试条件，未指定使用的默认 function($url, $err):bool
     public static $curlErr = '';
     public static $curlPostEncode = true; //编码post数据
+    public static $multiUrl = [];
+    public static $multiErr = [];
+    private static $isMulti = false;
     /**
      * @param $proxy `proxy://user:pass@hostname:port`
      */
@@ -304,8 +307,9 @@ class Http
         }
 
         $result = false;
-        if(isset($opt['res'])){
+        if (isset($opt['res'])) {
             curl_setopt($ch, CURLOPT_HEADER, true);    // 是否需要响应 header
+            if (self::$isMulti) return $ch;
             $output          = curl_exec($ch);
             if($output!==false){
                 $header_size     = curl_getinfo($ch, CURLINFO_HEADER_SIZE);    // 获得响应结果里的：头大小
@@ -323,7 +327,8 @@ class Http
                     'res_error'     => curl_error($ch),
                 ];
             }
-        }else{
+        } else {
+            if (self::$isMulti) return $ch;
             $result = curl_exec($ch);
         }
         self::$curlErr = '';
@@ -371,6 +376,105 @@ class Http
 
         curl_close($ch);
         return $result;
+    }
+
+    /**
+     * 批量添加url
+     * @param string $url
+     * @param string $method
+     * @param array $data
+     * @param string $header
+     */
+    public static function multiAdd($url, $method='get', $data=[], $header='')
+    {
+        if ($data || $header || $method != 'get') {
+            self::$multiUrl[] = ['url' => $url, 'data' => $data, 'method' => $method, 'header' => $header];
+        } else {
+            self::$multiUrl[] = $url;
+        }
+    }
+
+    /**
+     * 批量url执行
+     * @param int $timeout
+     * @param string $header
+     * @param array $opt
+     * @return array
+     */
+    public static function multiRun($timeout=5, $header='', $opt=[])
+    {
+        return self::multi(self::$multiUrl, $timeout, $header, $opt);
+    }
+
+    /**
+     * 批量url执行
+     * @param array $urls
+     * @param int $timeout
+     * @param string $header
+     * @param array $opt
+     * @return array
+     */
+    public static function multi($urls=[], $timeout=5, $header='', $opt=[]){
+        if (!$urls) {
+            if (self::$multiUrl) $urls = self::$multiUrl;
+            else return [];
+        }
+        self::$multiUrl = []; //重置
+        self::$isMulti = true; //标记为批量处理
+        $conn = [];
+        $multiRes = [];
+        $mh = curl_multi_init(); //创建批处理cURL句柄(容器)
+        foreach ($urls as $i => $url) {
+            if (is_array($url)) { //['url'=>'','data'=>[],'method'=>'get','header'=>'']
+                $conn[$i] = self::curlSend($url['url'], $url['method'] ?? 'get', $url['data'] ?? null, $timeout, $url['header'] ?? $header, $opt);
+            } else {
+                $conn[$i] = self::curlGet($url, $timeout, $header, $opt);
+            }
+            curl_multi_add_handle($mh, $conn[$i]);
+        }
+        self::$isMulti = false; //重置
+        /*
+        CURLM_CALL_MULTI_PERFORM：表示curl_multi_exec正在运行，但没有新的活动可以执行。
+        CURLM_OK：表示curl_multi_exec正在运行，并且有新的活动可以执行。
+        CURLM_BAD_HANDLE：表示传递给curl_multi_exec的句柄无效。
+        CURLM_BAD_EASY_HANDLE：表示传递给curl_multi_exec的easy句柄无效。
+        CURLM_OUT_OF_MEMORY：表示curl_multi_exec无法分配足够的内存。
+        CURLM_INTERNAL_ERROR：表示curl_multi_exec遇到内部错误。
+         */
+        do {
+            //执行
+            do {$mrc = curl_multi_exec($mh, $active);} while ($mrc === CURLM_CALL_MULTI_PERFORM);
+            // 使用 curl_multi_select 等待活动
+            if (curl_multi_select($mh) === -1) { //失败时返回-1 没有任何活动的则为 0
+                usleep(100); // 等待少许时间以避免高CPU占用
+            }
+
+            while ($info = curl_multi_info_read($mh, $queued_messages)) {
+                $key = (int)$info['handle'];
+                $httpCode = curl_getinfo($info['handle'], CURLINFO_HTTP_CODE); //状态码
+                $total_time = curl_getinfo($info['handle'], CURLINFO_TOTAL_TIME); //执行时间
+                $url = curl_getinfo($info['handle'], CURLINFO_EFFECTIVE_URL);
+                //echo ('resource:' . $key . ', queue:' . $queued_messages . ', result:' . $info['result'] . ', http_code:' . $httpCode . ', rt:' . $total_time . ', ' . $url . ' -> ' . curl_errno($info['handle']) . ':' . curl_error($info['handle'])), PHP_EOL;
+
+                if ($info['result'] === CURLE_OK) {
+                    $multiRes[$key] = curl_multi_getcontent($info['handle']);
+                } else {
+                    $multiRes[$key] = false;
+                }
+                //curl_multi_remove_handle($mh, $conn[$i]); //移除句柄
+            }
+        } while ($active && $mrc === CURLE_OK); //$active用来判断操作是否仍在执行的标识
+        curl_multi_close($mh);
+
+        self::$multiErr = [];
+        $res = [];
+        foreach ($urls as $i => $url) {
+            $res[$i] = $multiRes[(int)$conn[$i]];
+            if ($res[$i] === false) self::$multiErr[$i] = 'err' . curl_errno($conn[$i]) . ':' . curl_error($conn[$i]);
+            curl_close($conn[$i]);
+        }
+        unset($multiRes, $conn);
+        return $res;
     }
     /**
      * 文件流上传 非CURLFile方式
