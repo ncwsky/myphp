@@ -507,7 +507,46 @@ class Model implements \ArrayAccess
     public function count($field='*'){
         return $this->db->getCount($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''), '', $field);
     }
+
+    /**
+     * where处理 and
+     * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
+     * @param array $bind 要解析的参数
+     * @return $this
+     */
+    protected function _where($case, $bind=null){
+        unset($this->db->where);
+        $this->db->where($case, $bind);
+        return $this;
+    }
+    /**
+     * where处理 or
+     * @param $case
+     * @param null $bind
+     * @return $this
+     */
+    protected function _whereOr($case, $bind=null){
+        unset($this->db->where);
+        $this->db->whereOr($case, $bind);
+        return $this;
+    }
+    /**
+     * where处理
+     * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
+     * @param array $bind 要解析的参数
+     * @return $this
+     */
+    public function andWhere($case, $bind=null){
+        $this->db->where($case, $bind);
+        return $this;
+    }
+    
     protected static function runCall(Model $model, $method, $args){
+        if ($method == 'where') {
+            $method = '_where';
+        } elseif ($method == 'whereOr') {
+            $method = '_whereOr';
+        }
         if (method_exists($model, $method)) {
             call_user_func_array([$model, $method], $args);
             return $model;

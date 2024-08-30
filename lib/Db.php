@@ -386,25 +386,26 @@ class Db {
     }
     /**
      * where处理
-     * @param string|array $case (string:条件语句可绑定参数[$bind设参数数组], array:条件数组[$bind可设or|and])
-     * @param string|array $bind (string:or|and, array:要解析的参数)
+     * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
+     * @param array $bind 要解析的参数
      * @return $this
     */
 	public function where($case, $bind=null){ //and
-		$this->_where($case, $bind, (is_string($case) && is_string($bind) && $bind=='or')?false:true);
-		return $this;
+        $this->_where($case, $bind, $bind === 'or' && is_array($case) ? false : true);
+        return $this;
 	}
 	public function whereOr($case, $bind=null){ //or
 		$this->_where($case, $bind, false);
 		return $this;
 	}
-    private function _where($case, $bind=null, $and=true){ //and[true:and,false:or]
+    private function _where($case, $bind=null, $and=true){
+        if (is_array($case)) $bind = $and ? 'and' : 'or';
 	    $where = $this->makeWhere($case, $bind);
         if($where!==''){
             if (isset($this->options['where'])) {
                 $where = '(' . $where . ')';
                 $_where = '(' . $this->options['where'] . ')';
-                //排除重复条件
+                //简单排除重复条件
                 if (strpos($_where, $where) === false) {
                     $this->options['where'] = $_where . ($and ? ' and ' : ' or ') . $where;
                     //'('.$this->options['where'].') and ('.$where.')' : '('.$this->options['where'].') or ('.$where.')';
@@ -417,16 +418,16 @@ class Db {
     }
 
     /**
-     * @param array|string $case 'xxxx'|['xx'=>1, ...]|['and'|'or', 'xx'=>1, ...]
-     * @param null|array|string $args
+     * @param array|string $case ['xx'=>1, ...]|['and'|'or', 'xx'=>1, ...]|'sql条件|绑定方式条件'
+     * @param null|array|string $args  array参数绑定|'and|or'条件组合
      * @return string|string[]
      */
     public function makeWhere($case, $args=null){
 		$where = '';
 		if(is_array($case)){ //数组组合条件
-            if ($args !== 'or') $args = 'and';
-            if (isset($case[0]) && ($case[0] == 'and' || $case[0] == 'or')) {
-                $args = $case[0];
+            $and = $args === 'or' ? 'or' : 'and';
+            if (isset($case[0]) && ($case[0] === 'and' || $case[0] === 'or')) {
+                $and = $case[0];
                 unset($case[0]);
             }
 			foreach($case as $k=>$v){
@@ -472,11 +473,11 @@ class Db {
                             break;
                     }
                 }
-                $where .= ($where === '' ? $field : ' ' . $args . ' ' . $field);
+                $where .= ($where === '' ? $field : ' ' . $and . ' ' . $field);
 			}
-            if ($args === 'or') $where = '(' . $where . ')';
+            if ($and === 'or') $where = '(' . $where . ')';
         } elseif (is_string($case)) { //参数绑定方式条件
-            $where = is_array($args) ? $this->get_real_sql($case, $args) : $case;
+            $where = $args!==null ? $this->get_real_sql($case, (array)$args) : $case;
         }
         return $where;
 	}
