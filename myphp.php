@@ -27,6 +27,8 @@ final class myphp{
     public static $classOldSupport = false; //是否兼容xxx.class.php
     //配置处理 start
     public static $cfg = [];
+    private static $_init_cfg = []; //用于请求结束后重置配置
+    private static $_cli_cache = []; //用于cli模式下缓存
     //获取配置值 支持二维数组
     public static function get($name, $defVal = null){
         if ( false === ($pos = strpos($name, '.')) )
@@ -164,7 +166,69 @@ final class myphp{
         }
         return $res;
     }
+    //初始框架
+    public static function init($cfg=null){
+        //引入默认配置文件
+        self::$cfg = require(__DIR__ . '/def_config.php');
+        if (is_array($cfg)) { //组合参数配置
+            self::$cfg = array_merge(self::$cfg, $cfg);
+            unset($cfg);
+        }
+        //引入公共配置文件
+        if (is_file(COMMON . '/config.php')) {
+            self::$cfg = array_merge(self::$cfg, require(COMMON . '/config.php'));
+        }
 
+        //相对根目录
+        if(!isset(self::$cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
+            if (IS_CLI) {
+                self::$cfg['root_dir'] = '';
+            } else {
+                $appRoot = dirname($_SERVER['SCRIPT_NAME']);
+                if (IS_WIN) $appRoot = strtr($appRoot, '\\', DS);
+                $appRoot == DS && $appRoot = ''; //$appRoot=='.' cli下会得到.
+                self::$cfg['root_dir'] = $appRoot;
+            }
+        }
+        //相对根目录
+        define('ROOT_DIR', self::$cfg['root_dir']);
+        //相对资源公共目录
+        define('PUB', ROOT_DIR . '/pub');
+
+        if (self::$cfg['debug']) { //开启错误提示
+            error_reporting(E_ALL);// 报错级别设定,一般在开发环境中用E_ALL,这样能够看到所有错误提示
+            ini_set('display_errors', 'On');// 有些环境关闭了错误显示
+        } else {
+            error_reporting(E_ALL ^ E_NOTICE); #除了 E_NOTICE，报告其他所有错误
+            ini_set('display_errors', 'Off');
+        }
+
+        //设置本地时差
+        date_default_timezone_set(self::$cfg['timezone']);
+        //初始类的可加载目录
+        self::class_dir([COMMON, COMMON . '/model']); //基础类 扩展类 公共模型
+        if(!empty(self::$cfg['class_dir'])){
+            $classDir = is_array(self::$cfg['class_dir']) ? self::$cfg['class_dir'] : explode(',', ROOT . str_replace(',', ',' . ROOT, self::$cfg['class_dir']));
+            self::class_dir($classDir);
+        }
+
+        if (self::$rootPath === '') self::$rootPath = ROOT;
+        //注册类的自动加载
+        spl_autoload_register('\myphp::autoload', true, true);
+        // 设定错误和异常处理
+        Log::register();
+        //日志记录初始
+        Log::init(self::$cfg['log_dir'], self::$cfg['log_level'], self::$cfg['log_size']);
+        is_file(COMMON . '/common.php') && require COMMON . '/common.php';	//引入公共函数
+
+        if(!defined('APP_PATH')){
+            define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']) . '/app');
+        }
+        self::$pipe = new \myphp\Pipeline();
+
+        self::$cfg['_app_path'] = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
+        self::$_init_cfg = self::$cfg;
+    }
     /**
      * @return mixed|Response|null
      * @throws Exception
@@ -206,7 +270,6 @@ final class myphp{
      * @throws \Exception
      */
     public static function Run($sendFun=null, $isCli=IS_CLI){
-        $_init_cfg = self::$cfg; //全局配置
         self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法及初始化
         self::$sendFun = $sendFun;
         try {
@@ -228,7 +291,7 @@ final class myphp{
         self::req()->clear();
         self::res()->clear();
         //重置处理
-        self::$cfg = $_init_cfg;
+        self::$cfg = self::$_init_cfg;
         self::$env = [];
         self::$lang = [];
     }
@@ -335,12 +398,35 @@ final class myphp{
      * @param bool $isCLI cli命令脚本模式处理
      */
     public static function Analysis($isCLI = IS_CLI){
-        $app_path = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
+        $app_path = self::$cfg['_app_path'];
+        self::$env['app_namespace'] = basename(APP_PATH);
+        //自动指定app顶层命名空间目录
+        if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
+            self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
+        }
+        $app_root = IS_CLI ? DS : ROOT_DIR . DS; //app_url根路径
+        $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //当前执行文件名
+        $uri = $app_root . $basename; //当前URL路径
         //引入app下的配置文件
         self::loadConfig($app_path . '/config.php');
 
-        $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //当前执行文件名
-        $app_root = IS_CLI ? DS : ROOT_DIR . DS; //app_url根路径
+        //优先全局或app配置的模块
+        if (self::$cfg['module_maps']) {
+            $path = trim(self::_urlPath($app_root, $uri, $isCLI), '/');
+            if ($path) {
+                self::$env['m'] = explode('/', $path, 2)[0];
+                //这里只对有配置的模块识别
+                if (!isset(self::$cfg['module_maps'][self::$env['m']])) self::$env['m'] = '';
+            } else {
+                self::$env['m'] = '';
+            }
+            $_m = self::$env['m'];
+            //模块载入配置
+            self::_initModule($app_path);
+        } else {
+            $_m = '';
+        }
+
         $url_mode = isset($_GET['_url_mode']) ? $_GET['_url_mode'] : self::$cfg['url_mode'];
         if ($isCLI) { //cli命令脚本模式处理 主要用于脚本命令下执行
             $_SERVER['IS_CLI_RUN'] = true; //用于区分是否脚本执行
@@ -354,41 +440,17 @@ final class myphp{
             }
             $_REQUEST = $_GET; //兼容处理
         }
-        // 简单 url 映射  //仅支持映射到普通url模式
+
+        //解析url 简单url映射 仅支持映射到普通url模式
         $hasMatch = self::parseUrlMap();
 
-        $uri = $app_root . $basename; //当前URL路径
-        //echo 'uri=',$uri,PHP_EOL;
-        if ($url_mode == 2) {
-            $_app = (self::$cfg['url_rewrite'] && $uri == self::$cfg['url_index'] ? '' : $uri) . '/';
-        } else {
-            $_app = $uri;
-        }
         if (!$hasMatch && $url_mode == 2){	//如果Url模式为2，那么就是使用PATH_INFO模式
-            $url = $_SERVER["REQUEST_URI"];//获取完整的路径，包含"?"之后的字
-            //去除url包含的当前文件的路径信息
-            if (strpos($url, $uri, 0) === 0) {
-                $url = substr($url, strlen($uri));
-            } else { //伪静态时去除
-                $len = strlen($app_root);
-                if (substr($url, 0, $len) == $app_root) {
-                    $url = substr($url, $len);
-                }
-            }
-            //去除?处理
-            $pos = strpos($url,'?');
-            if ($pos!==false){
-                if ($isCLI) { //cli 命令模式支持?b=1&d=1
-                    parse_str(substr($url, $pos+1), $_GET);
-                    $_REQUEST = $_GET;
-                }
-                $url = substr($url, 0, $pos);
-            }
-            if (self::$cfg['url_rewrite'] && isset($_GET['c']) && strpos($url, '.htm')) {
+            $path = self::_urlPath($app_root, $uri, $isCLI);
+            if (self::$cfg['url_rewrite'] && isset($_GET['c']) && strpos($path, '.htm')) {
                 //是伪静态地址
             } else {
                 //分解m c a
-                self::deMCA($url);
+                self::deMCA($path);
             }
         }
         //控制器和方法是否为空，为空则使用默认
@@ -398,27 +460,10 @@ final class myphp{
         self::$env['c'] = $_GET['c'];
         self::$env['a'] = $_GET['a'];
         self::$env['m'] = isset($_GET['m']) ? $_GET['m'] : '';
-        self::$env['app_namespace'] = basename(APP_PATH);
-        //自动指定app顶层命名空间目录 //realpath目录不存在时会false
-        if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
-            self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
-        }
-        //指定项目模块
-        if (self::$env['m'] != '') {
-            if (isset(self::$cfg['module_maps'][self::$env['m']])) {
-                if(self::$cfg['module_maps'][self::$env['m']][0] == DS){ //项目根目录
-                    $app_path = ROOT . self::$cfg['module_maps'][self::$env['m']];
-                    self::$env['app_namespace'] = strtr(substr(self::$cfg['module_maps'][self::$env['m']], 1), DS, '\\');
-                } else { //相对项目目录
-                    $app_path = APP_PATH . DS . self::$cfg['module_maps'][self::$env['m']];
-                    self::$env['app_namespace'] .= '\\'. strtr(self::$cfg['module_maps'][self::$env['m']], DS, '\\');
-                }
-            } else { //子模块默认 module 目录下
-                $app_path = APP_PATH . DS . 'module' . DS . self::$env['m'];
-                self::$env['app_namespace'] .= '\\module\\'.self::$env['m'];
-            }
-            //引入模块配置
-            self::loadConfig($app_path . '/config.php');
+
+        //针对url_maps有映射模块的再次处理
+        if (self::$env['m'] && self::$env['m']!=$_m) {
+            self::_initModule($app_path);
         }
 
         //是否开启模板主题
@@ -434,12 +479,15 @@ final class myphp{
             self::$cfg['app_res_path'] = $path;
         }
 
-        $_url = $_app;
+        //echo 'uri=',$uri,PHP_EOL;
         if ($url_mode == 2) {
+            $_app = (self::$cfg['url_rewrite'] && $uri == self::$cfg['url_index'] ? '' : $uri) . '/';
+            $_url = $_app;
             if (self::$env['m']) $_url .= self::$env['m'] . '/';
             $_url .= self::$env['c'];
             $_base_url = $_url . '/' . self::$env['a'];
         } else {
+            $_app = $uri;
             if (self::$env['m']) {
                 $_url = $_app . '?m=' . self::$env['m'] . '&c=' . self::$env['c'];
             } else {
@@ -471,18 +519,35 @@ final class myphp{
     /**
      * 引入合并配置
      * @param string $path
+     * @param bool $init 使用初始配置 用于模块配置载入
      */
-    public static function loadConfig($path){
-        if(!is_file($path)) return;
+    public static function loadConfig($path, $init=false){
+        //缓存处理
+        if (isset(self::$_cli_cache[$path])) {
+            $config = self::$_cli_cache[$path];
+        } else {
+            if (!is_file($path)) {
+                self::$_cli_cache[$path] = [];
+                return;
+            }
+            self::$_cli_cache[$path] = $config = require($path);
+        }
+        if (!$config) return;
+        if ($init) {
+            self::$cfg = self::$_init_cfg; //重置为初始配置
+            if (isset(self::$env['app_mod_maps'])) { //有app下的模块映射配置-兼容合并
+                //$config['module_maps'] = isset($config['module_maps']) ? array_merge(self::$env['app_mod_maps'], $config['module_maps']) : self::$env['app_mod_maps'];
+                $config['module_maps'] = self::$env['app_mod_maps'];
+            }
+        }
 
-        $config = require($path);
         //指定目录
-        if(isset($config['class_dir'])){
+        if(!empty($config['class_dir'])){
             $classDir = is_array($config['class_dir']) ? $config['class_dir'] : explode(',', ROOT . str_replace(',', ',' . ROOT, $config['class_dir']));
             self::class_dir($classDir);
             unset($config['class_dir']);
         }
-        //中间件
+        //合并全局中间件
         if (!empty($config['middleware'])) {
             if (!self::$cfg['middleware']) {
                 self::$cfg['middleware'] = (array)$config['middleware'];
@@ -490,6 +555,18 @@ final class myphp{
                 self::$cfg['middleware'] = array_merge(self::$cfg['middleware'], (array)$config['middleware']);
             }
             unset($config['middleware']);
+        }
+        //合并全局模块映射
+        if (!empty($config['module_maps'])) {
+            if (!self::$cfg['module_maps']) {
+                self::$cfg['module_maps'] = $config['module_maps'];
+            } else {
+                self::$cfg['module_maps'] = array_merge(self::$cfg['module_maps'], $config['module_maps']);
+            }
+            //app下有模块映射配置
+            !$init && self::$env['app_mod_maps'] = $config['module_maps'];
+
+            unset($config['module_maps']);
         }
 
         self::$cfg = array_merge(self::$cfg, $config); //array_merge_recursive 可考虑递归合并
@@ -546,8 +623,13 @@ final class myphp{
     }
     // app项目初始化
     private static function _initApp($path, $isCLI = IS_CLI){
-        if(!$isCLI && self::$env['m']!='') return; //仅cli下自动生成项目模块
-        if(is_file($path .'/index.htm')) return;
+        if (!$isCLI && self::$env['m'] != '') return; //仅cli下自动生成项目模块
+        if (isset(self::$_cli_cache[$path . '/index.htm'])) return;
+        if (is_file($path . '/index.htm')) {
+            self::$_cli_cache[$path . '/index.htm'] = true;
+            return;
+        }
+
         // 创建项目目录
         if(!is_dir($path)) mkdir($path,0755, true);
         $dirs  = array(
@@ -574,66 +656,56 @@ final class myphp{
         file_put_contents(self::$env['CACHE_PATH'] . '/.gitignore', "*\r\n!.gitignore");
         file_put_contents($path . '/.gitignore', "/config.local.php");
     }
-    //初始框架
-    public static function init($cfg=null){
-        //引入默认配置文件
-        self::$cfg = require(__DIR__ . '/def_config.php');
-        if (is_array($cfg)) { //组合参数配置
-            self::$cfg = array_merge(self::$cfg, $cfg);
-            unset($cfg);
-        }
-        //引入公共配置文件
-        if (is_file(COMMON . '/config.php')) {
-            self::$cfg = array_merge(self::$cfg, require(COMMON . '/config.php'));
-        }
 
-        //相对根目录
-        if(!isset(self::$cfg['root_dir'])){ //仅支持识别1级目录 如/www 不支持/www/web 需要支持请手动设置此配置
-            if (IS_CLI) {
-                self::$cfg['root_dir'] = '';
-            } else {
-                $appRoot = dirname($_SERVER['SCRIPT_NAME']);
-                if (IS_WIN) $appRoot = strtr($appRoot, '\\', DS);
-                $appRoot == DS && $appRoot = ''; //$appRoot=='.' cli下会得到.
-                self::$cfg['root_dir'] = $appRoot;
+    private static function _urlPath($app_root, $uri, $isCLI){
+        if (isset(self::$env['url_path'])) return self::$env['url_path'];
+        $url = $_SERVER["REQUEST_URI"]; //获取完整的路径，包含"?"之后的字
+        //去除url包含的当前文件的路径信息
+        if (strpos($url, $uri, 0) === 0) {
+            $url = substr($url, strlen($uri));
+        } else { //伪静态时去除
+            $len = strlen($app_root);
+            if (substr($url, 0, $len) == $app_root) {
+                $url = substr($url, $len);
             }
         }
-        //相对根目录
-        define('ROOT_DIR', self::$cfg['root_dir']);
-        //相对资源公共目录
-        define('PUB', ROOT_DIR . '/pub');
-
-        if (self::$cfg['debug']) { //开启错误提示
-            error_reporting(E_ALL);// 报错级别设定,一般在开发环境中用E_ALL,这样能够看到所有错误提示
-            ini_set('display_errors', 'On');// 有些环境关闭了错误显示
-        } else {
-            error_reporting(E_ALL ^ E_NOTICE); #除了 E_NOTICE，报告其他所有错误
-            ini_set('display_errors', 'Off');
+        //去除?处理
+        $pos = strpos($url, '?');
+        if ($pos !== false) {
+            if ($isCLI) { //cli 命令模式支持?b=1&d=1
+                parse_str(substr($url, $pos + 1), $_GET);
+                $_REQUEST = $_GET;
+            }
+            $url = substr($url, 0, $pos);
         }
-
-        //设置本地时差
-        date_default_timezone_set(self::$cfg['timezone']);
-        //初始类的可加载目录
-        self::class_dir([COMMON, COMMON . '/model']); //基础类 扩展类 公共模型
-        if(self::$cfg['class_dir']){
-            $classDir = is_array(self::$cfg['class_dir']) ? self::$cfg['class_dir'] : explode(',', ROOT . str_replace(',', ',' . ROOT, self::$cfg['class_dir']));
-            self::class_dir($classDir);
-        }
-
-        if (self::$rootPath === '') self::$rootPath = ROOT;
-        //注册类的自动加载
-        spl_autoload_register('\myphp::autoload', true, true);
-        // 设定错误和异常处理
-        Log::register();
-        //日志记录初始
-        Log::init(self::$cfg['log_dir'], self::$cfg['log_level'], self::$cfg['log_size']);
-        is_file(COMMON . '/common.php') && require COMMON . '/common.php';	//引入公共函数
-
-        if(!defined('APP_PATH')){
-            define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']) . '/app');
-        }
-        self::$pipe = new \myphp\Pipeline();
+        self::$env['url_path'] = $url;
+        return $url;
     }
+
+    /**
+     * 载入模块配置及生成命名空间前缀
+     * @param $app_path
+     */
+    private static function _initModule(&$app_path){
+        //指定项目模块
+        if (self::$env['m']) {
+            if (isset(self::$cfg['module_maps'][self::$env['m']])) {
+                if (self::$cfg['module_maps'][self::$env['m']][0] == DS) { //项目根目录
+                    $app_path = ROOT . self::$cfg['module_maps'][self::$env['m']];
+                    self::$env['app_namespace'] = strtr(substr(self::$cfg['module_maps'][self::$env['m']], 1), DS, '\\');
+                } else { //相对项目目录
+                    $app_path = APP_PATH . DS . self::$cfg['module_maps'][self::$env['m']];
+                    self::$env['app_namespace'] .= '\\' . strtr(self::$cfg['module_maps'][self::$env['m']], DS, '\\');
+                }
+            } else { //子模块默认 /module 目录下
+                $app_path = ROOT . DS . 'module' . DS . self::$env['m'];
+                self::$env['app_namespace'] = 'module\\' . self::$env['m'];
+            }
+            //引入模块配置
+            self::loadConfig($app_path . '/config.php', true);
+        }
+    }
+
     //php代码格式化
     public static function compile($filename) {
         $content = php_strip_whitespace($filename);

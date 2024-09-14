@@ -14,7 +14,7 @@ return array(
 	'def_action' => 'index',	//默认方法名 a
 	'url_maps_regx'=> null, //url映射正则规则
 	'url_maps' => null, //url映射 array()
-	'module_maps' => null, //模块映射 [模块名=>（子项目）前置命令空间名称|路径,...] 放置到app项目下 自动识别app项目下module目录的子模块
+	'module_maps' => null, //模块映射 [模块名=>（子项目）前置命令空间名称|路径,...] 放置全局配置或app配置下 自动识别app项目下module目录的子模块
 	// array('admin'=>'/system')  -> /开头相对网站目录 无/开头相对项目目录 /index.php?m=admin&c=index&a=index 路径ROOT./system
 	//数据库连接信息
 	'db' => array(
@@ -51,7 +51,7 @@ return array(
     'req_cache_except' => array(), //请求缓存排除项 ['/index/reg',  '/index/login']
     'jsonp_call'=>'callback', //JSONP处理方法 url请求传递此值可指定处理方法 否则默认此值
 	'root_dir' => null,//相对根目录 未设置时自动获取 结尾不要"/"
-	'class_dir'=>'',//class扩展路径 相对根目录 路径开头使用/ 多个使用,分隔 应用于myphp.php中
+	//'class_dir'=>'',//class扩展路径 相对根目录 路径开头使用/ 多个使用,分隔 应用于myphp.php中
 	'def_filter'=>'htmlspecialchars', //默认参数过滤
     'gzip' => false, //gzip压缩开关 输出头需输出 Content-Encoding: gzip  在Control:_after实现
     'gzip_min_length' => 1024, //1k 最低压缩大小
