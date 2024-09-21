@@ -82,6 +82,10 @@ class db_mysqli extends \myphp\DbBase{
 	public function queryAll($sql, $type = 'assoc'){
         if($type=='assoc') $type = MYSQLI_ASSOC;
         elseif($type=='num') $type = MYSQLI_NUM;
+        elseif($type=='column') {
+            $ret = $this->query($sql)->fetch_all(MYSQLI_NUM);
+            return $ret ? array_column($ret, 0) : [];
+        }
         else $type = MYSQLI_BOTH;
         return $this->query($sql)->fetch_all($type);
     }

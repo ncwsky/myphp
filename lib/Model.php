@@ -17,18 +17,19 @@ namespace myphp;
  * @method null|static where(string|array $val, $bind=null)
  * @method null|static whereOr(string|array $val, $bind=null)
  * @method int update(array $post, string $table='', string|array $where = '')
- * @method array|false|\PDOStatement|static[] select(bool|string $table='');
- * @method array|false|\PDOStatement|static[] all(bool|string $table='');
- * @method array|false|static find();
+ * @method array|false|\PDOStatement|static[] select(bool|string $table='')
+ * @method array|false|\PDOStatement|static[] all(bool|string $table='')
+ * @method array column()
+ * @method array|false|static find()
  * @method array|false|static one()
- * @method string select_sql();
- * @method string find_sql();
- * @method mixed|null val($name);
- * @method string get_real_sql($sql, $bind = null);
+ * @method string select_sql()
+ * @method string find_sql()
+ * @method mixed|null val($name)
+ * @method string get_real_sql($sql, $bind = null)
  * @method null|static setTransactionLevel($level)
- * @method null|static beginTrans();
- * @method bool commit($force=false);
- * @method bool rollBack($force=false);
+ * @method null|static beginTrans()
+ * @method bool commit($force=false)
+ * @method bool rollBack($force=false)
  */
 class Model implements \ArrayAccess
 {

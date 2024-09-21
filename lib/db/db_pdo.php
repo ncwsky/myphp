@@ -173,6 +173,7 @@ class db_pdo extends \myphp\DbBase{
         $mode = PDO::FETCH_BOTH;
         if($type=='assoc') $mode = PDO::FETCH_ASSOC;
         elseif($type=='num') $mode = PDO::FETCH_NUM;
+        elseif($type=='column') $mode = PDO::FETCH_COLUMN; //取第一列数据
         //$sth = $this->conn->prepare($sql); $sth->execute(); return $sth->fetchAll($mode);
         return $this->query($sql)->fetchAll($mode);
     }

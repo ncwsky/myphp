@@ -20,7 +20,7 @@ return array(
 	'db' => array(
 		'pconnect' => false,
 		'dsn' => '', //使用pdo驱动时可直接设置dsn
-		'type' => 'pdo',   //数据库连接类型 仅pdo、mysqli
+		'type' => 'pdo',   //连接类型 支持继承DbBase的pdo、mysqli、taos
 		'dbms' => 'mysql', //数据库
 		'server' => 'localhost', //数据库主机
 		'name' => '',     //数据库名称

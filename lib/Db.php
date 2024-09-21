@@ -41,7 +41,7 @@ class Db {
      * @var array 配置
      */
     private $config = [
-        'type' => 'pdo',   //数据库连接类型 仅pdo、mysqli
+        'type' => 'pdo',   //连接类型 支持继承DbBase的pdo、mysqli、taos
         'dbms' => 'mysql', //数据库
         'server' => '',    //数据库主机
         'name' => '',   //数据库名称
@@ -547,8 +547,9 @@ class Db {
         $data = [];
         if ($idx) {
             $rs = $this->db->query($sql);
-            while($row = $this->db->fetch($rs, $type)) {
-                $data[$row[$idx]] = $row;
+            $isColumn = $type == 'column';
+            while($row = $this->db->fetch($rs)) {
+                $data[$row[$idx]] = $isColumn ? reset($row) : $row;
             }
         } else {
             $data = $this->db->queryAll($sql, $type);
@@ -566,7 +567,7 @@ class Db {
         $n = 0;
         $data = $idx ? [] : new \SplFixedArray($num);
         $rs = $this->query($this->select_sql(),false);
-        while ($row = $this->db->fetch($rs, 'assoc')) {
+        while ($row = $this->db->fetch($rs)) {
             if ($idx) {
                 $data[$row[$idx]] = $row;
             } else {
@@ -609,6 +610,13 @@ class Db {
 	}
     public function all($table='', $where = '', $order='', $fields = '*', $limit=''){
         return $this->query($this->select_sql($table, $where, $order, $fields, $limit),$table===false?false:true);
+    }
+    /**
+     * 获取第一列数据
+     * @return array
+     */
+    public function column(){
+        return $this->query($this->select_sql(),true, true, 'column');
     }
 	public function find_sql($table='', $where='', $order='', $fields = '*'){
         if($where!='') $this->_where($where);
@@ -814,7 +822,7 @@ class Db {
      */
 	public function getOne($sql, $bind=null, $type = 'assoc') {
         $rs = $this->query($sql, $bind === null || is_bool($bind) ? null : (array)$bind);
-		return $this->db->fetch($rs, $type );//无记录返回false
+        return $this->db->fetch($rs, $type);//无记录返回false
 	}
 
     /**

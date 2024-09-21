@@ -488,6 +488,13 @@ class Redis
         'ZSCAN', // Incrementally iterate sorted sets elements and associated scores
     ];
 
+    public $intCommands = [
+        'DECR',
+        'DECRBY',
+        'INCR',
+        'INCRBY',
+        'HINCRBY',
+    ];
     /**
      * @var bool 美化HGETALL ZRANGE 输出
      */
@@ -837,7 +844,10 @@ class Redis
                 }
             case ':': // Integer reply
                 // no cast to int as it is in the range of a signed 64 bit integer
-                return PHP_INT_SIZE === 8 ? (int)$line : $line;
+                if (in_array($this->_lastCmd, $this->intCommands) && PHP_INT_SIZE === 8) {
+                    return (int)$line;
+                }
+                return $line;
             case '$': // Bulk replies
                 if ($line == '-1') {
                     return null;

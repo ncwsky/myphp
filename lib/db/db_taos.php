@@ -6,6 +6,7 @@ use TDEngine\TaosRestApi;
 
 /**
  * Class db_taos
+ * composer require myphps/taos-rest
  * @property TaosRestApi $conn
  * [
     'type' => 'taos',   //数据库连接类型 TDEngine rest api
@@ -73,6 +74,7 @@ class db_taos extends \myphp\DbBase{
 	public function queryAll($sql, $type = 'assoc'){
         if($type=='assoc') $type = TaosRestApi::FETCH_ASSOC;
         elseif($type=='num') $type = TaosRestApi::FETCH_NUM;
+        elseif($type=='column') $type = TaosRestApi::FETCH_COLUMN;
         else $type = TaosRestApi::FETCH_BOTH;
 
         return $this->conn->query($sql, $type);
