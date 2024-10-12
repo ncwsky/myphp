@@ -74,6 +74,8 @@ class Model implements \ArrayAccess
      */
     public static $resetOption = false; //sql组合项执行后是否重置
 
+    public static $resetWhere = false; //使用->where是否重置之前的条件
+
     /**
      * 数据库实例
      * @param bool $newInstance
@@ -516,7 +518,7 @@ class Model implements \ArrayAccess
      * @return $this
      */
     protected function _where($case, $bind=null){
-        unset($this->db->where);
+        if (self::$resetWhere) unset($this->db->where);
         $this->db->where($case, $bind);
         return $this;
     }
@@ -527,7 +529,7 @@ class Model implements \ArrayAccess
      * @return $this
      */
     protected function _whereOr($case, $bind=null){
-        unset($this->db->where);
+        if (self::$resetWhere) unset($this->db->where);
         $this->db->whereOr($case, $bind);
         return $this;
     }
