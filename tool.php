@@ -3,7 +3,7 @@
 if (empty($_SERVER['argv']) || count($_SERVER['argv']) == 1) {
     die('no argv');
 }
-//require __DIR__ . "/conf.php";
+require __DIR__ . "/conf.php";
 require __DIR__ . "/base.php";
 if (!IS_CLI) {
     die('no cli');

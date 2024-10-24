@@ -416,13 +416,16 @@ final class myphp{
             if ($path) {
                 self::$env['m'] = explode('/', $path, 2)[0];
                 //这里只对有配置的模块识别
-                if (!isset(self::$cfg['module_maps'][self::$env['m']])) self::$env['m'] = '';
+                if (isset(self::$cfg['module_maps'][self::$env['m']])) {
+                    //模块载入配置
+                    self::_initModule($app_path);
+                } else {
+                    self::$env['m'] = '';
+                }
             } else {
                 self::$env['m'] = '';
             }
-            $_m = self::$env['m'];
-            //模块载入配置
-            self::_initModule($app_path);
+            $_m = self::$env['m']; //用于判断下方有匹配的相同子模块再次处理
         } else {
             $_m = '';
         }
@@ -519,10 +522,10 @@ final class myphp{
     /**
      * 引入合并配置
      * @param string $path
-     * @param bool $init 使用初始配置 用于模块配置载入
+     * @param bool $mod 是否为初始模块配置
      */
-    public static function loadConfig($path, $init=false){
-        //缓存处理
+    public static function loadConfig($path, $mod=false){
+        //缓存处理 主要针对cli
         if (isset(self::$_cli_cache[$path])) {
             $config = self::$_cli_cache[$path];
         } else {
@@ -533,11 +536,13 @@ final class myphp{
             self::$_cli_cache[$path] = $config = require($path);
         }
         if (!$config) return;
-        if ($init) {
+        if ($mod) {
             self::$cfg = self::$_init_cfg; //重置为初始配置
             if (isset(self::$env['app_mod_maps'])) { //有app下的模块映射配置-兼容合并
                 //$config['module_maps'] = isset($config['module_maps']) ? array_merge(self::$env['app_mod_maps'], $config['module_maps']) : self::$env['app_mod_maps'];
                 $config['module_maps'] = self::$env['app_mod_maps'];
+            } else {
+                $config['module_maps'] = null; //子模块不支持配置模块映射 无意义
             }
         }
 
@@ -558,14 +563,14 @@ final class myphp{
         }
         //合并全局模块映射
         if (!empty($config['module_maps'])) {
+            //app下有模块映射配置
+            !$mod && self::$env['app_mod_maps'] = $config['module_maps'];
+
             if (!self::$cfg['module_maps']) {
                 self::$cfg['module_maps'] = $config['module_maps'];
             } else {
                 self::$cfg['module_maps'] = array_merge(self::$cfg['module_maps'], $config['module_maps']);
             }
-            //app下有模块映射配置
-            !$init && self::$env['app_mod_maps'] = $config['module_maps'];
-
             unset($config['module_maps']);
         }
 
@@ -688,22 +693,20 @@ final class myphp{
      */
     private static function _initModule(&$app_path){
         //指定项目模块
-        if (self::$env['m']) {
-            if (isset(self::$cfg['module_maps'][self::$env['m']])) {
-                if (self::$cfg['module_maps'][self::$env['m']][0] == DS) { //项目根目录
-                    $app_path = ROOT . self::$cfg['module_maps'][self::$env['m']];
-                    self::$env['app_namespace'] = strtr(substr(self::$cfg['module_maps'][self::$env['m']], 1), DS, '\\');
-                } else { //相对项目目录
-                    $app_path = APP_PATH . DS . self::$cfg['module_maps'][self::$env['m']];
-                    self::$env['app_namespace'] .= '\\' . strtr(self::$cfg['module_maps'][self::$env['m']], DS, '\\');
-                }
-            } else { //子模块默认 /module 目录下
-                $app_path = ROOT . DS . 'module' . DS . self::$env['m'];
-                self::$env['app_namespace'] = 'module\\' . self::$env['m'];
+        if (isset(self::$cfg['module_maps'][self::$env['m']])) {
+            if (self::$cfg['module_maps'][self::$env['m']][0] == DS) { //项目根目录
+                $app_path = ROOT . self::$cfg['module_maps'][self::$env['m']];
+                self::$env['app_namespace'] = strtr(substr(self::$cfg['module_maps'][self::$env['m']], 1), DS, '\\');
+            } else { //相对项目目录
+                $app_path = APP_PATH . DS . self::$cfg['module_maps'][self::$env['m']];
+                self::$env['app_namespace'] .= '\\' . strtr(self::$cfg['module_maps'][self::$env['m']], DS, '\\');
             }
-            //引入模块配置
-            self::loadConfig($app_path . '/config.php', true);
+        } else { //子模块默认 /module 目录下
+            $app_path = ROOT . DS . 'module' . DS . self::$env['m'];
+            self::$env['app_namespace'] = 'module\\' . self::$env['m'];
         }
+        //引入模块配置
+        self::loadConfig($app_path . '/config.php', true);
     }
 
     //php代码格式化
