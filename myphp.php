@@ -539,10 +539,9 @@ final class myphp{
         if ($mod) {
             self::$cfg = self::$_init_cfg; //重置为初始配置
             if (isset(self::$env['app_mod_maps'])) { //有app下的模块映射配置-兼容合并
-                //$config['module_maps'] = isset($config['module_maps']) ? array_merge(self::$env['app_mod_maps'], $config['module_maps']) : self::$env['app_mod_maps'];
                 $config['module_maps'] = self::$env['app_mod_maps'];
             } else {
-                $config['module_maps'] = null; //子模块不支持配置模块映射 无意义
+                unset($config['module_maps']); //子模块不支持配置模块映射 无意义
             }
         }
 
