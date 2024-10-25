@@ -17,20 +17,35 @@ return array(
 	'module_maps' => null, //模块映射 [模块名=>（子项目）前置命令空间名称|路径,...] 放置全局配置或app配置下 自动识别app项目下module目录的子模块
 	// array('admin'=>'/system')  -> /开头相对网站目录 无/开头相对项目目录 /index.php?m=admin&c=index&a=index 路径ROOT./system
 	//数据库连接信息
-	'db' => array(
-		'pconnect' => false,
-		'dsn' => '', //使用pdo驱动时可直接设置dsn
-		'type' => 'pdo',   //连接类型 支持继承DbBase的pdo、mysqli、taos
-		'dbms' => 'mysql', //数据库
-		'server' => 'localhost', //数据库主机
-		'name' => '',     //数据库名称
-		'user' => 'root', //数据库用户
-		'pwd' => '',	  //数据库密码
-		'port' => 3306,   // 端口
-		'char' => 'utf8', //数据库编码
-		'prefix' => '',   //数据库表前缀
+    'db' => array(
+        'pconnect' => false,
+        //'dsn' => '', //使用pdo驱动时可直接设置dsn
+        'type' => 'pdo',   //连接类型 支持继承DbBase的pdo、mysqli、taos
+        'dbms' => 'mysql', //数据库
+        'server' => 'localhost', //数据库主机
+        'name' => '',     //数据库名称
+        'user' => 'root', //数据库用户
+        'pwd' => '',	  //数据库密码
+        'port' => 3306,   // 端口
+        'char' => 'utf8', //数据库编码
         //'timezone'=>'', //数据库时区 mysql +08:00,pqsql PRC
-        'options'=>[]     //辅助配置
+        'prefix' => '',   //数据库表前缀
+        //'prod' => false,  //生产环境 对没有建表model的生成表缓存信息
+        //'options'=>[]     //辅助配置
+        /*'slaves' => [ //从库配置 只读 主从模式
+            [
+                'dbms' => 'mysql', //数据库
+                'server' => '',    //数据库主机
+                'name' => '',   //数据库名称
+                'user' => '',   //数据库用户
+                'pwd' => '',    //数据库密码
+                'port' => '',   // 端口
+                'char' => 'utf8', //数据库编码
+                'options' => [
+                    \PDO::ATTR_TIMEOUT => 2 //连接超时时间
+                ]
+            ]
+        ]*/
 	),
 	'cache' => null, // 'file'
 	'cache_option' => array(

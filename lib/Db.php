@@ -61,7 +61,21 @@ class Db {
         //'prefix' => '',  //数据库表前缀
         //'prod' => false,  //生产环境 对没有建表model的生成表缓存信息
         //'options'=>[]     //pdo辅助配置
-        /*'slaves' => [ //从库配置 只读
+        /*'slaves' => [ //从库配置 只读 主从模式
+            [
+                'dbms' => 'mysql', //数据库
+                'server' => '',    //数据库主机
+                'name' => '',   //数据库名称
+                'user' => '',   //数据库用户
+                'pwd' => '',    //数据库密码
+                'port' => '',   // 端口
+                'char' => 'utf8', //数据库编码
+                'options' => [
+                    \PDO::ATTR_TIMEOUT => 2 //连接超时时间
+                ]
+            ]
+        ]*/
+        /*'masters' => [ //多主库配置 主主模式 //todo
             [
                 'dbms' => 'mysql', //数据库
                 'server' => '',    //数据库主机
@@ -98,18 +112,33 @@ class Db {
      */
     private function _initDb($slave=false, $force=false){
         $config = $this->config;
-        if ($slave && !empty($this->config['slaves'][0])) { //对有数据库配置的从库处理
+        if ($slave && !empty($config['slaves'])) { //对有数据库配置的从库处理
             if ($this->_slave) {
                 $this->_slaveLog = true;
                 return $this->_slave;
             }
-
-            $slaveConfigs = $this->config['slaves'];
-            $count = count($slaveConfigs);
-            $idx = $count > 1 ? mt_rand(0, $count - 1) : 0;
+            if (isset($config['slaves'][0])) { //对多个的从库配置随机取
+                $slaves = $config['slaves'];
+                $count = count($slaves);
+                $idx = $count > 1 ? mt_rand(0, $count - 1) : 0;
+            } else {
+                $slaves = [$config['slaves']];
+                $idx = 0;
+            }
             unset($config['slaves'],$config['dsn']);
-            $config = array_merge($config, $slaveConfigs[$idx]);
+            $config = array_merge($config, $slaves[$idx]);
         } else {
+            //多主 //todo
+            /*
+            if (!empty($config['masters'])) {
+                if ($this->db) return $this->db;
+                $masters = isset($config['masters'][0]) ? $config['masters'] : [$config['masters']];
+                $masters[] = []; //主配置
+                $count = count($masters);
+                $idx = $count > 1 ? mt_rand(0, $count - 1) : 0;
+                unset($config['masters'], $config['dsn']);
+                $config = array_merge($config, $masters[$idx]);
+            }*/
             $slave = false;
         }
         $key = empty($config['dsn']) ? $config['server'] . $config['name'] . $config['user'] . $config['port'] : $config['dsn'];
