@@ -41,7 +41,7 @@ class db_pdo extends \myphp\DbBase{
                     }elseif (!empty($cfg_db['socket'])) {
                         $dsn .= ';unix_socket='. $cfg_db['socket'];
                     }
-                    if ($cfg_db['char'] != '') {
+                    if (!empty($cfg_db['char'])) {
                         $dsn .= ';charset=' . $cfg_db['char'];
                         $initSql .= "SET names '" . $cfg_db['char'] . "';";
                     }
@@ -59,7 +59,7 @@ class db_pdo extends \myphp\DbBase{
                     $dsn = 'oci:dbname=//'.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ':'.$cfg_db['port']).'/'.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);break;
                 case 'pgsql':// PDO_PGSQL DSN
                     $dsn = 'pgsql:host='.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ';port='.$cfg_db['port']).';dbname='.$cfg_db['name'];
-                    if ($cfg_db['char'] != '') $initSql .= "SET names '" . $cfg_db['char'] . "';";
+                    if (!empty($cfg_db['char'])) $initSql .= "SET names '" . $cfg_db['char'] . "';";
                     if (!empty($cfg_db['timezone'])) $initSql .= "set time zone='" . $cfg_db['timezone'] . "';";
                     break;
                 case 'sqlite':// PDO_SQLITE DSN @sqlite:/opt/databases/mydb.sq3

@@ -543,7 +543,7 @@ class Model implements \ArrayAccess
         $this->db->where($case, $bind);
         return $this;
     }
-    
+
     protected static function runCall(Model $model, $method, $args){
         if ($method == 'where') {
             $method = '_where';

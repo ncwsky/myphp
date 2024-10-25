@@ -34,6 +34,13 @@ class Db {
      */
     private $db;
     /**
+     * @var \myphp\db\db_pdo
+     */
+    private $_slave;
+    private $_slaveIdx = -1;
+    private $_slaveLog = false; //用于日志记录标识
+    public $slaveRetryInterval = 300; //重试间隔
+    /**
      * @var \myphp\cache\File 缓存
      */
     private $cache;
@@ -41,17 +48,33 @@ class Db {
      * @var array 配置
      */
     private $config = [
-        'type' => 'pdo',   //连接类型 支持继承DbBase的pdo、mysqli、taos
-        'dbms' => 'mysql', //数据库
-        'server' => '',    //数据库主机
-        'name' => '',   //数据库名称
-        'user' => '',   //数据库用户
-        'pwd' => '',    //数据库密码
-        'port' => '',   // 端口
-        'char' => 'utf8', //数据库编码
-        'prefix' => '',  //数据库表前缀
-        'prod' => false,  //生产环境
+        //'type' => 'pdo',   //连接类型 支持继承DbBase的pdo、mysqli、taos
+        //'dsn' => '', //使用pdo驱动时可直接设置dsn
+        //'dbms' => 'mysql', //数据库
+        //'server' => '',    //数据库主机
+        //'name' => '',   //数据库名称
+        //'user' => '',   //数据库用户
+        //'pwd' => '',    //数据库密码
+        //'port' => '',   // 端口
+        //'char' => 'utf8', //数据库编码
         //'timezone'=>'+8:00', //时区
+        //'prefix' => '',  //数据库表前缀
+        //'prod' => false,  //生产环境 对没有建表model的生成表缓存信息
+        //'options'=>[]     //pdo辅助配置
+        /*'slaves' => [ //从库配置 只读
+            [
+                'dbms' => 'mysql', //数据库
+                'server' => '',    //数据库主机
+                'name' => '',   //数据库名称
+                'user' => '',   //数据库用户
+                'pwd' => '',    //数据库密码
+                'port' => '',   // 端口
+                'char' => 'utf8', //数据库编码
+                'options' => [
+                    \PDO::ATTR_TIMEOUT => 2 //连接超时时间
+                ]
+            ]
+        ]*/
     ];
     /**
      * @var array 链操作方法信息
@@ -67,30 +90,71 @@ class Db {
     private $endSpec = '`';
 
     /**
+     * 
+     * @param bool $slave
+     * @param bool $force
+     * @return mixed
+     * @throws Exception
+     */
+    private function _initDb($slave=false, $force=false){
+        $config = $this->config;
+        if ($slave && !empty($this->config['slaves'][0])) { //对有数据库配置的从库处理
+            if ($this->_slave) {
+                $this->_slaveLog = true;
+                return $this->_slave;
+            }
+
+            $slaveConfigs = $this->config['slaves'];
+            $count = count($slaveConfigs);
+            $idx = $count > 1 ? mt_rand(0, $count - 1) : 0;
+            unset($config['slaves'],$config['dsn']);
+            $config = array_merge($config, $slaveConfigs[$idx]);
+        } else {
+            $slave = false;
+        }
+        $key = empty($config['dsn']) ? $config['server'] . $config['name'] . $config['user'] . $config['port'] : $config['dsn'];
+
+        if ($slave) {
+            $this->initCache();
+            if ($this->cache->get($key)) return $this->_initDb(); //使用主库
+        }
+
+        if ($force || !isset(self::$instance[$key])) {
+            $db_type = '\myphp\db\db_' . $config['type'];
+            if ($slave) {
+                try {
+                    $db = new $db_type($config);//连接数据库
+                } catch (\Exception $e) {
+                    $this->cache->set($key, 1, $this->slaveRetryInterval); //失败连接置重试间隔标识
+                    return $this->_initDb(); //使用主库
+                }
+                $this->_slave = $db;
+                $this->_slaveIdx = $idx;
+                $this->_slaveLog = true;
+            } else {
+                $db = new $db_type($config);//连接数据库
+            }
+            self::$instance[$key] = $db;
+        } else {
+            $db = self::$instance[$key];
+        }
+        return $db;
+    }
+
+    /**
      * Db constructor.
-     * @param string|array $conf
+     * @param string $conf 去掉array配置支持 改为向myphp::$cfg置入置配的方式
      * @param bool $force 是否强制生成新实例
      * @throws Exception
      */
     public function __construct($conf='db', $force=false) {
-        if (is_string($conf)) {
-            if (!isset(myphp::$cfg[$conf])) throw new Exception($conf . 'DB连接配置不存在');
+        if (!isset(myphp::$cfg[$conf])) throw new Exception($conf . 'DB连接配置不存在');
+        $this->config = myphp::$cfg[$conf];
+        if (!isset($this->config['type'])) $this->config['type'] = 'pdo';
+        if (!isset($this->config['dbms'])) $this->config['dbms'] = 'mysql';
+        if (!isset($this->config['prod'])) $this->config['prod'] = false;
 
-            $key = $conf;
-            $this->config = array_merge($this->config, myphp::$cfg[$conf]);
-        } else {
-            $this->config = array_merge($this->config, $conf);
-            $key = $this->config['dbms'] . $this->config['server'] . $this->config['name'] . $this->config['port'];
-        }
-
-        if ($force || !isset(self::$instance[$key])) {
-            $db_type = '\myphp\db\db_' . $this->config['type'];
-            $this->db = new $db_type($this->config);//连接数据库
-            self::$instance[$key] = $this->db;//if (false === $force)
-        } else {
-            $this->db = self::$instance[$key];
-        }
-
+        $this->db = $this->_initDb(false, $force);
         switch ($this->config['dbms']) {
             case 'mysql':
                 $this->startSpec = '`';
@@ -486,7 +550,7 @@ class Db {
         $this->chkSql($sql, $curd);
         self::$sql = $this->_sql = $sql = $this->get_real_sql($sql, $bind); //解析绑定参数
 		if($this->resetOption) $this->options = null; //重置
-		if(self::$log_type==2 || (self::$log_type==1 && $curd)) Log::write($sql,'SQL');
+		if(self::$log_type==2 || (self::$log_type==1 && $curd)) Log::write($sql,'SQL'. ($this->_slaveLog ? '.SLAVE.'.$this->_slaveIdx : ''));
 		self::$times++;
 	}
 
@@ -500,7 +564,7 @@ class Db {
     public function prepare($sql, $options = [])
     {
         //$this->specTransfer($sql);
-        $this->_run_init($sql);
+        $this->_run_init($sql, null, true);
         return $this->db->conn->prepare($sql, $options);
     }
 
@@ -541,18 +605,25 @@ class Db {
             $sql = str_replace('{prefix}', $this->config['prefix'], $sql);
         }
 
+        if (empty($this->config['slaves']) || $this->db->transCounter > 0) {
+            $db = $this->db;
+        } else {
+            $db = $this->_initDb(true);
+        }
+
         $this->_run_init($sql, $bind === null || is_bool($bind) ? null : (array)$bind);
-        if(!$isArr) return $this->db->query($sql);
+        $this->_slaveLog = false;
+        if(!$isArr) return $db->query($sql);
 
         $data = [];
         if ($idx) {
-            $rs = $this->db->query($sql);
+            $rs = $db->query($sql);
             $isColumn = $type == 'column';
-            while($row = $this->db->fetch($rs)) {
+            while($row = $db->fetch($rs)) {
                 $data[$row[$idx]] = $isColumn ? reset($row) : $row;
             }
         } else {
-            $data = $this->db->queryAll($sql, $type);
+            $data = $db->queryAll($sql, $type);
         }
         return $data;
 	}
@@ -893,6 +964,7 @@ class Db {
             $this->cache->setCachePrefix($this->config['name'].'.');
             $this->cache->suffix = '.bin';
         }
+        return $this->cache;
 	}
 	//格式名称-关键字冲突处理
 	public function formatName($val){
