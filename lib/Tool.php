@@ -5,10 +5,6 @@ class Tool
 {
     use \MyMsg;
 
-    public static function run(){
-        //todo 解析脚本命令执行本类方法
-    }
-
     /**
      * 生成表model
      * @param $tbName

@@ -1,0 +1,35 @@
+#!/usr/bin/env php
+<?php
+/**
+ * cli模式下脚本执行入口
+ * my --run=指定应用目录 --init应用初始化
+ */
+$_arg = getopt('', ['run:','init']);
+$init = isset($_arg['init']);
+if ($init) { //初始化
+    $_SERVER['argv'] = [];
+}
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    define('MY_RUN_DIR', __DIR__);
+} else {
+    if (file_exists(__DIR__ . '/../../autoload.php')) { // /vendor/myphps/myphp
+        define('MY_RUN_DIR', realpath(__DIR__ . '/../../../'));
+    } else {
+        define('MY_RUN_DIR', __DIR__);
+    }
+}
+echo 'run dir: ' . MY_RUN_DIR, PHP_EOL;
+//应用目录指定
+$_app = trim($_arg['run'] ?? 'app', '/\\'); //默认 app
+$_appDir = MY_RUN_DIR . '/' . $_app;
+if (!$init && !is_dir($_appDir)) {
+    die($_appDir . ' directory does not exist');
+}
+$_SERVER['IS_CLI_RUN'] = true;
+define('APP_PATH', $_appDir);
+define('COMMON', MY_RUN_DIR . '/common');
+require MY_RUN_DIR . "/vendor/autoload.php";
+require MY_RUN_DIR . "/conf.php";
+require MY_RUN_DIR . "/vendor/myphps/myphp/base.php";
+
+myphp::Run();
