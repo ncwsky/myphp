@@ -26,6 +26,7 @@ class GetOpt
     private static $options = [];
     /**
      * 解析命令 参见 https://www.php.net/manual/zh/function.getopt
+     * 选项的解析会终止于找到的第一个非选项，之后的任何东西都会被丢弃。
      * @param $short
      * @param array $long
      * @return array
