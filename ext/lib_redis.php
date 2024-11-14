@@ -210,12 +210,15 @@ class lib_redis{
         'pconnect' => false, //持续连接
         'server' => array() //从服务器 待实现
     );
+
     /**
      * @param array $options
      * @return lib_redis
+     * @throws Exception
      */
     public static function getInstance($options = array()){
-        $name = isset($options['name']) ? $options['name'] : 'redis';
+        if (!isset($options['name'])) throw new \Exception('Instance Name Not Configured');
+        $name = $options['name']; //'redis';
         if (!isset(self::$instance[$name])) {
             self::$instance[$name] = new self($options);
         } else {
@@ -224,14 +227,6 @@ class lib_redis{
                     self::$instance[$name]->handler->retries = 1;
                 }
             }
-/*            if (!empty($options['pconnect']) && isset($options['select'])) { //持久连接处理
-                try{
-                    self::$instance[$name]->handler->select($options['select']);
-                }catch (\Exception $e){ #重新初始一次
-                    Log::write($e->getMessage(), 'redis-warn');
-                    self::$instance[$name] = new self($options);
-                }
-            }*/
         }
         return self::$instance[$name];
     }
@@ -243,10 +238,6 @@ class lib_redis{
     public static function free($name = 'redis')
     {
         unset(self::$instance[$name]);
-/*        if (isset(self::$instance[$name])) {
-            self::$instance[$name]->close();
-            unset(self::$instance[$name]);
-        }*/
     }
     //构造函数
     public function __construct($options = array()){

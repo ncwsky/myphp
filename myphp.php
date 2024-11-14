@@ -816,14 +816,16 @@ final class myphp{
         }
         return self::$container[$k];
     }
+
     /**
      * @param string $name
      * @return lib_redis
+     * @throws Exception
      */
     public static function redis($name = 'redis'){
         //lib_redis::$isExRedis = false; //不使用redis扩展
         $conf = GetC($name);
-        if (empty($conf['name'])) $conf['name'] = $name;
+        $conf['name'] = $name;
         return lib_redis::getInstance($conf);
     }
     /**
