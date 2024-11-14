@@ -72,7 +72,7 @@ return array(
     'gzip_min_length' => 1024, //1k 最低压缩大小
     'gzip_comp_level' => 3, //压缩等级
     //'gzip_types'=>'text/plain application/javascript application/x-javascript text/javascript text/css application/xml',
-	'encode_key'  => 'oz7oQdlUdlP#y3gKuBbi67mVxhh',//加密串 用于cookie,api通信md5加密及rc4、authcode或其他加密
+	'encode_key'  => 'oz7oQdlUdlP#y3gKuBbi67mVxhh',//加密串 用于cookie:sys_auth(),getMd5(),aes(),Helper::authcode或其他加密
 	'timezone' => 'PRC', //PRC中国 Etc/GMT-8东八区  Asia/Chongqing重庆 Asia/Shanghai上海
 	'htmldir' => '/e',//默认静态目录
 	'updir' => '/up',//默认上传目录
