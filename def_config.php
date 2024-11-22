@@ -119,7 +119,6 @@ return array(
     'auth_login_action' => '',//仅登陆验证的方法
 	'auth_login_M_A' => '',//登陆验证模块中需要验证的动作
 	//日志设置
-	'log_type' => 'file',// 记录类型
 	'log_dir' => ROOT.'/log', //日志记录主目录名称
     'log_size' => 4194304,// 日志文件大小限制
 	'log_level' => 0,// 日志记录等级

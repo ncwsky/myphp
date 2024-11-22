@@ -508,7 +508,7 @@ final class myphp{
             'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰  lcfirst首字母转小写
             'MODULE_PATH' => $app_path,
             //路径 自动生成
-            'CACHE_PATH' => $app_path . DS . 'cache',
+            'CACHE_PATH' => RUNTIME . DS . '.' . (self::$env['m'] ? self::$env['m'] . '.' : '') . self::$env['app_namespace'] . '.view', // $app_path . DS . 'cache',
             'CONTROL_PATH' => $app_path . DS . 'control',
             'MODEL_PATH' => $app_path . DS . 'model',
             'LANG_PATH' => $app_path . DS . 'lang',
@@ -637,6 +637,7 @@ final class myphp{
         // 创建项目目录
         if(!is_dir($path)) mkdir($path,0755, true);
         $dirs  = array(
+            RUNTIME,
             self::$env['CACHE_PATH'],
             self::$env['CONTROL_PATH'],
             self::$env['LANG_PATH'],
@@ -657,7 +658,7 @@ final class myphp{
             file_put_contents(self::$env['VIEW_PATH'] . '/index.html', file_get_contents(__DIR__ . '/tpl/index.html'));
         }
         //生成git忽略文件
-        file_put_contents(self::$env['CACHE_PATH'] . '/.gitignore', "*\r\n!.gitignore");
+        //file_put_contents(self::$env['CACHE_PATH'] . '/.gitignore', "*\r\n!.gitignore");
         file_put_contents($path . '/.gitignore', "/config.local.php");
     }
 

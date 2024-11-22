@@ -54,7 +54,7 @@ class Template{
         $this->cacheLifeTime *= 60;
         $this->initFile($file);
         //验证是否需要更新缓存
-        if(!$this->cache || !$this->checkCache()){
+        if(!$this->checkCache()){
             $this->analyze();
             $this->build();
         }
@@ -80,6 +80,7 @@ class Template{
 	private function build(){
 		//生成模板缓存嵌套记录数组文件
 		$content = '<?php exit;//' . serialize($this->dir['level']);
+        if (!is_dir($this->cachePath)) mkdir($this->cachePath, 0755, true);
 		file_put_contents(strtr($this->cacheFile, array('.php' => '_.php')), $content);
 
 		$content = '';
@@ -204,6 +205,8 @@ class Template{
 	//验证缓存是否有效
 	private function checkCache(){
 		if(!is_file($this->cacheFile)) return false;
+        //启用缓存 直接使用缓存文件
+        if ($this->cache) return true;
 
         $max_mtime = 0;
 		//获取模板缓存嵌套记录数组 可考虑include模式 但cli下会被缓存
