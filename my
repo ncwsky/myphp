@@ -5,6 +5,7 @@
  * my --init 应用初始化
  * my [--run=指定应用目录] [m/]c/a ["b=1&d=1"|b=1 d=1]
  */
+
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     define('MY_RUN_DIR', __DIR__);
 } else {
@@ -14,11 +15,22 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
         define('MY_RUN_DIR', __DIR__);
     }
 }
+//Phar包路径处理
+if (class_exists(Phar::class, false) && Phar::running(false)) {
+    define('MY_PHAR_PATH', Phar::running()); // phar://path/my.phar
+    define('APP_RUN_DIR', dirname(Phar::running(false))); // /path/
+} else {
+    define('APP_RUN_DIR', MY_RUN_DIR);
+}
+
 $_arg = getopt('', ['run:', 'init']);
 $init = isset($_arg['init']);
 if ($init) { //初始化
+    if (defined('MY_PHAR_PATH')) {
+        die('Phar文档模式下不支持此操作!');
+    }
     $_SERVER['argv'] = [];
-    echo 'Run Dir: ' . MY_RUN_DIR, PHP_EOL;
+    echo 'Run Dir: ' . APP_RUN_DIR, PHP_EOL;
 } else {
     if (isset($_arg['run'])) { //myphp里会取$_SERVER['argv'][1]作为uri
         if ($_SERVER['argv'][1] == '--run') { // --run app
@@ -39,7 +51,15 @@ $_SERVER['IS_CLI_RUN'] = true;
 define('APP_PATH', $_appDir);
 define('COMMON', MY_RUN_DIR . '/common');
 require MY_RUN_DIR . "/vendor/autoload.php";
-if (is_file(MY_RUN_DIR . "/conf.php")) require MY_RUN_DIR . "/conf.php";
+if (is_file(APP_RUN_DIR . "/conf.php")) require APP_RUN_DIR . "/conf.php";
+//phar模式下路径处理
+if (defined('MY_PHAR_PATH')) {
+    //临时目录
+    define('RUNTIME', APP_RUN_DIR . '/runtime');
+    //站点目录
+    define('SITE_WEB', APP_RUN_DIR . '/web');
+    //日志目录
+    empty($cfg['log_dir']) && $cfg['log_dir'] = APP_RUN_DIR . '/log';
+}
 require MY_RUN_DIR . "/vendor/myphps/myphp/base.php";
-
 myphp::Run();
