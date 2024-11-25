@@ -8,8 +8,8 @@ define('SYS_TIME', time());//时间戳
 define('MEMORY_LIMIT_ON', function_exists('memory_get_usage'));
 MEMORY_LIMIT_ON && define('SYS_MEMORY', memory_get_usage());
 //系统变量
-define('IS_CLI', PHP_SAPI == 'cli');
-define('IS_WIN', strpos(PHP_OS, 'WIN') !== false);
+define('IS_CLI', PHP_SAPI === 'cli');
+define('IS_WIN', DIRECTORY_SEPARATOR === '\\'); //strpos(PHP_OS, 'WIN') !== false
 define('DS', '/');
 //定义MY_PATH常量
 define('MY_PATH', __DIR__);
@@ -52,7 +52,6 @@ myphp::$namespaceMap = [
 myphp::$classMap = [
     'myphp\Cache' => __DIR__ . '/lib/Cache.php',
     'myphp\CacheAbstract' => __DIR__ . '/lib/Cache.php',
-    'myphp\Value' => __DIR__ . '/lib/Value.php',
     'myphp\Control' => __DIR__ . '/lib/Control.php',
     'myphp\db\db_mysqli' => __DIR__ . '/lib/db/db_mysqli.php',
     'myphp\db\db_pdo' => __DIR__ . '/lib/db/db_pdo.php',
@@ -65,10 +64,19 @@ myphp::$classMap = [
     'myphp\Log' => __DIR__ . '/lib/Log.php',
     'myphp\Model' => __DIR__ . '/lib/Model.php',
     'myphp\Pipeline' => __DIR__ . '/lib/Pipeline.php',
+    'myphp\Request' => __DIR__ . '/lib/Request.php',
+    'myphp\Response' => __DIR__ . '/lib/Response.php',
     'myphp\Session' => __DIR__ . '/lib/Session.php',
     'myphp\Template' => __DIR__ . '/lib/Template.php',
+    'myphp\Value' => __DIR__ . '/lib/Value.php',
     'myphp\View' => __DIR__ . '/lib/View.php',
+
+    'myphp\cache\File' => __DIR__ . '/lib/cache/File.php',
+    'myphp\cache\Redis' => __DIR__ . '/lib/cache/Redis.php',
     'myphp\driver\Redis' => __DIR__ . '/lib/driver/Redis.php',
+    'myphp\middleware\Cors' => __DIR__ . '/lib/middleware/Cors.php',
+    'myphp\middleware\Options' => __DIR__ . '/lib/middleware/Options.php',
+    'myphp\session\Redis' => __DIR__ . '/lib/session/Redis.php',
 
     'AES' => __DIR__ . '/ext/AES.php',
     'BitMap' => __DIR__ . '/ext/BitMap.php',
