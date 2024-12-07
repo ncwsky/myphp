@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace myphp;
 
 class BaseAuth
@@ -7,7 +9,8 @@ class BaseAuth
     use \MyMsg;
 
     //cfg : roles[role=>purview, ...]
-    protected function getPurview(){
+    protected function getPurview()
+    {
         $roleId = session('role');
         $roles = \myphp::get('roles', []);
         if (!isset($roles[$roleId])) {
@@ -109,7 +112,7 @@ class BaseAuth
      * @return void
      * @throws \Exception
      */
-    public function check()
+    public function check(): void
     {
         if (!$this->isLogin()) {
             $redirect = (strpos(\myphp::$cfg['auth_gateway'], 'http') === 0 ? '' : ROOT_DIR) . \myphp::$cfg['auth_gateway'];
