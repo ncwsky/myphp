@@ -146,10 +146,10 @@ class Model implements \ArrayAccess
     /**
      * 设置扩展字段过滤规则
      * @param string|array $name id|[id'=>['rule'=>'%d{1,10}','def'=>0]]
-     * @param null|array $rule ['rule'=>'%d{1,10}','def'=>0]|null
+     * @param array|null $rule ['rule'=>'%d{1,10}','def'=>0]|null
      * @param bool $merge 真替换合并,否时替换覆盖
      */
-    public function setRule($name, $rule = null, bool $merge = true)
+    public function setRule($name, array $rule = null, bool $merge = true): void
     {
         if (is_array($name)) {
             $this->fieldRule = $merge ? array_replace_recursive($this->fieldRule, $name) : array_merge($this->fieldRule, $name);
@@ -166,7 +166,7 @@ class Model implements \ArrayAccess
         return $this->fieldRule;
     }
     //设置字段数据
-    public function setData($data, $reset = true)
+    public function setData($data, bool $reset = true): void
     {
         if (is_array($data)) {
             if ($reset) {
@@ -179,7 +179,7 @@ class Model implements \ArrayAccess
         }
     }
     //设置字段旧数据
-    public function setOldData($data, $reset = true)
+    public function setOldData($data, bool $reset = true): void
     {
         if (is_array($data)) {
             if ($reset) {
@@ -196,7 +196,7 @@ class Model implements \ArrayAccess
         }
     }
     //获取字段数据
-    public function getData($name = null)
+    public function getData(string $name = null)
     {
         if ($name !== null) {
             return $this->_data[$name] ?? null;
@@ -204,7 +204,7 @@ class Model implements \ArrayAccess
         return $this->_data ?: [];
     }
     //获取字段旧数据
-    public function getOldData($name = null)
+    public function getOldData(string $name = null)
     {
         if ($name !== null) {
             return $this->_oldData[$name] ?? null;
@@ -212,9 +212,9 @@ class Model implements \ArrayAccess
         return $this->_oldData ?: [];
     }
     //格式数据
-    public function formatData(&$data)
+    public function formatData(array &$data): void
     {
-        if (!is_array($data) || empty($this->fieldRule)) {
+        if (empty($this->fieldRule)) {
             return;
         }
         foreach ($data as $k => $val) {
@@ -243,7 +243,7 @@ class Model implements \ArrayAccess
      * @param bool $insert
      * @param array $changed 变动的数据
      */
-    public function afterSave(bool $insert, array $changed = [])
+    public function afterSave(bool $insert, array $changed = []): void
     {
     }
 
@@ -254,7 +254,7 @@ class Model implements \ArrayAccess
     {
         return true;
     }
-    public function afterDel()
+    public function afterDel(): void
     {
     }
 
@@ -303,7 +303,7 @@ class Model implements \ArrayAccess
      * $def:false 对未设置字段not null验证(不为空验证)
      * $def:true 对未设置字段not null验证,同时有默认值时设默认值
      * @param null $data
-     * @param null|false|true $def 是否给有默认值但未设置的字段设置默认值 0不验证|true设置默认值|false不设置
+     * @param null|false|true $def 是否给有默认值但未设置的字段设置默认值 null不验证|true设置默认值|false不设置
      * @return bool|int|mixed|string
      * @throws \Exception
      */
@@ -313,7 +313,7 @@ class Model implements \ArrayAccess
             $this->_data = $this->_data ? array_merge($this->_data, $data) : $data;
         }
         //有单条查询且数据有主键 则识别为更新
-        $isUpdate = $this->db->where ? true : false;
+        $isUpdate = (bool)$this->db->where;
         //主键值为[null 0 空]时可insert记录
         if ($this->prikey && $this->_oldData && !empty($this->_data[$this->prikey])) { //有主键[非null 0 空] 有单条查询
             if (isset($this->_oldData[$this->prikey])) {
@@ -384,7 +384,7 @@ class Model implements \ArrayAccess
      * @param mixed $name
      * @param mixed $value
      */
-    public function __set($name, $value)
+    public function __set($name, $value): void
     {
         if ($name == $this->prikey && $value !== 0 && isset($this->_oldData[$name])) { //有单条且主键有值时 不能指定主键值
             return;
@@ -416,7 +416,7 @@ class Model implements \ArrayAccess
      * 销毁数据对象的值
      * @param mixed $name
      */
-    public function __unset($name)
+    public function __unset($name): void
     {
         unset($this->_data[$name]);
     }
@@ -458,7 +458,7 @@ class Model implements \ArrayAccess
     }
 
     //执行db方法的前置处理
-    protected function _beforeDbMethod($method)
+    protected function _beforeDbMethod($method): void
     {
         if ($this->tbName && (!$this->db->table || strpos($this->db->table, $this->tbName) !== 0)) {
             $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
@@ -475,7 +475,7 @@ class Model implements \ArrayAccess
         }
     }
     //执行db方法的后置处理
-    protected function _afterDbMethod($method, &$result)
+    protected function _afterDbMethod($method, &$result): void
     {
         if ($method == 'one' || $method == 'find') { //单条记录   || $method == 'getOne'
             if (false === $result) {
@@ -495,7 +495,7 @@ class Model implements \ArrayAccess
         }
     }
     //表别名 一般用于联合查询
-    public function alias($name)
+    public function alias(string $name)
     {
         $this->aliasName = $name;
         $this->db->table($this->tbName.' '.$name);
@@ -515,11 +515,12 @@ class Model implements \ArrayAccess
     {
         return $this->db;
     }
+
     /**
-     * @param $num
-     * @return \Generator|\SplFixedArray[][]|static[][]|array[][]
+     * @param int $num
+     * @return \Generator|\SplFixedArray[][]|static|array[][]
      */
-    public function batch($num)
+    public function batch(int $num)
     {
         $result = $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''))->batch($num);
         if (!$this->_asObj) {
@@ -574,10 +575,11 @@ class Model implements \ArrayAccess
         $this->db->whereOr($case, $bind);
         return $this;
     }
+
     /**
      * where处理
      * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
-     * @param array $bind 要解析的参数
+     * @param array|null $bind 要解析的参数
      * @return $this
      */
     public function andWhere($case, array $bind = null)
@@ -621,7 +623,7 @@ class Model implements \ArrayAccess
      * @param array $data 数据
      * @param array $rules 规则
      * @param bool $exclude 是否排除非rule规则键名的数据
-     * @param bool $setDef 是否给有默认值但未设置的字段设置默认值
+     * @param bool|null $setDef 是否给有默认值但未设置的字段设置默认值
      * @param bool $all 验证所有字段
      * @return bool
      * @throws \RuntimeException
@@ -632,7 +634,7 @@ class Model implements \ArrayAccess
             foreach ($data as $name => $v) { //数据验证及是否多余数据处理
                 if (isset($rules[$name])) {
                     //非禁用默认值及验证处理或表达式
-                    if (!($setDef === 0 || $v instanceof Expr)) {
+                    if (!($setDef === null || $v instanceof Expr)) {
                         $hasDef = true;
                         $err1 = $err2 = '';
                         if (is_array($rules[$name])) { // 'name'=>['rule'=>'%s{25}'|['s','max'=>25,'err','err2'],'err','err2'
@@ -658,7 +660,7 @@ class Model implements \ArrayAccess
                 }
             }
 
-            if ($setDef !== 0 && $all) { //未指定字段默认值处理
+            if ($setDef !== null && $all) { //未指定字段默认值处理
                 foreach ($rules as $name => $rule) { //是否可为空使用默认值
                     //是否有默认值  无默认值时则不能为空
                     if (isset($rule['def']) || array_key_exists('def', $rule)) {
@@ -721,7 +723,7 @@ class Model implements \ArrayAccess
      * @return bool|mixed|string
      * @throws \Exception
      */
-    public static function insert(array $post, $validate = true)
+    public static function insert(array $post, bool $validate = true)
     {
         if ($validate && ($model = static::create()) && $model->fieldRule) { //有字段规则
             if (isset($post[0])) { //批量
