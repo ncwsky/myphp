@@ -3,6 +3,7 @@
 use myphp\Control;
 use myphp\Db;
 use myphp\Helper;
+use myphp\Hook;
 use myphp\Log;
 use myphp\Request;
 use myphp\Response;
@@ -152,7 +153,7 @@ final class myphp{
     /**
      * 执行c->a
      * @return Response|void|null
-     * @throws Exception
+     * @throws \Exception
      */
     private static function _runCA(){
         //权限验证处理
@@ -243,7 +244,7 @@ final class myphp{
     }
     /**
      * @return mixed|Response|null
-     * @throws Exception
+     * @throws \Exception
      */
     public static function handle(){
         /**
@@ -279,7 +280,7 @@ final class myphp{
      * 运行程序 $isCli 可设置CLI模式下false用于解析数据的参数
      * @param null $sendFun
      * @param bool $isCli
-     * @throws Exception
+     * @throws \Exception
      */
     public static function Run($sendFun=null, bool $isCli=IS_CLI){
         self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法及初始化
@@ -287,7 +288,7 @@ final class myphp{
         try {
             $res = self::handle();
             $res!==null && self::send($res, self::res()->getStatusCode(), self::req()->expire);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $errCode = $e->getCode();
             //匹配状态码时 //$errCode==404 || $errCode==200
             if ($errCode >= 200 && $errCode < 500 && isset(Response::$phrases[$errCode])) {
@@ -312,7 +313,7 @@ final class myphp{
      * @param mixed|Response $res
      * @param int $code
      * @param int $expire //请求缓存时间
-     * @throws Exception
+     * @throws \Exception
      */
     public static function send($res, int $code=200, int $expire=0){
         //非response处理
@@ -334,19 +335,19 @@ final class myphp{
             $res->setContentType(Helper::isAjax() ? Response::CONTENT_TYPE_JSON : Response::CONTENT_TYPE_HTML);
         }
         // 监听res_send
-        \myphp\Hook::listen('res_send', $res);
+        Hook::listen('res_send', $res);
         if (self::$sendFun === null) {
             $res->send();
         } else {
             call_user_func_array(self::$sendFun, [$code, &$res, &$res->header]);
         }
         // 监听res_end
-        \myphp\Hook::listen('res_end', $res);
+        Hook::listen('res_end', $res);
     }
     /**
      * 请求缓存处理
      * @return Response|false
-     * @throws Exception
+     * @throws \Exception
      */
     private static function reqCache(){
         self::$req_cache = null;
@@ -678,7 +679,7 @@ final class myphp{
         if (isset(self::$env['url_path'])) return self::$env['url_path'];
         $url = $_SERVER["REQUEST_URI"]; //获取完整的路径，包含"?"之后的字
         //去除url包含的当前文件的路径信息
-        if (strpos($url, $uri, 0) === 0) {
+        if (strpos($url, $uri) === 0) {
             $url = substr($url, strlen($uri));
         } else { //伪静态时去除
             $len = strlen($app_root);
@@ -820,7 +821,7 @@ final class myphp{
      * @param string $name 数据库配置名
      * @param bool $force 是否强制生成新实例
      * @return Db
-     * @throws Exception
+     * @throws \Exception
      */
     public static function db(string $name = 'db', bool $force=false): Db
     {
@@ -834,7 +835,7 @@ final class myphp{
     /**
      * @param string $name
      * @return lib_redis
-     * @throws Exception
+     * @throws \Exception
      */
     public static function redis(string $name = 'redis'): lib_redis
     {
@@ -854,7 +855,7 @@ final class myphp{
     /**
      * 默认缓存实例
      * @return \myphp\cache\File|\myphp\cache\Redis
-     * @throws Exception
+     * @throws \Exception
      */
     public static function cache(){
         $type = self::$cfg['cache'] ?? 'file';
@@ -1061,7 +1062,7 @@ final class myphp{
     //url正向解析 地址 [!]admin/index/show?b=c&d=e&....[#锚点@域名（待实现）], 附加参数 数组|null, url字符串如：/pub/index.php
     public static function forward_url($uri='', $vars=null, $url=''){
         $normal = false;
-        $m = $c = $a = $mac = $para = '';
+        $m = $c = $a = '';
         if(substr($uri, 0, 1)=='!'){ //普通url模式
             $normal = true; $uri = substr($uri, 1);
         }
@@ -1119,7 +1120,7 @@ final class myphp{
                     if (!empty($path)) $m = array_pop($path);
                 } else {
                     $c = self::env('c');
-                    $a = $mca ? $mca : self::env('a');
+                    $a = $mca ?: self::env('a');
                 }
             }
 
@@ -1160,7 +1161,7 @@ final class myphp{
     }
 }
 //异常类
-class myException extends Exception{}
+class myException extends \Exception{}
 //消息复用
 trait MyMsg
 {
