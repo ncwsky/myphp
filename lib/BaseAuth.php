@@ -99,14 +99,14 @@ class BaseAuth
      * 检测是否登录
      * @return bool
      */
-    public function isLogin()
+    public function isLogin(): bool
     {
-        return session('userId') ? true : false;
+        return (bool)session('userId');
     }
 
     /**
      * 验证登录及权限
-     * @return bool
+     * @return void
      * @throws \Exception
      */
     public function check()
@@ -120,6 +120,5 @@ class BaseAuth
             Log::write('['.session('userId').']'.cookie('userName') . '：' . self::err(), 'auth');
             throw new \Exception(Helper::outMsg('0:'.self::err()), 200);
         }
-        return true;
     }
 }
