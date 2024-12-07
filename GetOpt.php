@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * 示例
 //解析命令参数 后面跟随冒号的字符（此选项需要值）,后面跟随两个冒号的字符（此选项的值可选）
@@ -24,45 +27,47 @@ exit(0);
 class GetOpt
 {
     private static $options = [];
+
     /**
      * 解析命令 参见 https://www.php.net/manual/zh/function.getopt
      * 选项的解析会终止于找到的第一个非选项，之后的任何东西都会被丢弃。
-     * @param $short
+     * @param string $short
      * @param array $long
      * @return array
      */
-    public static function parse($short, $long = [])
+    public static function parse(string $short, array $long = []): array
     {
         self::$options = getopt($short, $long);
+        if (self::$options === false) self::$options = [];
         return self::$options;
     }
 
     /**
-     * 获取命令参数值
-     * @param $name
+     * @param string $name
      * @param string $longName
-     * @param mixed $def
-     * @return mixed|string
+     * @param string|int $def
+     * @return mixed
      */
-    public static function val($name, $longName = '', $def = '')
+    public static function val(string $name, string $longName = '', $def = '')
     {
-        $val = $def;
-        $val = isset(self::$options[$name]) ? self::$options[$name] : $val;
+        $val = self::$options[$name] ?? $def;
         if ($longName !== '') {
-            $val = isset(self::$options[$longName]) ? self::$options[$longName] : $val;
+            $val = self::$options[$longName] ?? $val;
         }
         return $val;
     }
 
     /**
      * 是否存在命令参数
-     * @param $name
+     * @param string $name
      * @param string $longName
      * @return bool
      */
-    public static function has($name, $longName = '')
+    public static function has(string $name, string $longName = ''): bool
     {
-        if (isset(self::$options[$name])) return true;
+        if (isset(self::$options[$name])) {
+            return true;
+        }
         if ($longName !== '' && isset(self::$options[$longName])) {
             return true;
         }

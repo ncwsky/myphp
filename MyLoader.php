@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 //注册类的自动加载
 spl_autoload_register('MyLoader::autoload', true, true);
 
@@ -14,8 +16,11 @@ class MyLoader
     public static function class_dir($dir)
     {
         //单独设置类加载路径需要写全地址
-        if (is_array($dir)) self::$classDir = array_merge(self::$classDir, array_fill_keys($dir, 1));
-        else self::$classDir[$dir] = 1;
+        if (is_array($dir)) {
+            self::$classDir = array_merge(self::$classDir, array_fill_keys($dir, 1));
+        } else {
+            self::$classDir[$dir] = 1;
+        }
     }
 
     //自动加载对象
@@ -59,7 +64,7 @@ class MyLoader
      * @param string $path
      * @return bool
      */
-    public static function load($path)
+    public static function load(string $path): bool
     {
         if (is_file($path)) {
             include $path;

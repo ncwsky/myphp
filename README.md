@@ -11,7 +11,7 @@ https://github.com/php-casbin/php-casbin
 ```
 <?php
 //定义项目路径
-define('APP_PATH','./app');
+define('APP_PATH', __DIR__ . '/app');
 
 // require 'conf.php'; // 这里可以载入全局配置参数数组 $cfg = array();
 // 加载框架入口文件

@@ -1,5 +1,9 @@
 <?php
-#declare(strict_types=1);
+
+declare(strict_types=1);
+
+use myphp\Db;
+use myphp\Helper;
 
 //系统开始时间
 define('SYS_START_TIME', microtime(true));//时间戳.微秒数
@@ -8,25 +12,25 @@ define('SYS_TIME', time());//时间戳
 define('MEMORY_LIMIT_ON', function_exists('memory_get_usage'));
 MEMORY_LIMIT_ON && define('SYS_MEMORY', memory_get_usage());
 //系统变量
-define('IS_CLI', PHP_SAPI === 'cli');
-define('IS_WIN', DIRECTORY_SEPARATOR === '\\'); //strpos(PHP_OS, 'WIN') !== false
-define('DS', '/');
+const IS_CLI = PHP_SAPI === 'cli';
+const IS_WIN = DIRECTORY_SEPARATOR === '\\'; //strpos(PHP_OS, 'WIN') !== false
+const DS = '/';
 //定义MY_PATH常量
-define('MY_PATH', __DIR__);
+const MY_PATH = __DIR__;
 
 //REQUEST_URI 处理 ORIG_PATH_INFO REDIRECT_PATH_INFO REDIRECT_URL
-if(!IS_CLI && !isset($_SERVER['REQUEST_URI'])){
+if (!IS_CLI && !isset($_SERVER['REQUEST_URI'])) {
     if (isset($_SERVER['HTTP_X_REWRITE_URL'])) {
         $_SERVER['REQUEST_URI'] = $_SERVER['HTTP_X_REWRITE_URL'];
     } else {
-        $_SERVER['REQUEST_URI'] = (isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '')) . (isset($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '');
+        $_SERVER['REQUEST_URI'] = ($_SERVER['PHP_SELF'] ?? ($_SERVER['SCRIPT_NAME'] ?? '')) . (isset($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '');
     }
 }
 
 //项目根目录处理
 if (defined('APP_PATH')) {
     $root = dirname(APP_PATH);
-    if ($root==='' || $root[0]==='.' || strpos($root, '..') ) {
+    if ($root === '' || $root[0] === '.' || strpos($root, '..')) {
         $root = realpath($root);
     }
 } else {
@@ -94,53 +98,55 @@ myphp::$classMap = [
     'ReplyAck' => __DIR__ . '/ext/ReplyAck.php',
     'RotateLog' => __DIR__ . '/ext/RotateLog.php',
     'Upload' => __DIR__ . '/ext/Upload.php',
-    'Zip' => __DIR__ . '/ext/Zip.php'
+    'Zip' => __DIR__ . '/ext/Zip.php',
 ];
 //初始框架
-myphp::init(isset($cfg) ? $cfg : null);
+myphp::init($cfg ?? null);
 /*---------- 辅助方法 ----------*/
 /**
  * 统计程序运行时间 秒
- * @param float|string $microtime
+ * @param float|string $micro
  * @return string
  */
-function run_time($microtime=SYS_START_TIME) {
-    return number_format(microtime(true) - $microtime, 4);
+function run_time($micro = SYS_START_TIME): string
+{
+    return number_format(microtime(true) - $micro, 4);
 }
 
-/**
- * 统计程序内存开销
- * @return string
- */
-function run_mem() {
+//统计程序内存开销
+function run_mem(): string
+{
     return MEMORY_LIMIT_ON ? toByte(memory_get_usage() - SYS_MEMORY) : 'unknown';
 }
 
 /**
  * 获取配置值 支持二维数组
- * @param $name
+ * @param string $name
  * @param null $defVal
  * @return mixed|null
  */
-function GetC($name, $defVal = null){
+function GetC(string $name, $defVal = null)
+{
     return myphp::get($name, $defVal);
 }
 
 /**
  * 动态设置配置值
- * @param $name
- * @param $val
+ * @param string|array $name
+ * @param mixed $val
  */
-function SetC($name, $val){
+function SetC($name, $val)
+{
     myphp::set($name, $val);
 }
 
 /**
  * 获取语言信息 支持二维 需要先载入语言数组文件
- * @param $name
+ * @param string $name
  * @return mixed|null
  */
-function GetL($name){
+function GetL(string $name)
+{
     return myphp::lang($name);
 }
 
@@ -149,20 +155,22 @@ function GetL($name){
  * @param string $uri
  * @param null $vars
  * @param string $url
- * @return mixed|string
+ * @return string
  */
-function U($uri='',$vars=null, $url=''){
-    return myphp::forward_url($uri,$vars,$url);
+function U(string $uri = '', $vars = null, string $url = ''): string
+{
+    return myphp::forward_url($uri, $vars, $url);
 }
 
 /**
  * db实例化
  * @param string $name 数据库配置名
  * @param bool $force 是否强制生成新实例
- * @return \myphp\Db
+ * @return Db
  * @throws Exception
  */
-function db($name='db', $force=false){
+function db(string $name = 'db', bool $force = false): Db
+{
     return myphp::db($name, $force);
 }
 
@@ -178,22 +186,16 @@ function redis($name = 'redis')
 
 /**
  * 生成json
- * @param $res
+ * @param mixed $res
  * @param int $option
  * @return false|string
  */
-function toJson($res, $option=0){
-    return \myphp\Helper::toJson($res, $option);
+function toJson($res, int $option = 0)
+{
+    return Helper::toJson($res, $option);
 }
 
-/**
- * 消息输出
- * @param $message
- * @param string $url
- * @param string $info
- * @param int $time
- * @return false|string
- */
-function out_msg($message, $url='', $info='', $time = 1){
-    return \myphp\Helper::outMsg($message, $url, $info, $time);
+function out_msg(string $message, string $url = '', string $info = '', int $time = 1)
+{
+    return Helper::outMsg($message, $url, $info, $time);
 }
