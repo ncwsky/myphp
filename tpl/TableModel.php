@@ -23,6 +23,7 @@ class __name__ extends \myphp\Model
     protected $fields = '*';
     //字段规则 未配置时将自动获取 $fieldRule $prikey $autoIncrement $fields
     protected $fieldRule = [];
+    /* --------分隔线---------- */
     //字段扩展过滤规则
     protected $extRule = [];
 

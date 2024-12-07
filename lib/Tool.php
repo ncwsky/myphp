@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp;
 
 class Tool
@@ -7,13 +10,14 @@ class Tool
 
     /**
      * 生成表model
-     * @param $tbName
+     * @param string $tbName
      * @param string $namespace
      * @param string $baseClass
      * @param string $dbName
      * @return bool
      */
-    public static function initModel($tbName, $namespace='common\model', $baseClass='\myphp\Model', $dbName='db'){
+    public static function initModel(string $tbName, string $namespace='common\model', string $baseClass='\myphp\Model', string $dbName='db'): bool
+    {
         $className = str_replace(' ', '', ucwords(str_replace(['-','_'], ' ', $tbName), ' '));
 
         $classFile = ROOT . '/' . ($namespace ? strtr($namespace, '\\', '/') . '/' : '') . $className . '.php';
@@ -46,7 +50,7 @@ class Tool
         foreach ($fieldRule as $k=>$v){
             $type = 'string';
             if(strpos($v['rule'], 'date')===false){
-                $rule = substr($v['rule'],1,1);
+                $rule = substr($v['rule'], 1, 1);
                 if ($rule == 'd') { 
                     $type = 'int';
                 } elseif ($rule == 'b') {
@@ -82,7 +86,8 @@ class Tool
         }
 
         //class __name__ extends __parent__ {
-        $content = str_replace($classHead, "class $className extends $baseClass {", $content);
+        $content = str_replace($classHead, "class $className extends $baseClass {", $content); //兼容处理
+        $content = str_replace($classHead, "class $className extends $baseClass\n{", $content); //php-cs-fixer
 
         //protected static $dbName = '__db__';
         $content = str_replace('static $dbName '.substr_cut($content, 'static $dbName ', ';', 0, false).';', "static \$dbName = '$dbName';", $content);
@@ -101,12 +106,12 @@ class Tool
 
         $fieldRule = var_export($fieldRule, true);
         $fieldRule = strtr($fieldRule, ["=> \n  " => "=> ", "array (" => "[", "  )" => "        ]", "  '" => "        '", ")" => "    ]","NULL"=>"null","\n      0 => "=>"","\n      'min'"=>" 'min'","\n      'max'"=>" 'max'",",\n    )"=>"]"]);
-        $fieldRule = str_replace("'rule' =>   ","'rule' => ", $fieldRule);
-        $fieldRule = str_replace(",\n        ],\n","\n        ],\n", $fieldRule); //每字段多余的,
-        $fieldRule = str_replace("\n          '"," '", $fieldRule); //每字段子项开头,
-        $fieldRule = str_replace("\n        ],","],", $fieldRule); //每字段结尾,
-        $fieldRule = str_replace("],\n    ]","]\n    ]", $fieldRule); //结尾多余的,
-        $fieldRule = str_replace("' => [ '","' => ['", $fieldRule); //多余的空格,
+        $fieldRule = str_replace("'rule' =>   ", "'rule' => ", $fieldRule);
+        $fieldRule = str_replace(",\n        ],\n", "\n        ],\n", $fieldRule); //每字段多余的,
+        $fieldRule = str_replace("\n          '", " '", $fieldRule); //每字段子项开头,
+        $fieldRule = str_replace("\n        ],", "],", $fieldRule); //每字段结尾,
+        $fieldRule = str_replace("],\n    ]", "]\n    ]", $fieldRule); //结尾多余的,
+        $fieldRule = str_replace("' => [ '", "' => ['", $fieldRule); //多余的空格,
 
         #$fieldRule = preg_replace('/,\n {0,}]/',']', $fieldRule);
         #var_dump($fieldRule);die();

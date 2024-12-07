@@ -423,6 +423,21 @@ final class myphp{
         //引入app下的配置文件
         self::loadConfig($app_path . '/config.php');
 
+        $url_mode = $_GET['_url_mode'] ?? self::$cfg['url_mode'];
+        if ($isCLI) { //cli命令脚本模式处理 主要用于脚本命令下执行
+            $_SERVER['IS_CLI_RUN'] = true; //用于区分是否脚本执行
+            //cli_url_mode请求模式 默认2 PATH_INFO模式
+            $url_mode = self::$cfg['url_mode'] = self::$cfg['cli_url_mode']??2;
+            if ($url_mode == 2) { // php xxx.php m/c/a "b=1&d=1"|b=1 d=1
+                $_SERVER["REQUEST_URI"] = $_SERVER['argv'][1] ?? '/';
+                parse_str(implode('&', array_slice($_SERVER['argv'], 2)), $_GET);
+            } else { // php xxx.php "c=x&a=y&b=1&d=1"|c=x a=y b=1 d=1
+                $_SERVER["REQUEST_URI"] = '/';
+                parse_str(implode('&', array_slice($_SERVER['argv'], 1)), $_GET);
+            }
+            $_REQUEST = $_GET; //兼容处理
+        }
+
         //优先全局或app配置的模块
         if (self::$cfg['module_maps']) {
             $path = trim(self::_urlPath($app_root, $uri, $isCLI), '/');
@@ -441,20 +456,6 @@ final class myphp{
             $_m = self::$env['m']; //用于判断下方有匹配的相同子模块再次处理
         } else {
             $_m = '';
-        }
-
-        $url_mode = $_GET['_url_mode'] ?? self::$cfg['url_mode'];
-        if ($isCLI) { //cli命令脚本模式处理 主要用于脚本命令下执行
-            $_SERVER['IS_CLI_RUN'] = true; //用于区分是否脚本执行
-            //cli_url_mode请求模式 默认2 PATH_INFO模式
-            $url_mode = self::$cfg['url_mode'] = self::$cfg['cli_url_mode']??2;
-            if ($url_mode == 2) { // php xxx.php m/c/a "b=1&d=1"|b=1 d=1
-                $_SERVER["REQUEST_URI"] = $_SERVER['argv'][1] ?? '/';
-                parse_str(implode('&', array_slice($_SERVER['argv'], 2)), $_GET);
-            } else { // php xxx.php "c=x&a=y&b=1&d=1"|c=x a=y b=1 d=1
-                parse_str(implode('&', array_slice($_SERVER['argv'], 1)), $_GET);
-            }
-            $_REQUEST = $_GET; //兼容处理
         }
 
         //解析url 简单url映射 仅支持映射到普通url模式
