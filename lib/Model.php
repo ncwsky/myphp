@@ -190,13 +190,13 @@ class Model implements \ArrayAccess
     //获取字段数据
     public function getData($name = null)
     {
-        if ($name !== null) return isset($this->_data[$name]) ? $this->_data[$name] : null;
+        if ($name !== null) return $this->_data[$name] ?? null;
         return $this->_data ?: [];
     }
     //获取字段旧数据
     public function getOldData($name = null)
     {
-        if ($name !== null) return isset($this->_oldData[$name]) ? $this->_oldData[$name] : null;
+        if ($name !== null) return $this->_oldData[$name] ?? null;
         return $this->_oldData ?: [];
     }
     //格式数据
@@ -340,7 +340,7 @@ class Model implements \ArrayAccess
             }
             $result = $this->db->update($this->_data);  //返回影响行数
             if($this->_oldData){
-                $this->_data = array_merge($this->_oldData,$this->_data);
+                $this->_data = array_merge($this->_oldData, $this->_data);
             }
             $this->db->resetOptions(); //清除执行的条件 防条件被附加到下次执行的条件中
             $this->afterSave(false, $changed);
@@ -373,7 +373,7 @@ class Model implements \ArrayAccess
      */
     public function __get($name)
     {
-        return isset($this->_data[$name]) ? $this->_data[$name] : null;
+        return $this->_data[$name] ?? null;
     }
 
     /**
@@ -396,47 +396,44 @@ class Model implements \ArrayAccess
     }
 
     /**
-     * @param mixed $name
+     * @param mixed $offset
      * @param mixed $value
      */
-    #[\ReturnTypeWillChange] // 用于>=8.1抑制错误提示
-    public function offsetSet($name, $value)
+    public function offsetSet($offset, $value): void
     {
-        $this->__set($name, $value);
+        $this->__set($offset, $value);
     }
 
     /**
-     * @param mixed $name
+     * @param mixed $offset
      * @return bool
      */
-    #[\ReturnTypeWillChange]
-    public function offsetExists($name)
+    public function offsetExists($offset): bool
     {
-        return $this->__isset($name);
+        return $this->__isset($offset);
     }
 
     /**
-     * @param mixed $name
+     * @param mixed $offset
      */
-    #[\ReturnTypeWillChange]
-    public function offsetUnset($name)
+    public function offsetUnset($offset): void
     {
-        $this->__unset($name);
+        $this->__unset($offset);
     }
 
     /**
-     * @param mixed $name
+     * @param mixed $offset
      * @return mixed|null
      */
-    #[\ReturnTypeWillChange]
-    public function offsetGet($name)
+    #[\ReturnTypeWillChange] // 用于>=8.1抑制错误提示
+    public function offsetGet($offset)
     {
-        return $this->__get($name);
+        return $this->__get($offset);
     }
 
     //执行db方法的前置处理
     protected function _beforeDbMethod($method){
-        if ($this->tbName && (!$this->db->table || strpos($this->db->table,$this->tbName)!==0)) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
+        if ($this->tbName && (!$this->db->table || strpos($this->db->table, $this->tbName)!==0)) $this->db->table($this->tbName.($this->aliasName ? ' ' . $this->aliasName : ''));
         if ($method == 'one' || $method == 'all' || $method == 'find' || $method == 'select') {
             if(!$this->tbName && $this->db->table){ //未取得表名及字段时
                 $this->tbName = $this->db->table;
@@ -594,7 +591,7 @@ class Model implements \ArrayAccess
                         if (is_array($rules[$name])) { // 'name'=>['rule'=>'%s{25}'|['s','max'=>25,'err','err2'],'err','err2'
                             //是否有默认值 无默认值时则不能为空
                             $hasDef = isset($rules[$name]['def']) || array_key_exists('def', $rules[$name]);
-                            $rule = isset($rules[$name]['rule']) ? $rules[$name]['rule'] : $rules[$name];
+                            $rule = $rules[$name]['rule'] ?? $rules[$name];
                             if (isset($rules[$name]['err'])) $err1 = $rules[$name]['err'];
                             if (isset($rules[$name]['err2'])) $err2 = $rules[$name]['err2'];
                         } else { // 'name'=>'%s{25}'
