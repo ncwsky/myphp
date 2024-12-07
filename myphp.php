@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 use myphp\Cache;
@@ -848,23 +847,18 @@ final class myphp
     }
     /** 组件使用
      * @param string $name 组件名称 唯一
-     * @param null $option 自定义载入'aa'+['class'=>'ab\aa', param1,....]||'ab\aa'+[param1,....]
+     * @param array $option 自定义载入'aa'+['class'=>'ab\aa', param1,....]||'ab\aa'+[param1,....]
      * @return object
      */
-    public static function app(string $name, $option = null)
+    public static function app(string $name, array $option = [])
     {
         if (isset(self::$container[$name])) {
             return self::$container[$name];
         }
 
-        $appConf = null;
         $class = $name;
         if ($option) {
-            if (is_callable($option) || is_object($option)) {
-                self::$container[$name] = $option;
-            } else {
-                $appConf = $option;
-            }
+            $appConf = $option;
         } else {
             $appConf = self::get('app.'.$name);
         }
@@ -900,7 +894,6 @@ final class myphp
         if (!isset(self::$container[$k])) {
             self::$container[$k] = new Response();
         }
-        //$id = $k . '.' . self::env('c') . self::env('a');
         if (!isset(self::$env[$k])) {
             self::$env[$k] = clone self::$container[$k]; //每次请求使用新的对象
         }
@@ -934,11 +927,12 @@ final class myphp
         $conf['name'] = $name;
         return lib_redis::getInstance($conf);
     }
+
     /**
      * 释放容器资源
-     * @param $name
+     * @param string $name
      */
-    public static function free($name)
+    public static function free(string $name)
     {
         unset(self::$container[$name]);
     }
@@ -1081,7 +1075,7 @@ final class myphp
         return true;
     }
     //分解m c a
-    private static function deMCA(&$mca)
+    private static function deMCA(string &$mca)
     {
         $mca = trim($mca, '/');
         if ($mca === '') {
@@ -1122,10 +1116,10 @@ final class myphp
         规则：字母、下划线、数字   /news-1     /news-1-9
         默认情况：\w  指定数字：\d	指定字母 \s -> [A-Za-z]
         /news-<id\d>[-<page\d>] -> /new-(\d+?)(-\d+)?
+        // 反转url	如：info/lists?id=7 -> /news
+        // url模式:url_maps_k, url实际参数
     */
-    // 反转url	如：info/lists?id=7 -> /news
-    // url模式:url_maps_k, url实际参数
-    public static function reverse_url($k, $vars)
+    public static function reverseUrl(string $k, array $vars): string
     {
         if ($pos = strpos($k, '<')) { //是动态执行分析
             do {
@@ -1178,7 +1172,7 @@ final class myphp
      * @param string $url
      * @return string
      */
-    public static function forward_url(string $uri = '', $vars = null, string $url = ''): string
+    public static function toUrl(string $uri = '', $vars = null, string $url = ''): string
     {
         $normal = false;
         $m = $c = $a = '';
@@ -1275,7 +1269,7 @@ final class myphp
             if (isset($url_maps[$_url])) {
                 return ROOT_DIR . $url_maps[$_url];
             } elseif (isset($url_maps[$mca])) {
-                return ROOT_DIR . self::reverse_url($url_maps[$mca], $vars);
+                return ROOT_DIR . self::reverseUrl($url_maps[$mca], $vars);
             }
         }
 
@@ -1286,10 +1280,6 @@ final class myphp
         }
         return $url . $mca . ($query ? '?' . $query : '');
     }
-}
-//异常类
-class myException extends \Exception
-{
 }
 //消息复用
 trait MyMsg

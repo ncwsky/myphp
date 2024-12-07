@@ -106,9 +106,9 @@ return [
     //'roles' => [], //角色权限配置 [角色=>['name'=>'', 'purview'=>[]], ...]
     //'roles_name' => [], //角色名称 [角色=>'角色名',...]
     'auth_on' => false, //默认关闭
-    'auth_model' => '\myphp\BaseAuth',//验证模块
-    'auth_action' => 'check',//验证动作方法
-    'auth_login' => 'isLogin',//登陆验证的动作方法
+    'auth_model' => '\myphp\BaseAuth',//验证类
+    'auth_login' => 'isLogin',//登陆验证 bool
+    'auth_action' => 'check',//验证动作方法 Exception
     'auth_gateway' => '',//默认登录网关 如/index/login    ------------ 以下权限设置 优先级从上到下 ------------------------
     'auth_model_not' => '',//无需验证的模块，多个","分隔  用前后布置，包含  ,index,
     'auth_model_action' => '',//无需验证的模块中需要验证的动作  //,index/index,index/info,

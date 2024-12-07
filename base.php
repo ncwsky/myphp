@@ -159,7 +159,7 @@ function GetL(string $name)
  */
 function U(string $uri = '', $vars = null, string $url = ''): string
 {
-    return myphp::forward_url($uri, $vars, $url);
+    return myphp::toUrl($uri, $vars, $url);
 }
 
 /**
