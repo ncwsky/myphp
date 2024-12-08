@@ -128,7 +128,6 @@ class Image
             $fixed = false;
         }
 
-        unset($info);
         $scale = min($maxWidth / $srcWidth, $maxHeight / $srcHeight); // 计算缩放比例
         if ($scale >= 1) { //超出原图大小不缩略优化返回
             $result = self::optimize($image, $thumbName, $quality, $info);
@@ -363,7 +362,7 @@ class Image
      * @param string $code
      * @return false|string|null
      */
-    public static function code($w=80, $h=36, $fontsize=18, $len = 4, $type=0, $callable = null, &$code='') {
+    public static function code(int $w=80, int $h=36, int $fontsize=18, int $len = 4, int $type=0, $callable = null, string &$code='') {
         //生成随机字符
         $chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHIJKLMNPRSTUVWXYZ0123456789';//0123456789
         $font = __DIR__ . '/../inc/ggbi.ttf';
