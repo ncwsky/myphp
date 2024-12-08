@@ -829,6 +829,7 @@ class Redis
                 } else {
                     return $line;
                 }
+                // no break
             case '-': // Error reply
                 if (!$this->cluster) {
                     throw new \Exception("Redis error: " . $line . "\nRedis command was: " . $srcCommand);
@@ -851,6 +852,7 @@ class Redis
                     default:
                         throw new \Exception("Redis error: " . $line . "\nRedis command was: " . $srcCommand);
                 }
+                // no break
             case ':': // Integer reply
                 // no cast to int as it is in the range of a signed 64 bit integer
                 if (in_array($this->_lastCmd, $this->intCommands, true) && PHP_INT_SIZE === 8) {

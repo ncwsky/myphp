@@ -367,7 +367,7 @@ class File extends \myphp\CacheAbstract
         return false;
     }
     //删除所有缓存
-    public function clear()
+    public function clear(): void
     {
         $this->gc(true, false);
     }

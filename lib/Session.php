@@ -71,8 +71,7 @@ class Session
         }
         if ($method == 'del') {  //兼容处理
             $method = 'delete';
-        }
-        elseif ($method == 'flush') {  //兼容处理
+        } elseif ($method == 'flush') {  //兼容处理
             $method = 'destroy';
         }
 

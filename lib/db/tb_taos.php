@@ -21,7 +21,7 @@ class tb_taos extends \myphp\TbBase
      * @param int $len
      * @return mixed|string
      */
-    public function fieldToRule(string $type, string &$vType, int $len=0)
+    public function fieldToRule(string $type, string &$vType, int $len = 0)
     {
         $rule = '%s';
         if (strpos($type, 'unsigned')) { //无符号型

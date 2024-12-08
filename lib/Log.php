@@ -48,7 +48,7 @@ class Log
         register_shutdown_function('\myphp\Log::Err'); //定义PHP程序执行完成后执行的函数
     }
     //初始日志目录
-    public static function Init($logDir = null, $level = 0, $size = 2097152)
+    public static function Init($logDir = null, $level = 0, $size = 2097152): void
     {
         if (!self::$instance) {
             self::$instance = new self();
