@@ -1,59 +1,74 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp;
 
 //辅助类
-class Helper{
+class Helper
+{
     public static $isProxy = false;
     //日期检测函数(格式:2007-5-6[ 15:30:33])
-    public static function is_date($date) {
+    public static function is_date($date)
+    {
         return preg_match('/^(\d{4})-(0[1-9]|[1-9]|1[0-2])-(0[1-9]|[1-9]|1\d|2\d|3[0-1])(| (0[0-9]|[0-9]|1[0-9]|2[0-3]):([0-5][0-9]|0[0-9]|[0-9])(|:([0-5][0-9]|0[0-9]|[0-9])))$/', $date);
     }
     //Ymd检测函数(格式:2007-5[-6])
-    public static function is_ymd($date) {
+    public static function is_ymd($date)
+    {
         return preg_match('/^(\d{4})-(0[1-9]|[1-9]|1[0-2])(|-(0[1-9]|[1-9]|1\d|2\d|3[0-1]))$/', $date);
     }
     //His检测函数(格式:15:30[:33])
-    public static function is_his($date) {
+    public static function is_his($date)
+    {
         return preg_match('/^(0[0-9]|[0-9]|1[0-9]|2[0-3]):([0-5][0-9]|0[0-9]|[0-9])(|:([0-5][0-9]|0[0-9]|[0-9]))$/', $date);
     }
-    public static function is_json($data){
-        return json_decode($data)===null?false:true;
+    public static function is_json($data)
+    {
+        return json_decode($data) === null ? false : true;
     }
     //判断email格式是否正确
-    public static function is_email($email) {
+    public static function is_email($email)
+    {
         return strlen($email) > 6 && preg_match("/^[\w\-\.]+@[\w\-\.]+(\.\w+)+$/", $email);
     }
     //判断是否手机号
-    public static function is_tel($mobile){
-        return strlen($mobile)==11 && preg_match("/^1[3456789]\d{9}$/", $mobile);
+    public static function is_tel($mobile)
+    {
+        return strlen($mobile) == 11 && preg_match("/^1[3456789]\d{9}$/", $mobile);
     }
     //判断是否IP
-    public static function is_ip($ip){
+    public static function is_ip($ip)
+    {
         return preg_match("/^((?:(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d)))\.){3}(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d))))$/", $ip);
     }
     // Returns true if $string is valid UTF-8 and false otherwise.
-    public static function is_utf8($word){
+    public static function is_utf8($word)
+    {
         $regx = '(['.chr(228).'-'.chr(233).']{1}['.chr(128).'-'.chr(191).']{1}['.chr(128).'-'.chr(191).']{1})';
-        if (preg_match('/^'.$regx.'{1}/',$word) == true || preg_match('/'.$regx.'{1}$/',$word) == true || preg_match('/'.$regx.'{2,}/',$word) == true){
+        if (preg_match('/^'.$regx.'{1}/', $word) == true || preg_match('/'.$regx.'{1}$/', $word) == true || preg_match('/'.$regx.'{2,}/', $word) == true) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
     //检测是否手机浏览 return bool true|false
-    public static function is_mobile() {
+    public static function is_mobile()
+    {
         static $is_mobile;
-        if ( isset($is_mobile) ) return $is_mobile;
+        if (isset($is_mobile)) {
+            return $is_mobile;
+        }
 
-        if ( empty($_SERVER['HTTP_USER_AGENT']) ) {
+        if (empty($_SERVER['HTTP_USER_AGENT'])) {
             $is_mobile = false;
-        } elseif ( strpos($_SERVER['HTTP_USER_AGENT'], 'Mobile') !== false // many mobile devices (all iPhone, iPad, etc.)
+        } elseif (strpos($_SERVER['HTTP_USER_AGENT'], 'Mobile') !== false // many mobile devices (all iPhone, iPad, etc.)
             || strpos($_SERVER['HTTP_USER_AGENT'], 'Android') !== false
             || strpos($_SERVER['HTTP_USER_AGENT'], 'Silk/') !== false
             || strpos($_SERVER['HTTP_USER_AGENT'], 'Kindle') !== false
             || strpos($_SERVER['HTTP_USER_AGENT'], 'BlackBerry') !== false
             || strpos($_SERVER['HTTP_USER_AGENT'], 'Opera Mini') !== false
-            || strpos($_SERVER['HTTP_USER_AGENT'], 'Opera Mobi') !== false ) {
+            || strpos($_SERVER['HTTP_USER_AGENT'], 'Opera Mobi') !== false) {
             $is_mobile = true;
         } else {
             $is_mobile = false;
@@ -61,17 +76,19 @@ class Helper{
         return $is_mobile;
     }
     //是否微信
-    public static function is_weixin(){
-        if ( isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'MicroMessenger') !== false ) {
+    public static function is_weixin()
+    {
+        if (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'MicroMessenger') !== false) {
             return true;
         }
         return false;
     }
 
     //生成单号
-    public static function createSN($prefix=''){
+    public static function createSN($prefix = '')
+    {
         //$chars = substr(microtime(),2,6); substr(str_shuffle($chars.$chars),0,6);
-        $sn = date('YmdHis').substr(microtime(),2,4).str_pad(mt_rand(0,99), 2, '0', STR_PAD_LEFT); //20位
+        $sn = date('YmdHis').substr(microtime(), 2, 4).str_pad(random_int(0, 99), 2, '0', STR_PAD_LEFT); //20位
         return $prefix.$sn;
     }
     /**
@@ -84,15 +101,20 @@ class Helper{
      * @param string $pName
      * @return array
      */
-    public static function initPage($tb, $where = '', $cPage=1, $num = 10, $id = '', $parm = '', $pName='page') {
+    public static function initPage($tb, $where = '', $cPage = 1, $num = 10, $id = '', $parm = '', $pName = 'page')
+    {
         $initPageNum = 5;
         if (strpos($num, ',')) {
             list($num, $initPageNum) = explode(',', $num);
         }
         $total = is_numeric($tb) ? (int)$tb : ($id != '' ? $tb->where($where)->count($id) : $tb->where($where)->count()); //获取总行数
         $pCount = $total ? ceil($total / $num) : 1;
-        if ($cPage < 1) $cPage = 1;
-        if ($cPage > $pCount) $cPage = $pCount;
+        if ($cPage < 1) {
+            $cPage = 1;
+        }
+        if ($cPage > $pCount) {
+            $cPage = $pCount;
+        }
         $prev = $cPage > 1 ? $cPage - 1 : ''; //上一页
         $next = $cPage < $pCount ? $cPage + 1 : ''; //下一页
         $path = \myphp::$env['BASE_URL'];
@@ -102,7 +124,7 @@ class Helper{
             $qstr = preg_replace("/$pName=\d{1,}/i", '', $qstr);
             $qstr = str_replace('&&', '&', trim($qstr, '&'));
         }
-        $pages = ['size'=>$num, 'total' => $total, 'cPage' => $cPage, 'pCount' => $pCount, 'pNum' => array()];
+        $pages = ['size' => $num, 'total' => $total, 'cPage' => $cPage, 'pCount' => $pCount, 'pNum' => []];
         //获取页码范围
         if ($cPage <= 1) {
             $TmpPageNo = 1;
@@ -118,7 +140,9 @@ class Helper{
             $TmpPageNum = $pCount;
         }
         //页码超出范围
-        if ($TmpPageNum > $pCount) $TmpPageNum = $pCount;
+        if ($TmpPageNum > $pCount) {
+            $TmpPageNum = $pCount;
+        }
         for ($PageNo = $TmpPageNo; $PageNo <= $TmpPageNum; $PageNo++) {
             $pages['pNum'][$PageNo] = $cPage == $PageNo ? 'javascript:' : "$path?$pName=$PageNo" . ($qstr != '' ? '&' . $qstr : '') . ($parm != '' ? '&' . $parm : '');
         }
@@ -131,9 +155,11 @@ class Helper{
         return $pages; //当前页码 总页码 总数 上一页链接 下一页链接
     }
     //获取分页偏移值
-    public static function getOffset($init=1, $num=10, $step=0)
+    public static function getOffset($init = 1, $num = 10, $step = 0)
     {
-        if ($init < 1) $init = 1; //验证（>＝1）
+        if ($init < 1) {
+            $init = 1;
+        }
         if ($init == 1) {
             $offset =  $step . ',' . $num;
         } else {
@@ -142,14 +168,15 @@ class Helper{
         return $offset;
     }
     // 跳转提示信息输出: ([0,1]:)信息标题, url, 辅助信息, 等待时间（秒） 用于前端自动定义信息输出模板
-    public static function outMsg($msg, $url='', $info='', $time = 1) {
+    public static function outMsg($msg, $url = '', $info = '', $time = 1)
+    {
         $is_url = false;
-        if ($url=='') {
+        if ($url == '') {
             $jumpUrl = 'javascript:window.history.back()';
             $js = 'window.history.back()';
-        } elseif (substr($url,0,11)=='javascript:') {
+        } elseif (substr($url, 0, 11) == 'javascript:') {
             $jumpUrl = $url;
-            $js = substr($url,11);
+            $js = substr($url, 11);
         } else {
             $jumpUrl = $url;
             $js = "window.location='$jumpUrl'";
@@ -168,23 +195,30 @@ class Helper{
             }
         }
 
-        if (ob_get_length() !== false) ob_clean();//清除页面
+        if (ob_get_length() !== false) { //清除页面
+            ob_clean();
+        }
         if (self::isAjax()) { //ajax输出
             $data = ['info' => $info, 'time' => $time];
-            if ($is_url) $data['_url'] = $jumpUrl;
+            if ($is_url) {
+                $data['_url'] = $jumpUrl;
+            }
             $json = ['code' => $code, 'msg' => $msg, 'data' => $data];
-            if (IS_CLI) return self::toJson($json);
+            if (IS_CLI) {
+                return self::toJson($json);
+            }
             exit(self::toJson($json));
         }
 
-        $out_html = '<!doctype html><html><head><meta charset="utf-8"><title>'.($url!='nil'?'跳转提示':'信息提示').'</title><style type="text/css">*{padding:0;margin:0}body{background:#fff;font-family:"Microsoft YaHei";color:#333;font-size:100%}.system-message{padding:1.5em 3em}.system-message h1{font-size:6.25em;font-weight:400;line-height:120%;margin-bottom:.12em}.system-message .jump{padding-top:.625em}.system-message .jump a{color:#333}.system-message .success{color:#207E05}.system-message .error{color:#da0404}.system-message .normal,.system-message .success,.system-message .error{line-height:1.8em;font-size:2.25em}.system-message .detail{font-size:1.2em;line-height:160%;margin-top:.8em}</style></head><body><div class="system-message">';
+        $out_html = '<!doctype html><html><head><meta charset="utf-8"><title>'.($url != 'nil' ? '跳转提示' : '信息提示').'</title><style type="text/css">*{padding:0;margin:0}body{background:#fff;font-family:"Microsoft YaHei";color:#333;font-size:100%}.system-message{padding:1.5em 3em}.system-message h1{font-size:6.25em;font-weight:400;line-height:120%;margin-bottom:.12em}.system-message .jump{padding-top:.625em}.system-message .jump a{color:#333}.system-message .success{color:#207E05}.system-message .error{color:#da0404}.system-message .normal,.system-message .success,.system-message .error{line-height:1.8em;font-size:2.25em}.system-message .detail{font-size:1.2em;line-height:160%;margin-top:.8em}</style></head><body><div class="system-message">';
 
         $out_html .= '<h1>'. ($code ? ':(' : ':)').'</h1><p class="'.$flag.'">'.$msg.'</p>'; //输出
 
-        $out_html .= $info!=''?'<p class="detail">'.$info.'</p>':'';
-        if($url!='nil') //提示不跳转
+        $out_html .= $info != '' ? '<p class="detail">'.$info.'</p>' : '';
+        if ($url != 'nil') { //提示不跳转
             $out_html .= '<p class="jump">页面自动 <a id="href" href="'.$jumpUrl.'">跳转</a>  等待时间： <b id="time">'.$time.'</b></p></div><script type="text/javascript">var pgo=0,t=setInterval(function(){var time=document.getElementById("time");var val=parseInt(time.innerHTML)-1;time.innerHTML=val;if(val<=0){clearInterval(t);if(pgo==0){pgo=1;'.$js.';}}},1000);</script></body></html>';
-        if(IS_CLI) {
+        }
+        if (IS_CLI) {
             \myphp::res()->setContentType(Response::CONTENT_TYPE_HTML);
             return $out_html;
         }
@@ -197,9 +231,12 @@ class Helper{
      * @param string|array $allowIps
      * @return bool
      */
-    public static function allowIp($ip, $allowIps=""){
+    public static function allowIp($ip, $allowIps = '')
+    {
         if (is_string($allowIps)) { // "127.0.0.1 10.0.0.2"
-            if (!$allowIps || $allowIps === "0.0.0.0") return true;
+            if (!$allowIps || $allowIps === "0.0.0.0") {
+                return true;
+            }
             return strpos($allowIps, $ip) !== false;
         }
         if (is_array($allowIps)) {
@@ -211,26 +248,32 @@ class Helper{
         }
         return false;
     }
-    public static function getSiteUrl(){
+    public static function getSiteUrl()
+    {
         return Request::siteUrl();
     }
-    public static function getHost(){
+    public static function getHost()
+    {
         return Request::host();
     }
     //获得当前的脚本网址  如/ab.php?b=1
-    public static function getUri() {
+    public static function getUri()
+    {
         return Request::uri();
     }
     //获取当前页面完整URL地址 如http://xx/a.php?b=1
-    public static function getUrl() {
+    public static function getUrl()
+    {
         return Request::url();
     }
     //来源获取
-    public static function getReferer(){
+    public static function getReferer()
+    {
         return Request::referer();
     }
     //获取用户真实地址 返回用户ip  type:0 返回IP地址 1 返回IPV4地址数字
-    public static function getIp($type=0) {
+    public static function getIp($type = 0)
+    {
         return Request::ip($type ? true : false);
     }
     /**
@@ -241,10 +284,12 @@ class Helper{
     {
         return Request::method();
     }
-    public static function isPost(){
+    public static function isPost()
+    {
         return Request::isPost();
     }
-    public static function isGet(){
+    public static function isGet()
+    {
         return Request::isGet();
     }
     // 当前是否Ajax请求
@@ -265,7 +310,7 @@ class Helper{
             return mime_content_type($filename);
         }
 
-        static $mimeType = array(
+        static $mimeType = [
             'bmp' => 'image/bmp',
             'gif' => 'image/gif',
             'jpe' => 'image/jpeg',
@@ -299,11 +344,13 @@ class Helper{
             'tar' => 'application/x-tar',
             '7z' => 'application/x-7z-compressed',
             'rar' => 'application/x-rar-compressed',
-            'zip' => 'application/zip',
-        );
+            'zip' => 'application/zip'
+        ];
         $mime = 'application/octet-stream';
         $pos = strrpos($filename, '.');
-        if (!$pos) return $mime;
+        if (!$pos) {
+            return $mime;
+        }
         $type = strtolower(substr($filename, $pos + 1));
         if (isset($mimeType[$type])) {
             $mime = $mimeType[$type];
@@ -311,15 +358,19 @@ class Helper{
         return $mime;
     }
     //json_encode 缩写
-    public static function toJson($res, $option=0){
+    public static function toJson($res, $option = 0)
+    {
         if ($option == 0 && defined('JSON_UNESCAPED_UNICODE')) {
             $option = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
-            if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) $option |= JSON_INVALID_UTF8_SUBSTITUTE;
+            if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
+                $option |= JSON_INVALID_UTF8_SUBSTITUTE;
+            }
         }
         return json_encode($res, $option);
     }
     //toXml 转换成xml
-    public static function toXml($res,$rec=false){
+    public static function toXml($res, $rec = false)
+    {
         $xml = $rec ? '' : '<root>';
         foreach ($res as $k => $v) {
             if (is_array($v)) {
@@ -333,18 +384,20 @@ class Helper{
         return $xml;
     }
     //将XML转为array
-    public static function xmlToArr($xml){
+    public static function xmlToArr($xml)
+    {
         //禁止引用外部xml实体
         libxml_disable_entity_loader(true);
         return json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
     }
     //仅记录指定大小的日志 超出大小重置重新记录
-    public static function toFileLog($file, $content, $size = 4194304){ //日志大小 4M
-        if(is_file($file) && $size <= filesize($file) ){
+    public static function toFileLog($file, $content, $size = 4194304): void //日志大小 4M
+    {
+        if (is_file($file) && $size <= filesize($file)) {
             file_put_contents($file, '', LOCK_EX);
             clearstatcache(true, $file);
         }
-        file_put_contents($file, "[".date("Y-m-d H:i:s").'.'.substr(microtime(), 2, 3)."]".(is_scalar($content)?$content:self::toJson($content))."\n", FILE_APPEND);
+        file_put_contents($file, "[".date("Y-m-d H:i:s").'.'.substr(microtime(), 2, 3)."]".(is_scalar($content) ? $content : self::toJson($content))."\n", FILE_APPEND);
     }
     /**
      * 字符串转十六进制函数
@@ -355,7 +408,7 @@ class Helper{
     public static function strToHex($str, $toUpper = false)
     {
         $hex = "";
-        for ($i = 0; $i < strlen($str); $i++){
+        for ($i = 0; $i < strlen($str); $i++) {
             $dec = ord($str[$i]);
             $hex .= ($dec < 16 ? '0' : '') . dechex($dec);
         }
@@ -370,8 +423,9 @@ class Helper{
     public static function hexToStr($hex)
     {
         $str = "";
-        for ($i = 0; $i < strlen($hex) - 1; $i += 2)
+        for ($i = 0; $i < strlen($hex) - 1; $i += 2) {
             $str .= chr(hexdec($hex[$i] . $hex[$i + 1]));
+        }
         return $str;
     }
 
@@ -380,24 +434,27 @@ class Helper{
      * string find  ini配置项  [name]
      * string attr  查找配置项的属性
      */
-    public static function readIni($str, $find, $attr=''){
+    public static function readIni($str, $find, $attr = '')
+    {
         $str = trim($str);
-        if($str=='') return '';
+        if ($str == '') {
+            return '';
+        }
         $br = chr(13).chr(10);
         $val = '';
         $wz = strpos($str, $find.$br);
-        if($wz!==false){ //无此配置项
+        if ($wz !== false) { //无此配置项
             $wz += strlen($find.$br);
-            if($attr!=''){
+            if ($attr != '') {
                 $wz = strpos($str, $attr.'=', $wz);
-                if($wz!==false){ //无属性值
+                if ($wz !== false) { //无属性值
                     $wz += strlen($attr.'=');
                     $wz_end = strpos($str, $br, $wz);
-                    $val = $wz_end!==false ? substr($str, $wz, $wz_end-$wz) : substr($str, $wz);
+                    $val = $wz_end !== false ? substr($str, $wz, $wz_end - $wz) : substr($str, $wz);
                 }
-            }else{ //读取配置项所有属性
+            } else { //读取配置项所有属性
                 $wz_end = strpos($str, $br.'[', $wz);
-                $val = $wz_end!==false ? substr($str, $wz, $wz_end-$wz) : substr($str, $wz);
+                $val = $wz_end !== false ? substr($str, $wz, $wz_end - $wz) : substr($str, $wz);
             }
         }
         return $val;
@@ -408,51 +465,63 @@ class Helper{
      * string attr_val  配置项属性=属性值 attr=val
      * bool $isBat 批量直接替换写入 $attr_val\n$attr_val
      */
-    public static function writeIni($str, $find, $attr_val,$isBat=false){
+    public static function writeIni($str, $find, $attr_val, $isBat = false)
+    {
         $str = trim($str);
         $attr_val = trim($attr_val);
-        if(strpos($attr_val,'=')===false && !$isBat) return $str;
+        if (strpos($attr_val, '=') === false && !$isBat) {
+            return $str;
+        }
 
         $br = chr(13).chr(10);
         $wz = strpos($str, $find.$br);
-        $attr = ''; $val = '';
-        if($isBat){ //多项直接替换
+        $attr = '';
+        $val = '';
+        if ($isBat) { //多项直接替换
             $attrs = explode("\n", $attr_val);
             $attr_val = '';
             foreach ($attrs as $aVal) {
-                if(strpos($aVal,'=')){
-                    list($attr,$val) = explode('=', $aVal);
-                    if($attr=='') continue;
+                if (strpos($aVal, '=')) {
+                    list($attr, $val) = explode('=', $aVal);
+                    if ($attr == '') {
+                        continue;
+                    }
 
-                    $attr_val = $attr_val==''?$aVal:$attr_val."\n".$aVal;
+                    $attr_val = $attr_val == '' ? $aVal : $attr_val."\n".$aVal;
                 }
             }
-        }else{
-            list($attr,$val) = explode('=', $attr_val);
-            if($attr=='') return $str;
+        } else {
+            list($attr, $val) = explode('=', $attr_val);
+            if ($attr == '') {
+                return $str;
+            }
         }
 
-        if($wz!==false){ //无此配置项
-            $wz += strlen($find.$br); $wz_a = 0;
+        if ($wz !== false) { //无此配置项
+            $wz += strlen($find.$br);
+            $wz_a = 0;
 
             !$isBat && $wz_a = strpos($str, $attr.'=', $wz);
-            if(!$isBat && $wz_a!==false && strpos(substr($str,$wz,$wz_a-$wz),'[')===false){ //存在此属性
+            if (!$isBat && $wz_a !== false && strpos(substr($str, $wz, $wz_a - $wz), '[') === false) { //存在此属性
                 $wz_a += strlen($attr.'=');
                 $wz_end = strpos($str, $br, $wz_a);
-                if($wz_end!==false)
-                    $str = substr($str,0,$wz_a). $val .substr($str,$wz_end);
-                else
-                    $str = substr($str,0,$wz_a). $val;
-            }else{//不存在
-                $wz = $wz-strlen($br);
+                if ($wz_end !== false) {
+                    $str = substr($str, 0, $wz_a). $val .substr($str, $wz_end);
+                } else {
+                    $str = substr($str, 0, $wz_a). $val;
+                }
+            } else {//不存在
+                $wz = $wz - strlen($br);
                 $wz_end = strpos($str, $br.'[', $wz);
-                if($wz_end!==false)
-                    $str = substr($str,0, $isBat?$wz:$wz_end). $br.$attr_val . substr($str,$wz_end);
-                else //配置项在最尾
-                    $str = ($isBat?substr($str,0, $wz):$str).$br.$attr_val;
+                if ($wz_end !== false) {
+                    $str = substr($str, 0, $isBat ? $wz : $wz_end). $br.$attr_val . substr($str, $wz_end);
+                } else { //配置项在最尾
+                    $str = ($isBat ? substr($str, 0, $wz) : $str).$br.$attr_val;
+                }
             }
-        }else //直接追加
+        } else { //直接追加
             $str .= $br.$find.$br.$attr_val;
+        }
         return $str;
     }
     /** 异或加密
@@ -460,13 +529,12 @@ class Helper{
      * @param string $key 加密key
      * @return string
      */
-    public static function xorEnc($str,$key)
+    public static function xorEnc($str, $key)
     {
         $code = '';
         $keyLen = strlen($key);
-        for($i=0;$i<strlen($str);$i++)
-        {
-            $k = $i%$keyLen;
+        for ($i = 0;$i < strlen($str);$i++) {
+            $k = $i % $keyLen;
             $code .= $str[$i] ^ $key[$k];
         }
         return $code;
@@ -478,16 +546,18 @@ class Helper{
      */
     public static function rc4($data, $key)//$pwd密钥　$data需加密字符串
     {
-        $sBox = array(); $keys = array();
-        $keyLen = strlen($key); $dataLen = strlen($data);
+        $sBox = [];
+        $keys = [];
+        $keyLen = strlen($key);
+        $dataLen = strlen($data);
         $cipher = '';
 
-        for ($i = 0; $i < 256; $i++){
+        for ($i = 0; $i < 256; $i++) {
             $sBox[$i] = $i;
             $keys[$i] = ord($key[$i % $keyLen]);
         }
 
-        for ($j = $i = 0; $i < 256; $i++){
+        for ($j = $i = 0; $i < 256; $i++) {
             $j = ($j + $sBox[$i] + $keys[$i]) % 256;
             $tmp = $sBox[$i];
             $sBox[$i] = $sBox[$j];
@@ -495,7 +565,7 @@ class Helper{
         }
 
         $j = $l = $k = 0;
-        for ($i = 0; $i < $dataLen; $i++){
+        for ($i = 0; $i < $dataLen; $i++) {
             $j = ($j + 1) % 256;
             $l = ($l + $sBox[$j]) % 256;
 
@@ -508,31 +578,32 @@ class Helper{
         }
         return $cipher;
     }
-    public static function authCode($string, $operation = 'DECODE', $key = '', $expiry = 0) {
+    public static function authCode($string, $operation = 'DECODE', $key = '', $expiry = 0)
+    {
         $ckey_length = 4;
         $key = md5($key != '' ? $key : GetC('encode_key'));
         $keya = md5(substr($key, 0, 16));
         $keyb = md5(substr($key, 16, 16));
-        $keyc = $ckey_length ? ($operation == 'DECODE' ? substr($string, 0, $ckey_length): substr(md5(microtime()), -$ckey_length)) : '';
+        $keyc = $ckey_length ? ($operation == 'DECODE' ? substr($string, 0, $ckey_length) : substr(md5(microtime()), -$ckey_length)) : '';
         $cryptkey = $keya.md5($keya.$keyc);
         $key_length = strlen($cryptkey);
-        $string = $operation == 'DECODE' ? base64_decode(substr($string, $ckey_length)) : sprintf('%010d', $expiry ? $expiry + time() : 0).substr(md5($string.$keyb), 0, 16).$string;
+        $string = $operation == 'DECODE' ? base64_decode(substr($string, $ckey_length), true) : sprintf('%010d', $expiry ? $expiry + time() : 0).substr(md5($string.$keyb), 0, 16).$string;
         $string_length = strlen($string);
         $result = '';
         $box = range(0, 255);
-        $rndkey = array();
-        for($i = 0; $i <= 255; $i++) {
+        $rndkey = [];
+        for ($i = 0; $i <= 255; $i++) {
             $rndkey[$i] = ord($cryptkey[$i % $key_length]);
         }
 
-        for($j = $i = 0; $i < 256; $i++) {
+        for ($j = $i = 0; $i < 256; $i++) {
             $j = ($j + $box[$i] + $rndkey[$i]) % 256;
             $tmp = $box[$i];
             $box[$i] = $box[$j];
             $box[$j] = $tmp;
         }
 
-        for($a = $j = $i = 0; $i < $string_length; $i++) {
+        for ($a = $j = $i = 0; $i < $string_length; $i++) {
             $a = ($a + 1) % 256;
             $j = ($j + $box[$a]) % 256;
             $tmp = $box[$a];
@@ -541,8 +612,8 @@ class Helper{
             $result .= chr(ord($string[$i]) ^ ($box[($box[$a] + $box[$j]) % 256]));
         }
 
-        if($operation == 'DECODE') {
-            if((substr($result, 0, 10) == 0 || substr($result, 0, 10) - time() > 0) && substr($result, 10, 16) == substr(md5(substr($result, 26).$keyb), 0, 16)) {
+        if ($operation == 'DECODE') {
+            if ((substr($result, 0, 10) == 0 || substr($result, 0, 10) - time() > 0) && substr($result, 10, 16) == substr(md5(substr($result, 26).$keyb), 0, 16)) {
                 return substr($result, 26);
             } else {
                 return '';
@@ -559,23 +630,30 @@ class Helper{
      * @param string $method cbc|cfb|ecb|nofb|ofb|stream
      * @return string
      */
-    public static function aesEncrypt($str,$key,$method='cbc')
+    public static function aesEncrypt($str, $key, $method = 'cbc')
     {
         $keyLen = strlen($key);
-        if(!function_exists('openssl_encrypt')){ //mcrypt_encrypt
-            if($keyLen<=16){
+        if (!function_exists('openssl_encrypt')) { //mcrypt_encrypt
+            if ($keyLen <= 16) {
                 $cipher = 'rijndael-128';
-                if($keyLen<16) $key = str_pad($key,16,"\0");
-            }elseif($keyLen<=24){
+                if ($keyLen < 16) {
+                    $key = str_pad($key, 16, "\0");
+                }
+            } elseif ($keyLen <= 24) {
                 $cipher = 'rijndael-192';
-                if($keyLen<24) $key = str_pad($key,24,"\0");
-            }else{ //超出32位截断
+                if ($keyLen < 24) {
+                    $key = str_pad($key, 24, "\0");
+                }
+            } else { //超出32位截断
                 $cipher = 'rijndael-256';
-                if($keyLen>32) $key = substr($key,0,32);
-                elseif($keyLen<32) $key = str_pad($key,32,"\0");
+                if ($keyLen > 32) {
+                    $key = substr($key, 0, 32);
+                } elseif ($keyLen < 32) {
+                    $key = str_pad($key, 32, "\0");
+                }
             }
-            $ivlen = mcrypt_get_iv_size($cipher,$method);
-            $iv = strlen($key)<$ivlen?str_pad($key,$ivlen,"\0"):substr($key,0, $ivlen);
+            $ivlen = mcrypt_get_iv_size($cipher, $method);
+            $iv = strlen($key) < $ivlen ? str_pad($key, $ivlen, "\0") : substr($key, 0, $ivlen);
             //echo $ivlen,$cipher,'===',$key,'===',$iv,'<br>';
             $block = mcrypt_get_block_size($cipher, $method);
             $pad = $block - (strlen($str) % $block);
@@ -583,20 +661,27 @@ class Helper{
             return base64_encode(mcrypt_encrypt($cipher, $key, $str, $method, $iv));
         }
 
-        if($keyLen<=16){
+        if ($keyLen <= 16) {
             $method = 'aes-128-'.$method;
-            if($keyLen<16) $key = str_pad($key,16,"\0");
-        }elseif($keyLen<=24){
+            if ($keyLen < 16) {
+                $key = str_pad($key, 16, "\0");
+            }
+        } elseif ($keyLen <= 24) {
             $method = 'aes-192-'.$method;
-            if($keyLen<24) $key = str_pad($key,24,"\0");
-        }else{ //超出32位截断
-            if($keyLen>32) $key = substr($key,0,32);
-            elseif($keyLen<32) $key = str_pad($key,32,"\0");
+            if ($keyLen < 24) {
+                $key = str_pad($key, 24, "\0");
+            }
+        } else { //超出32位截断
+            if ($keyLen > 32) {
+                $key = substr($key, 0, 32);
+            } elseif ($keyLen < 32) {
+                $key = str_pad($key, 32, "\0");
+            }
             $method = 'aes-256-'.$method;
         }
 
         $ivlen = openssl_cipher_iv_length($method);
-        $iv = strlen($key)<$ivlen?str_pad($key,$ivlen,"\0"):substr($key,0, $ivlen);
+        $iv = strlen($key) < $ivlen ? str_pad($key, $ivlen, "\0") : substr($key, 0, $ivlen);
         //echo $ivlen,$method,'===',$key,'===',$iv,'<br>';
         return base64_encode(openssl_encrypt($str, $method, $key, OPENSSL_RAW_DATA, $iv)); //OPENSSL_RAW_DATA  OPENSSL_ZERO_PADDING
     }
@@ -608,45 +693,61 @@ class Helper{
      * @param string $method cbc|cfb|ecb|nofb|ofb|stream
      * @return false|string
      */
-    public static function aesDecrypt($str,$key,$method='cbc')
+    public static function aesDecrypt($str, $key, $method = 'cbc')
     {
         $keyLen = strlen($key);
-        if(!function_exists('openssl_encrypt')){ //mcrypt_decrypt
-            if($keyLen<=16){
+        if (!function_exists('openssl_encrypt')) { //mcrypt_decrypt
+            if ($keyLen <= 16) {
                 $cipher = 'rijndael-128';
-                if($keyLen<16) $key = str_pad($key,16,"\0");
-            }elseif($keyLen<=24){
+                if ($keyLen < 16) {
+                    $key = str_pad($key, 16, "\0");
+                }
+            } elseif ($keyLen <= 24) {
                 $cipher = 'rijndael-192';
-                if($keyLen<24) $key = str_pad($key,24,"\0");
-            }else{ //超出32位截断
+                if ($keyLen < 24) {
+                    $key = str_pad($key, 24, "\0");
+                }
+            } else { //超出32位截断
                 $cipher = 'rijndael-256';
-                if($keyLen>32) $key = substr($key,0,32);
-                elseif($keyLen<32) $key = str_pad($key,32,"\0");
+                if ($keyLen > 32) {
+                    $key = substr($key, 0, 32);
+                } elseif ($keyLen < 32) {
+                    $key = str_pad($key, 32, "\0");
+                }
             }
 
-            $ivlen = mcrypt_get_iv_size($cipher,$method);
-            $iv = strlen($key)<$ivlen?str_pad($key,$ivlen,"\0"):substr($key,0, $ivlen);
+            $ivlen = mcrypt_get_iv_size($cipher, $method);
+            $iv = strlen($key) < $ivlen ? str_pad($key, $ivlen, "\0") : substr($key, 0, $ivlen);
 
-            $encryptedData = mcrypt_decrypt($cipher, $key, base64_decode($str), $method, $iv);
-            $e = ord($encryptedData[strlen($encryptedData)-1]);
-            if($e<=$ivlen) $encryptedData=substr($encryptedData, 0,strlen($encryptedData)-$e);
+            $encryptedData = mcrypt_decrypt($cipher, $key, base64_decode($str, true), $method, $iv);
+            $e = ord($encryptedData[strlen($encryptedData) - 1]);
+            if ($e <= $ivlen) {
+                $encryptedData = substr($encryptedData, 0, strlen($encryptedData) - $e);
+            }
             return $encryptedData;
         }
 
-        if($keyLen<=16){
+        if ($keyLen <= 16) {
             $method = 'aes-128-'.$method;
-            if($keyLen<16) $key = str_pad($key,16,"\0");
-        }elseif($keyLen<=24){
+            if ($keyLen < 16) {
+                $key = str_pad($key, 16, "\0");
+            }
+        } elseif ($keyLen <= 24) {
             $method = 'aes-192-'.$method;
-            if($keyLen<24) $key = str_pad($key,24,"\0");
-        }else{ //超出32位截断
-            if($keyLen>32) $key = substr($key,0,32);
-            elseif($keyLen<32) $key = str_pad($key,32,"\0");
+            if ($keyLen < 24) {
+                $key = str_pad($key, 24, "\0");
+            }
+        } else { //超出32位截断
+            if ($keyLen > 32) {
+                $key = substr($key, 0, 32);
+            } elseif ($keyLen < 32) {
+                $key = str_pad($key, 32, "\0");
+            }
             $method = 'aes-256-'.$method;
         }
         $ivlen = openssl_cipher_iv_length($method);
-        $iv = strlen($key)<$ivlen?str_pad($key,$ivlen,"\0"):substr($key,0, $ivlen);
-        return openssl_decrypt(base64_decode($str), $method, $key, OPENSSL_RAW_DATA, $iv);
+        $iv = strlen($key) < $ivlen ? str_pad($key, $ivlen, "\0") : substr($key, 0, $ivlen);
+        return openssl_decrypt(base64_decode($str, true), $method, $key, OPENSSL_RAW_DATA, $iv);
     }
     //uuid生成
     public static function UUID($upper = false, $prefix = '')
@@ -654,11 +755,13 @@ class Helper{
         $data = uniqid($prefix, true) .
             '-' . $_SERVER['SCRIPT_FILENAME'] .
             (isset($_SERVER['HTTP_USER_AGENT']) ? '-' . $_SERVER['HTTP_USER_AGENT'] : '') .
-            '-' . mt_rand(0, 0xffff) .
+            '-' . random_int(0, 0xffff) .
             '-' . microtime();
 
         $hash = hash('ripemd128', uniqid($prefix, true) . '-' . $data);
-        if ($upper) $hash = strtoupper($hash);
+        if ($upper) {
+            $hash = strtoupper($hash);
+        }
         return substr($hash, 0, 8) . '-' . substr($hash, 8, 4) . '-' . substr($hash, 12, 4) . '-' . substr($hash, 16, 4) . '-' . substr($hash, 20, 12);
     }
     /**
@@ -682,7 +785,9 @@ class Helper{
      */
     public static function getValue($array, $key, $default = null)
     {
-        if (!is_array($array)) return $default;
+        if (!is_array($array)) {
+            return $default;
+        }
         if ($key instanceof \Closure) {
             return $key($array, $default);
         }
@@ -750,7 +855,7 @@ class Helper{
      * for more details. When sorting by multiple keys with different sort flags, use an array of sort flags.
      * @throws \InvalidArgumentException if the $direction or $sortFlag parameters do not have
      */
-    public static function arrayMultiSort(&$array, $key, $direction = SORT_ASC, $sortFlag = SORT_REGULAR)
+    public static function arrayMultiSort(&$array, $key, $direction = SORT_ASC, $sortFlag = SORT_REGULAR): void
     {
         $keys = is_array($key) ? $key : [$key];
         if (empty($keys) || empty($array)) {

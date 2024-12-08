@@ -106,7 +106,7 @@ function html_clean($str) {
 // html_clean 反转
 function html_clean_decode($str){
     $str = htmlspecialchars_decode($str);
-    $str = str_replace(array('<br>','<br />'), "\n", $str);
+    $str = str_replace(['<br>','<br />'], "\n", $str);
     $str = str_replace("&nbsp;&nbsp;", "  ", $str);
     return $str;
 }
@@ -121,9 +121,9 @@ function html_decode($content)
 //html to txt
 function Html2Text($str){
     $alltext = strip_tags($str);
-    $alltext = str_replace("　"," ",$alltext);
-    $alltext = preg_replace("/&[^;&]*[;&]/","",$alltext);
-    $alltext = preg_replace("/[\s]+/s"," ",$alltext);
+    $alltext = str_replace("　", " ", $alltext);
+    $alltext = preg_replace("/&[^;&]*[;&]/", "", $alltext);
+    $alltext = preg_replace("/[\s]+/s", " ", $alltext);
     return $alltext;
 }
 //自动闭合html标签
@@ -151,11 +151,11 @@ function closetags($html) {
     return $html;
 }
 //html截取 并自动闭合
-function cut_html($s,$max_len=250){
+function cut_html($s, $max_len=250){
     if(strlen($s)>$max_len){
-        $i=strpos($s,"\n");//查询是否存在回车换行符
+        $i=strpos($s, "\n");//查询是否存在回车换行符
         if($i>0){
-            $t=explode("\n",$s);//'分隔回车换行符
+            $t=explode("\n", $s);//'分隔回车换行符
             $s="";
             foreach($t as $k){
                 $s .= $k;
@@ -204,7 +204,7 @@ function array_walk_merge(&$arr1, &$arr2, $strict=false){
  * @return array
  */
 function array_sort($array, $row_id, $order_type='asc', $auto=true){
-    $array_temp=array();
+    $array_temp=[];
     foreach($array as $key=>$value){//循环一层；
         $array_temp[$key]=$value[$row_id];//新建一个一维的数组，索引值用二维数组的索引值；值为二维数组要比较的项目的值；
     }
@@ -213,7 +213,7 @@ function array_sort($array, $row_id, $order_type='asc', $auto=true){
     }else{
         arsort($array_temp);
     }
-    $result_array=array();
+    $result_array=[];
     if($auto){
         foreach($array_temp as $key=>$value){//对进行筛选过的数组遍历；s
             $result_array[]=$array[$key];//新建一个结果数组，将原来传入的数组改变键值顺序后赋值给结果数组（原来数组不变）；
@@ -233,7 +233,7 @@ function array_sort($array, $row_id, $order_type='asc', $auto=true){
 function shuffle_assoc(&$array) {
     $keys = array_keys($array);
     shuffle($keys);
-    $new = array();
+    $new = [];
     foreach ($keys as $key){
         $new[$key] = $array[$key];
     }
@@ -252,7 +252,7 @@ function shuffle_assoc(&$array) {
  * @param bool $hi
  * @return false|string
  */
-function getDateStyle($time,$hi=true){
+function getDateStyle($time, $hi=true){
     $nowTime = time();  //获取今天时间戳
     //一分钟
     if(($time+60)>=$nowTime){
@@ -266,21 +266,21 @@ function getDateStyle($time,$hi=true){
     if($time+86400>=$nowTime){
         return floor(($nowTime-$time)/3600) .'小时前';
     }
-    $time_0 = strtotime(date('Y-m-d',$time));
+    $time_0 = strtotime(date('Y-m-d', $time));
     //昨天
     if(($time_0+86400*2)>=$nowTime){
-        return '昨天'.date('H:i',$time);
+        return '昨天'.date('H:i', $time);
     }
     //前天
     if(($time_0+86400*3)>=$nowTime){
-        return '前天'.date('H:i',$time);
+        return '前天'.date('H:i', $time);
     }
     //3天前
     if(($time_0+86400*4)>=$nowTime){
         return '3天前';
     }
 
-    return $hi ? date('Y-m-d H:i',$time) : date('Y-m-d',$time);
+    return $hi ? date('Y-m-d H:i', $time) : date('Y-m-d', $time);
 }
 
 /*
@@ -294,9 +294,9 @@ function ShowMsg($message, $url='', $info='', $time = 2) {
     if ($url=='') {
         $jumpUrl = 'javascript:window.history.back()';
         $js = 'window.history.back()';
-    } elseif (substr($url,0,11)=='javascript:') {
+    } elseif (substr($url, 0, 11)=='javascript:') {
         $jumpUrl = $url;
-        $js = substr($url,11);
+        $js = substr($url, 11);
     } else {
         $jumpUrl = $url;
         $js = "window.location='$jumpUrl'";
@@ -379,9 +379,9 @@ function random($len=6, $chars='0') {
 }
 //生成流水号
 function create_sn(){ //20位
-    $chars = substr(microtime(),2,6);
-    return date('YmdHis').substr(str_shuffle($chars.$chars),0,6);
-    //return date('YmdHis').str_pad( mt_rand( 1, 99999 ), 5, '0', STR_PAD_LEFT);
+    $chars = substr(microtime(), 2, 6);
+    return date('YmdHis').substr(str_shuffle($chars.$chars), 0, 6);
+    //return date('YmdHis').str_pad( random_int( 1, 99999 ), 5, '0', STR_PAD_LEFT);
 }
 /*
 my_hash
@@ -404,13 +404,13 @@ function my_hash($verify=false, $echo=true){
         }
     } else {
         if (!$my_hash) {
-            $my_hash = random(8,'01'); //bin2hex(random_bytes(6));
+            $my_hash = random(8, '01'); //bin2hex(random_bytes(6));
             session('my_hash', $my_hash);
         }
         return $my_hash;
     }
 }
-function my_hash_md5($val,$verify=false){
+function my_hash_md5($val, $verify=false){
     $my_hash = my_hash();
     if ($verify) {
         if ($my_hash && isset($_GET['my_hash_md5']) && md5(getMd5($val . $my_hash) == $_GET['my_hash_md5'])) {
@@ -425,7 +425,7 @@ function my_hash_md5($val,$verify=false){
     }
 }
 //验证码
-function GetCode($w=80, $h=36, $fontsize=18, $len = 4, $reurl=false,$number=false) {
+function GetCode($w=80, $h=36, $fontsize=18, $len = 4, $reurl=false, $number=false) {
     $codeurl = myphp::$cfg['root_dir'].'/myphp/inc/imagecode.php?';
     $codeurl .= "w=$w&h=$h&size=$fontsize&len=$len&t=".time().($number?'&number=1':'');
     if(!$reurl) return '<img src="'. $codeurl .'" alt="验证码,看不清楚?请点击刷新验证码" style="cursor:pointer; vertical-align:middle;" onclick="this.src=\''. $codeurl .'\'+\'&t=\'+Math.random();return false;" />';
@@ -445,7 +445,7 @@ function CodeIsTrue($codename) {
 }
 
 //返回经过随机串组合的加密md5  (encode_key)
-function getMd5($val,$encode = '') {
+function getMd5($val, $encode = '') {
     $encode = $encode != '' ? $encode : myphp::$cfg['encode_key'];
     return md5($encode.$val);
 }
@@ -493,17 +493,17 @@ function setargs($args){
 function return_args($args){
     return [
         'args' => $args,
-        'key' => getMd5($args . my_hash())
+        'key' => getMd5($args . my_hash()),
     ];
 }
 //key=args_val+my_hash
-function getargs($args_item='',$gtype=1){
-    $args_val = urldecode(Q('args',''));
-    $key = Q('key','');
+function getargs($args_item='', $gtype=1){
+    $args_val = urldecode(Q('args', ''));
+    $key = Q('key', '');
     if($args_val=='' || $args_item=='' || $key=='') throw new \Exception('args error!');
     if(getMd5($args_val.my_hash()) != $key) throw new \Exception('Invalid args!');//参数有效验证 $key.'!='.$args_val.'-'.my_hash()
 
-    $para = array('args'=>$args_val, 'key'=>$key);
+    $para = ['args'=>$args_val, 'key'=>$key];
     $args_val = explode('|', $args_val);$args_item = explode('|', $args_item);
     if(count($args_val) != count($args_item)) throw new \Exception('args num error!');//参数个数验证
     foreach($args_item as $key => $keyname){
@@ -516,11 +516,11 @@ function getargs($args_item='',$gtype=1){
 function toByte($byte){
     $v = 'unknown';
     if($byte >= 1099511627776){
-        $v = round($byte / 1099511627776  ,2) . 'TB';
+        $v = round($byte / 1099511627776, 2) . 'TB';
     } elseif($byte >= 1073741824){
-        $v = round($byte / 1073741824  ,2) . 'GB';
+        $v = round($byte / 1073741824, 2) . 'GB';
     } elseif($byte >= 1048576){
-        $v = round($byte / 1048576 ,2) . 'MB';
+        $v = round($byte / 1048576, 2) . 'MB';
     } elseif($byte >= 1024){
         $v = round($byte / 1024, 2) . 'KB';
     } else{
@@ -532,22 +532,22 @@ function toByte($byte){
 function get_image($image, $nopic='/pub/images/nopic.gif'){
     $root_dir_len=strlen(ROOT_DIR);
     if($image=='') $image = ROOT_DIR.$nopic;
-    if(substr($image,0,4)=='http' || substr($image,0,$root_dir_len)==ROOT_DIR){
+    if(substr($image, 0, 4)=='http' || substr($image, 0, $root_dir_len)==ROOT_DIR){
         return $image;
     }else{
-        return ROOT_DIR.(substr($image,0,1)=='/' ? $image : '/'.$image);
+        return ROOT_DIR.(substr($image, 0, 1)=='/' ? $image : '/'.$image);
     }
 }
 //获取缩略图 不存在返回原图 $thumb_wh : 240_180
-function get_thumb($image,$thumb_wh='',$nopic='/pub/images/itemi.png'){
-    if(substr($image,0,4)=='http'){
+function get_thumb($image, $thumb_wh='', $nopic='/pub/images/itemi.png'){
+    if(substr($image, 0, 4)=='http'){
         return $image;
     }else{
-        $image = get_image($image,$nopic);
-        $dot = strrpos($image,'.');
+        $image = get_image($image, $nopic);
+        $dot = strrpos($image, '.');
         if($thumb_wh==''){
             $thumb_wh = GetC('thumb_wh');
-            $__has = strpos($thumb_wh,',');
+            $__has = strpos($thumb_wh, ',');
             if($__has!==false) $thumb_wh = substr($thumb_wh, 0, $__has);
         }
         $thumb = substr($image, 0, $dot).$thumb_wh.substr($image, $dot);
@@ -556,11 +556,11 @@ function get_thumb($image,$thumb_wh='',$nopic='/pub/images/itemi.png'){
 }
 //生成缩略图  return array 缩略图列表
 function make_thumb($image){
-    $thumb = array();
+    $thumb = [];
     $image = SITE_WEB.$image;
     if(!is_file($image)) return false;
     $imgType = '.png,.jpg,.jpeg,.bmp,.gif';//图片类型
-    $dot = strrpos($image,'.');
+    $dot = strrpos($image, '.');
     $base = substr($image, 0, $dot);
     $ext = substr($image, $dot);
     if(strpos($imgType, strtolower($ext))===false) return false;//图片验证
@@ -570,7 +570,7 @@ function make_thumb($image){
         $thumbname =  $base.$thumb_wh.$ext;
         $wh = explode('_', $thumb_wh);
         //生成图片缩略图
-        if(Image::thumb($image,$thumbname,$wh[0],$wh[1])){
+        if(Image::thumb($image, $thumbname, $wh[0], $wh[1])){
             $thumb[$thumb_wh] = $thumbname;
         }
     }
@@ -581,7 +581,7 @@ function del_up_file($file, $is_img=0){
     $realFile = SITE_WEB.$file;//真实路径
     if (is_file($realFile)) {
         if($is_img){
-            $dot = strrpos($realFile,'.');
+            $dot = strrpos($realFile, '.');
             $base = substr($realFile, 0, $dot);
             $ext = substr($realFile, $dot);
             $thumbs_wh = explode(',', myphp::$cfg['thumb_wh']);//获取默认缩略图大小
@@ -593,10 +593,10 @@ function del_up_file($file, $is_img=0){
     }
 }
 //编辑器 field:数组,value:内容  $field:array('name'=>'name','width'=>0,'height'=>0,'ext'=>array('editor'=>'ueditor','config'=>''))
-function editor_fun($field,$value=''){
+function editor_fun($field, $value=''){
     $str = '';
-    $editor = isset($field['ext']['editor'])?$field['ext']['editor']:'ueditor';
-    $config = isset($field['ext']['config'])?$field['ext']['config']:'';
+    $editor = $field['ext']['editor']??'ueditor';
+    $config = $field['ext']['config']??'';
     $field['width'] = empty($field['width'])?760:$field['width'];
     $field['height'] = empty($field['height'])?350:$field['height'];
     if($editor=='ueditor'){
@@ -624,9 +624,9 @@ function editor_fun($field,$value=''){
 // 示例 allow_val = array('js_path','css_path','img_path'); 配置值不允许有换行符、单引号 以防出错
 function set_config($config, $file="/config.php", $allow_val=null) {
     $configFile = ROOT.$file;
-    $pattern = $replacement = array();
+    $pattern = $replacement = [];
     foreach($config as $k=>$v) {
-        if(is_array($allow_val) && !in_array($k,$allow_val)) continue;
+        if(is_array($allow_val) && !in_array($k, $allow_val)) continue;
         $v = trim($v);
         $pattern[$k] = "/'".$k."'\s*=>\s*([']?)[^']*([']?)(\s*),/is"; //[^']
         $replacement[$k] = "'".$k."' => \${1}".$v."\${2}\${3},";
@@ -639,21 +639,21 @@ function set_config($config, $file="/config.php", $allow_val=null) {
 /**
  * 安全cookie md5加密
  * @param string|null $name 名|null清空所有
- * @param string|null $value 值|null删除
+ * @param string|array|null $value 值|null删除
  * @param null|array|int $option cookie参数 可数字、数组
  * @return mixed|string|null
  */
 function cookie($name, $value='', $option=null) {
-    $prefix = isset(myphp::$cfg['cookie_pre']) ? myphp::$cfg['cookie_pre'] : ''; // cookie 名称前缀
+    $prefix = myphp::$cfg['cookie_pre'] ?? ''; // cookie 名称前缀
     // 默认设置
-    $config = array(
-        'expire' => isset(myphp::$cfg['cookie_expire']) ? myphp::$cfg['cookie_expire'] : 0, // cookie 保存时间
-        'path' => isset(myphp::$cfg['cookie_path']) ? myphp::$cfg['cookie_path'] : '/', // cookie 保存路径
-        'domain' => isset(myphp::$cfg['cookie_domain']) ? myphp::$cfg['cookie_domain'] : '', // cookie 有效域名
-        'secure' => isset(myphp::$cfg['cookie_secure']) ? myphp::$cfg['cookie_secure'] : false, //  cookie 启用安全传输
-        'httponly' => isset(myphp::$cfg['cookie_httponly']) ? myphp::$cfg['cookie_httponly'] : false, // httponly设置
-        'same_site' => isset(myphp::$cfg['cookie_same_site']) ? myphp::$cfg['cookie_same_site'] : false
-    );
+    $config = [
+        'expire' => myphp::$cfg['cookie_expire'] ?? 0, // cookie 保存时间
+        'path' => myphp::$cfg['cookie_path'] ?? '/', // cookie 保存路径
+        'domain' => myphp::$cfg['cookie_domain'] ?? '', // cookie 有效域名
+        'secure' => myphp::$cfg['cookie_secure'] ?? false, //  cookie 启用安全传输
+        'httponly' => myphp::$cfg['cookie_httponly'] ?? false, // httponly设置
+        'same_site' => myphp::$cfg['cookie_same_site'] ?? false
+    ];
     // 参数处理
     if (!is_null($option)) {
         if (is_numeric($option))
@@ -683,7 +683,7 @@ function cookie($name, $value='', $option=null) {
         }
         return null;
     }
-    $encode = substr($name,0,1)=='_' ? false : true; //是否编码 以下划线开头的不编码
+    $encode = substr($name, 0, 1)=='_' ? false : true; //是否编码 以下划线开头的不编码
     $name = ($prefix !== '' ? $prefix . '_' : '') . $name;
     if ('' === $value) {//获取cookie值
         if(isset($_COOKIE[$name])){
@@ -734,7 +734,7 @@ function cookie($name, $value='', $option=null) {
 }
 // session 辅助类
 function session($name='', $value='') {
-    !\myphp\Session::$instance && \myphp\Session::init(isset(myphp::$cfg['session']) ? myphp::$cfg['session'] : null);
+    !\myphp\Session::$instance && \myphp\Session::init(myphp::$cfg['session'] ?? null);
     if (is_null($name)) { //清除所有 session
         \myphp\Session::destroy();
         return null;
@@ -769,7 +769,7 @@ function cache($name, $value='', $option=null) {
     }elseif(is_array($option)){ //单独设置缓存并返回
         return \myphp\Cache::getInstance($name, $option);
     }elseif(!isset($cache)){ //默认缓存设定
-        $type = isset(myphp::$cfg['cache'])?myphp::$cfg['cache']:'file';
+        $type = myphp::$cfg['cache'] ?? 'file';
         $cache = \myphp\Cache::getInstance($type, myphp::$cfg['cache_option']);
     }
     if (is_null($name)) { // 清除所有cache
@@ -823,8 +823,8 @@ function Q($name, $defVal='', $datas=null) {
     \myphp\Value::parseType($name, $type, $min, $max, $filter, $digit);
 
     $method = 'request'; // 默认为_REQUEST
-    if(strpos($name,'.')!==false) { // 指定参数来源
-        list($method,$name) = explode('.',$name,2);
+    if(strpos($name, '.')!==false) { // 指定参数来源
+        [$method, $name] = explode('.', $name, 2);
         if(!$method) $method = 'request';
     }
     #echo $method.'--'.$name.'--'.$type.'--'.$min.'--'.$max.'--'.$filter,PHP_EOL;
@@ -836,7 +836,7 @@ function Q($name, $defVal='', $datas=null) {
         case 'put' :
             if(IS_CLI || is_null($_PUT)) { // cli模式下每次都需要解析
                 $rawBody = myphp::rawBody();
-                $first_c = substr($rawBody,0,1);
+                $first_c = substr($rawBody, 0, 1);
                 if($first_c=='[' || $first_c=='{'){
                     $_PUT = (array)json_decode($rawBody, true);
                 }else{
@@ -858,10 +858,10 @@ function Q($name, $defVal='', $datas=null) {
         if(is_array($val)) $type = 'a';
     }
     else{
-        if(strpos($name,'.')){ //多维数组
+        if(strpos($name, '.')){ //多维数组
             $val = \myphp\Helper::getValue($input, $name);
         }else{
-            $val = isset($input[$name]) ? $input[$name] : null;
+            $val = $input[$name] ?? null;
         }
     }
     //if($filter===null) $filter = true; #使用默认过滤处理 取消
@@ -888,9 +888,9 @@ function remove_xss($val) {
     }
 
     // now the only remaining whitespace attacks are \t, \n, and \r
-    $ra = array( //'style', 'title', 'embed', 'object', 'xml', 'base', 'meta', 'link', 'blink',
+    $ra = [ //'style', 'title', 'embed', 'object', 'xml', 'base', 'meta', 'link', 'blink',
         'script', 'layer', 'ilayer', 'javascript', 'vbscript', 'expression', 'applet', 'frame', 'iframe', 'frameset', 'bgsound',
-        'onabort', 'onactivate', 'onafterprint', 'onafterupdate', 'onbeforeactivate', 'onbeforecopy', 'onbeforecut', 'onbeforedeactivate', 'onbeforeeditfocus', 'onbeforepaste', 'onbeforeprint', 'onbeforeunload', 'onbeforeupdate', 'onblur', 'onbounce', 'oncellchange', 'onchange', 'onclick', 'oncontextmenu', 'oncontrolselect', 'oncopy', 'oncut', 'ondataavailable', 'ondatasetchanged', 'ondatasetcomplete', 'ondblclick', 'ondeactivate', 'ondrag', 'ondragend', 'ondragenter', 'ondragleave', 'ondragover', 'ondragstart', 'ondrop', 'onerror', 'onerrorupdate', 'onfilterchange', 'onfinish', 'onfocus', 'onfocusin', 'onfocusout', 'onhelp', 'onkeydown', 'onkeypress', 'onkeyup', 'onlayoutcomplete', 'onload', 'onlosecapture', 'onmousedown', 'onmouseenter', 'onmouseleave', 'onmousemove', 'onmouseout', 'onmouseover', 'onmouseup', 'onmousewheel', 'onmove', 'onmoveend', 'onmovestart', 'onpaste', 'onpropertychange', 'onreadystatechange', 'onreset', 'onresize', 'onresizeend', 'onresizestart', 'onrowenter', 'onrowexit', 'onrowsdelete', 'onrowsinserted', 'onscroll', 'onselect', 'onselectionchange', 'onselectstart', 'onstart', 'onstop', 'onsubmit', 'onunload');
+        'onabort', 'onactivate', 'onafterprint', 'onafterupdate', 'onbeforeactivate', 'onbeforecopy', 'onbeforecut', 'onbeforedeactivate', 'onbeforeeditfocus', 'onbeforepaste', 'onbeforeprint', 'onbeforeunload', 'onbeforeupdate', 'onblur', 'onbounce', 'oncellchange', 'onchange', 'onclick', 'oncontextmenu', 'oncontrolselect', 'oncopy', 'oncut', 'ondataavailable', 'ondatasetchanged', 'ondatasetcomplete', 'ondblclick', 'ondeactivate', 'ondrag', 'ondragend', 'ondragenter', 'ondragleave', 'ondragover', 'ondragstart', 'ondrop', 'onerror', 'onerrorupdate', 'onfilterchange', 'onfinish', 'onfocus', 'onfocusin', 'onfocusout', 'onhelp', 'onkeydown', 'onkeypress', 'onkeyup', 'onlayoutcomplete', 'onload', 'onlosecapture', 'onmousedown', 'onmouseenter', 'onmouseleave', 'onmousemove', 'onmouseout', 'onmouseover', 'onmouseup', 'onmousewheel', 'onmove', 'onmoveend', 'onmovestart', 'onpaste', 'onpropertychange', 'onreadystatechange', 'onreset', 'onresize', 'onresizeend', 'onresizestart', 'onrowenter', 'onrowexit', 'onrowsdelete', 'onrowsinserted', 'onscroll', 'onselect', 'onselectionchange', 'onselectstart', 'onstart', 'onstop', 'onsubmit', 'onunload'];
 
     $found = true; // keep replacing as long as the previous round replaced something
     while ($found == true) {
@@ -928,14 +928,14 @@ function remove_xss($val) {
 function num2ch($num, $mode = true, $sim = true){
     if(!is_numeric($num) || floatval($num)==0) return '零'.($mode==='rmb'?'元':'').($sim?'':'整');
 
-    $char = $sim ? array('零','一','二','三','四','五','六','七','八','九') : array('零','壹','贰','叁','肆','伍','陆','柒','捌','玖');
-    $unit = $sim ? array('','十','百','千','','万','亿','兆') : array('','拾','佰','仟','','萬','億','兆');
+    $char = $sim ? ['零','一','二','三','四','五','六','七','八','九'] : ['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+    $unit = $sim ? ['','十','百','千','','万','亿','兆'] : ['','拾','佰','仟','','萬','億','兆'];
     $cnVal = '';
     //小数部分
     if(strpos($num, '.')){
-        list($num,$dec) = explode('.', $num);
+        [$num, $dec] = explode('.', $num);
         if($mode==='rmb'){
-            $dec = round(floatval('0.'.$dec),2);
+            $dec = round(floatval('0.'.$dec), 2);
             if($dec>0){
                 $cnVal = '元'.($sim?'':'整');
                 $dec = strval($dec);
@@ -951,7 +951,7 @@ function num2ch($num, $mode = true, $sim = true){
     }
     if($cnVal=='' && $mode)  $cnVal = '元'.($sim?'':'整');
 
-    if(!$num && $mode) return str_replace(['元','整'],'', $mode==='rmb'?$cnVal:'零'.$cnVal);
+    if(!$num && $mode) return str_replace(['元','整'], '', $mode==='rmb'?$cnVal:'零'.$cnVal);
     //整数部分
     $str = strrev($num);
     for($i = 0,$c = strlen($str);$i < $c;$i++) {
@@ -966,26 +966,26 @@ function num2ch($num, $mode = true, $sim = true){
             }
         }
     }
-    $cnVal = join('',array_reverse($out)) . $cnVal;
-    if(strpos($cnVal,'一十')===0) $cnVal = substr($cnVal, 3);
+    $cnVal = join('', array_reverse($out)) . $cnVal;
+    if(strpos($cnVal, '一十')===0) $cnVal = substr($cnVal, 3);
     $cnVal = str_replace(['零零','零元','零点'], ['零','元','点'], $cnVal);
     $cnVal = $sim ? str_replace(['零万','零亿'], ['万','亿'], $cnVal) : str_replace(['零萬','零億'], ['萬','億'], $cnVal);
-    if($mode && $mode!=='rmb') $cnVal = str_replace(['元','整'],'', $cnVal);
+    if($mode && $mode!=='rmb') $cnVal = str_replace(['元','整'], '', $cnVal);
     return $cnVal;
 }
 //中文转数字
 function ch2num($str) {
-    $map = array(
+    $map = [
         '一' => '1','二' => '2','三' => '3','四' => '4','五' => '5','六' => '6','七' => '7','八' => '8','九' => '9',
         '壹' => '1','贰' => '2','叁' => '3','肆' => '4','伍' => '5','陆' => '6','柒' => '7','捌' => '8','玖' => '9',
-        '零' => '0','两' => '2','万万' => '亿','萬'=>'万','仟' => '千','佰' => '百','拾' => '十','圆'=>'','元'=>'','整'=>'','点'=>'.'
-    );
-    $plus = array('兆'=>1000000000000,'亿' => 100000000,'万' => 10000,'千' => 1000,'百' => 100,'十' => 10,'角'=>0.1,'分'=>0.01);
+        '零' => '0','两' => '2','万万' => '亿','萬'=>'万','仟' => '千','佰' => '百','拾' => '十','圆'=>'','元'=>'','整'=>'','点'=>'.',
+    ];
+    $plus = ['兆'=>1000000000000,'亿' => 100000000,'万' => 10000,'千' => 1000,'百' => 100,'十' => 10,'角'=>0.1,'分'=>0.01];
     $str = str_replace(array_keys($map), array_values($map), $str);
 
     if(is_numeric($str)) return $str;
 
-    $func_c2i = function ($str,&$plus) use(&$func_c2i) {
+    $func_c2i = function ($str, &$plus) use(&$func_c2i) {
         if(is_numeric($str)) return $str;
         $i = 0;
         foreach($plus as $k => $v) {
@@ -1001,7 +1001,7 @@ function ch2num($str) {
         }
         return $str;
     };
-    return $func_c2i($str,$plus);
+    return $func_c2i($str, $plus);
 }
 
 /**
@@ -1084,13 +1084,13 @@ function luck_rand($data, $max=10000) {
     $sum = array_sum($data); //数组的总概率值
     $max = intval(($sum>$max ? $sum : $max)*2); //获取概率总值
     if($max<=0) return $result;
-    for($i=0;$i<mt_rand(1,3);$i++){ mt_rand(1, $max); }
+    for($i=0;$i<random_int(1, 3);$i++){ random_int(1, $max); }
     asort($data);
-    $rnd = mt_rand(1, $max); $arr = [];
+    $rnd = random_int(1, $max); $arr = [];
     //概率筛选
     foreach ($data as $key=>$val) {
         if($result===null){
-            //$rnd = mt_rand(1, $max);
+            //$rnd = random_int(1, $max);
             if ($rnd <= $val) {
                 $result = $key; //break;
                 $arr[] = $key; $rnd = $val;
@@ -1112,8 +1112,8 @@ function luck_rand($data, $max=10000) {
         $arr[] = $key;
     }
     if($len=count($arr)) {
-        //mt_rand(0, $len-1);
-        $result = $arr[mt_rand(0, $len-1)];
+        //random_int(0, $len-1);
+        $result = $arr[random_int(0, $len-1)];
     }
     return $result; //null为轮空
 }
@@ -1127,12 +1127,12 @@ function PageList1($TotalResult, $Page_Size, $currentPage, $paraUrl, $pageName =
     if ($currentPage <= 1) {
         $out .= '首页&nbsp;&nbsp;上一页&nbsp;&nbsp;';
     } else {
-        $out .= '<a href="'. str_replace('{'.$pageName.'}',1,$paraUrl) .'">首页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}',($currentPage-1),$paraUrl) .'">上一页</a>&nbsp;&nbsp;';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', 1, $paraUrl) .'">首页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}', ($currentPage-1), $paraUrl) .'">上一页</a>&nbsp;&nbsp;';
     }
     if ($currentPage >= $Page_Count) {
         $out .= '下一页&nbsp;&nbsp;尾页&nbsp;';
     } else {
-        $out .= '<a href="'. str_replace('{'.$pageName.'}',($currentPage+1),$paraUrl) .'">下一页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}',$Page_Count,$paraUrl) .'">尾页</a>&nbsp;';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', ($currentPage+1), $paraUrl) .'">下一页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}', $Page_Count, $paraUrl) .'">尾页</a>&nbsp;';
     }
     $out .= '&nbsp;页次:'. $currentPage .'/'. $Page_Count .'页&nbsp;&nbsp;'. $Page_Size .'条信息/页&nbsp;&nbsp;转到<select name="select" onChange="javascript:var url=\''. $paraUrl .'\';url=url.replace(\'{'. $pageName .'}\',this.options[this.selectedIndex].value);window.location.href=url;">';
     for ($ipg = 1; $ipg <= $Page_Count; $ipg++) {
@@ -1153,12 +1153,12 @@ function PageList2($TotalResult, $Page_Size, $currentPage, $paraUrl, $pageName =
     if ($currentPage <= 1)
         $out .= '首页 | 上页 | ';
     else
-        $out .= '<A href="'. str_replace('{'.$pageName.'}',1,$paraUrl) .'">首页</A> | <A href="'. str_replace('{'.$pageName.'}',($currentPage-1),$paraUrl) .'">上页</A> | ';
+        $out .= '<A href="'. str_replace('{'.$pageName.'}', 1, $paraUrl) .'">首页</A> | <A href="'. str_replace('{'.$pageName.'}', ($currentPage-1), $paraUrl) .'">上页</A> | ';
 
     if ($currentPage >= $Page_Count)
         $out .= '下页 | 尾页';
     else
-        $out .= '<A href="'. str_replace('{'.$pageName.'}',($currentPage+1),$paraUrl) .'">下页</A> | <A href="'. str_replace('{'.$pageName.'}',$Page_Count,$paraUrl) .'">尾页</A>';
+        $out .= '<A href="'. str_replace('{'.$pageName.'}', ($currentPage+1), $paraUrl) .'">下页</A> | <A href="'. str_replace('{'.$pageName.'}', $Page_Count, $paraUrl) .'">尾页</A>';
     return $out;
 }
 //分页函数3：PageList3 ,参数同上,InitPageNum初始显示数*2
@@ -1168,7 +1168,7 @@ function PageList3($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNu
     $out = '<a class="page_total">'. $Page_Count .'页/<span id="totalresult">'. $TotalResult .'</span>条</a>';
     if ($TotalResult <= $Page_Size) return $out;
     if ($currentPage>$InitPageNum) {
-        $out .= '<a href="'. str_replace('{'.$pageName.'}',1,$paraUrl) .'">首页</a>';// <a href="'. str_replace('{'.$pageName.'}',($currentPage-1),$paraUrl) .'">上一页</a>
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', 1, $paraUrl) .'">首页</a>';// <a href="'. str_replace('{'.$pageName.'}',($currentPage-1),$paraUrl) .'">上一页</a>
     }
     //获取页码范围
     if ($currentPage <= 1) {
@@ -1191,11 +1191,11 @@ function PageList3($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNu
         if ($currentPage == $PageNo)
             $out .= '<strong>'.$PageNo .'</strong>';
         else
-            $out .= '<a href="'. str_replace('{'.$pageName.'}',$PageNo,$paraUrl) .'">'. $PageNo .'</a>';
+            $out .= '<a href="'. str_replace('{'.$pageName.'}', $PageNo, $paraUrl) .'">'. $PageNo .'</a>';
     }
 
     if ($currentPage <= $Page_Count-$InitPageNum)
-        $out .= '<a href="'. str_replace('{'.$pageName.'}',$Page_Count,$paraUrl) .'">末页</a>';//<a href="'. str_replace('{'.$pageName.'}',($currentPage+1),$paraUrl) .'">下一页</a>
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', $Page_Count, $paraUrl) .'">末页</a>';//<a href="'. str_replace('{'.$pageName.'}',($currentPage+1),$paraUrl) .'">下一页</a>
 
     return $out;
 }
@@ -1205,7 +1205,7 @@ function PageList4($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNu
     $out = '';//'<a class="page_total">'. $Page_Count .'页/<span id="totalresult">'. $TotalResult .'</span>条</a>';
     if ($TotalResult <= $Page_Size) return $out;
     if ($currentPage>1) {
-        $out .= '<a href="'. str_replace('{'.$pageName.'}',($currentPage-1),$paraUrl) .'">上一页</a>';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', ($currentPage-1), $paraUrl) .'">上一页</a>';
     }else{
         $out .= '<a>上一页</a>';
     }
@@ -1230,11 +1230,11 @@ function PageList4($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNu
         if ($currentPage == $PageNo)
             $out .= '<strong>'.$PageNo .'</strong>';
         else
-            $out .= '<a href="'. str_replace('{'.$pageName.'}',$PageNo,$paraUrl) .'">'. $PageNo .'</a>';
+            $out .= '<a href="'. str_replace('{'.$pageName.'}', $PageNo, $paraUrl) .'">'. $PageNo .'</a>';
     }
 
     if ($currentPage < $Page_Count){
-        $out .= '<a href="'. str_replace('{'.$pageName.'}',($currentPage+1),$paraUrl) .'">下一页</a>';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', ($currentPage+1), $paraUrl) .'">下一页</a>';
     }else{
         $out .= '<a>下一页</a>';
     }
@@ -1261,7 +1261,7 @@ function price_format($price, $price_format=0, $currency_format='￥%s元') {
             $price = number_format($price, 2, '.', '');
             break;
         case 3: // 保留不为 0 的尾数
-            $price = rtrim((string)$price,'0.');
+            $price = rtrim((string)$price, '0.');
             break;
     }
     return sprintf($currency_format, $price);
@@ -1328,7 +1328,7 @@ function cn_half_replace($str){
 //字母数字及部分符号全角转半角
 function toSemiAngle($str){
     static $arr;
-    if(!$arr) $arr = array(
+    if(!$arr) $arr = [
         '０' => '0', '１' => '1', '２' => '2', '３' => '3', '４' => '4',
         '５' => '5', '６' => '6', '７' => '7', '８' => '8', '９' => '9',
         'Ａ' => 'A', 'Ｂ' => 'B', 'Ｃ' => 'C', 'Ｄ' => 'D', 'Ｅ' => 'E',
@@ -1345,7 +1345,7 @@ function toSemiAngle($str){
         '（' => '(', '）' => ')', '—' => '-', '－' => '-', '＋' => '+', '｜' => '|', '＾' => '^',
         '“' => '"', '”' => '"', '‘' => "'", '’' => "'", '《' => '<', '》' => '>', '｛' => '{', '｝' => '}', '【' => '[', '】' => ']',
         '：' => ':', '；' => ';', '、' => ',', '，' => ',', '。' => '.', '？' => '?', '｀' => '`', '…' => '-', '　' => ' ',
-        '＜' => '<', '＞' => '>', '［' => '[', '］' => ']', '．' => '.', '＼' => '\\', '＂' => '"',
-    );
+        '＜' => '<', '＞' => '>', '［' => '[', '］' => ']', '．' => '.', '＼' => '\\', '＂' => '"'
+    ];
     return strtr($str, $arr);
 }

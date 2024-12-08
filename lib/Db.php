@@ -1,9 +1,13 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp;
 
 use Closure;
 use Exception;
 use myphp;
+use myphp\db\db_pdo;
 
 /**
  * Class Db 数据db类
@@ -22,19 +26,20 @@ use myphp;
  * @property string order
  * @property string table
  */
-class Db {
-	public static $sql = ''; //完整的Sql
+class Db
+{
+    public static $sql = ''; //完整的Sql
     public static $times = 0; //执行次数
     private static $log_type = 0; //是否记录sql
     private static $instance = [];
 
     private $_sql = ''; //完整的Sql
     /**
-     * @var \myphp\db\db_pdo
+     * @var db_pdo
      */
     private $db;
     /**
-     * @var \myphp\db\db_pdo
+     * @var db_pdo
      */
     private $_slave;
     private $_slaveIdx = -1;
@@ -48,7 +53,7 @@ class Db {
      * @var array 配置
      */
     private $config = [
-        //'type' => 'pdo',   //连接类型 支持继承DbBase的pdo、mysqli、taos
+        //'type' => 'pdo',   //连接类型 支持继承DbBase的pdo、taos
         //'dsn' => '', //使用pdo驱动时可直接设置dsn
         //'dbms' => 'mysql', //数据库
         //'server' => '',    //数据库主机
@@ -95,7 +100,7 @@ class Db {
      */
     private $options;
     public $resetOption = true;
-	//链操作方法列表
+    //链操作方法列表
     private $methods = ',group,having,idx,limit,order,table,';
     //表字段信息
     private $tbFields = [];
@@ -104,13 +109,14 @@ class Db {
     private $endSpec = '`';
 
     /**
-     * 
+     *
      * @param bool $slave
      * @param bool $force
      * @return mixed
      * @throws Exception
      */
-    private function _initDb($slave=false, $force=false){
+    private function _initDb(bool $slave = false, bool $force = false)
+    {
         $config = $this->config;
         if ($slave && !empty($config['slaves'])) { //对有数据库配置的从库处理
             if ($this->_slave) {
@@ -120,7 +126,7 @@ class Db {
             if (isset($config['slaves'][0])) { //对多个的从库配置随机取
                 $slaves = $config['slaves'];
                 $count = count($slaves);
-                $idx = $count > 1 ? mt_rand(0, $count - 1) : 0;
+                $idx = $count > 1 ? random_int(0, $count - 1) : 0;
             } else {
                 $slaves = [$config['slaves']];
                 $idx = 0;
@@ -145,7 +151,9 @@ class Db {
 
         if ($slave) {
             $this->initCache();
-            if ($this->cache->get($key)) return $this->_initDb(); //使用主库
+            if ($this->cache->get($key)) { //使用主库
+                return $this->_initDb();
+            }
         }
 
         if ($force || !isset(self::$instance[$key])) {
@@ -176,12 +184,21 @@ class Db {
      * @param bool $force 是否强制生成新实例
      * @throws Exception
      */
-    public function __construct($conf='db', $force=false) {
-        if (!isset(myphp::$cfg[$conf])) throw new Exception($conf . 'DB连接配置不存在');
+    public function __construct(string $conf = 'db', bool $force = false)
+    {
+        if (!isset(myphp::$cfg[$conf])) {
+            throw new Exception($conf . 'DB连接配置不存在');
+        }
         $this->config = myphp::$cfg[$conf];
-        if (!isset($this->config['type'])) $this->config['type'] = 'pdo';
-        if (!isset($this->config['dbms'])) $this->config['dbms'] = 'mysql';
-        if (!isset($this->config['prod'])) $this->config['prod'] = false;
+        if (!isset($this->config['type'])) {
+            $this->config['type'] = 'pdo';
+        }
+        if (!isset($this->config['dbms'])) {
+            $this->config['dbms'] = 'mysql';
+        }
+        if (!isset($this->config['prod'])) {
+            $this->config['prod'] = false;
+        }
 
         $this->db = $this->_initDb(false, $force);
         switch ($this->config['dbms']) {
@@ -198,46 +215,53 @@ class Db {
                 $this->endSpec = '"';
                 break;
         }
-	}
-	//释放资源
-	public static function free($name='db'){
+    }
+    //释放资源
+    public static function free(string $name = 'db'): void
+    {
         unset(self::$instance[$name]);
         myphp::free('__db_'.$name);
     }
-	//启用或关闭SQL记录 依赖Log类 0不记录 1仅execute的sql 2全部sql
-	public static function log_on($bool=2){
-		self::$log_type=$bool;
-	}
-	// 获取数据对象的值
-    public function __get($name) {
-        return isset($this->options[$name]) ? $this->options[$name] : null;
+    //启用或关闭SQL记录 依赖Log类 0不记录 1仅execute的sql 2全部sql
+    public static function log_on(int $bool = 2): void
+    {
+        self::$log_type = $bool;
+    }
+    // 获取数据对象的值
+    public function __get($name)
+    {
+        return $this->options[$name] ?? null;
     }
     //销毁数据对象的值
-    public function __unset($name) {
+    public function __unset($name): void
+    {
         unset($this->options[$name]);
     }
-	//连贯操作
-	public function __call($method, $args) {
-		if(strpos($this->methods, $method)!==false && isset($args[0])){
-			$this->options[$method] = $args[0];
+    //连贯操作
+    public function __call($method, $args)
+    {
+        if (strpos($this->methods, $method) !== false && isset($args[0])) {
+            $this->options[$method] = $args[0];
             return $this;
-		}else{
+        } else {
             throw new Exception(__CLASS__.':'.$method.'方法无效');
         }
-	}
-	//获取最后执行的Sql
-	public function getSql($last=true){
-	    return $last ? self::$sql : $this->_sql;
+    }
+    //获取最后执行的Sql
+    public function getSql(bool $last = true): string
+    {
+        return $last ? self::$sql : $this->_sql;
     }
     //取得数据表的字段信息
-    public function getFields($tb, &$prikey='', &$fields='*', &$rule=array(), &$autoKey=''){
+    public function getFields(string $tb, string &$prikey = '', string &$fields = '*', ?array &$rule = [], string &$autoKey = ''): array
+    {
         if (!isset($this->tbFields[$tb])) {
             if ($this->config['prod']) {
                 $this->initCache();
                 $fieldInfo = $this->cache->get($tb);
             }
             if (!isset($fieldInfo) || $fieldInfo === false) {
-                $fieldInfo = array('fields' => '*', 'prikey' => '', 'auto_increment'=>'', 'rule' => array());
+                $fieldInfo = ['fields' => '*', 'prikey' => '', 'auto_increment' => '', 'rule' => []];
                 $tb_type = '\myphp\db\tb_' . $this->config['dbms'];
                 if (class_exists($tb_type)) {
                     $tbName = $tb;
@@ -249,8 +273,9 @@ class Db {
                     $fieldInfo = $tbType->getFields($this->db, $tbName);
                 }
                 if ($this->config['prod']) { #生成模式下提前解析
-                    foreach ($fieldInfo['rule'] as $k=>$rule){
-                        $type = 's'; $min = $max = null;
+                    foreach ($fieldInfo['rule'] as $k => $rule) {
+                        $type = 's';
+                        $min = $max = null;
                         Value::parseType($rule['rule'], $type, $min, $max);
                         $fieldInfo['rule'][$k]['rule'] = [$type, 'min' => $min, 'max' => $max];
                     }
@@ -266,8 +291,9 @@ class Db {
         return $this->tbFields[$tb];
     }
     //取得当前数据库的表信息
-    public function getTables(){
-        $tables = array();
+    public function getTables(): array
+    {
+        $tables = [];
         $tb_type = '\myphp\db\tb_' . $this->config['dbms'];
         if (class_exists($tb_type)) {
             $tbType = new $tb_type();
@@ -275,46 +301,49 @@ class Db {
         }
         return $tables;
     }
-	//安全转义
-	public function quote($val){
-		return $this->db->quote($val);
-	}
-    final public function parseValue($val) {
+    //安全转义
+    public function quote(string $val)
+    {
+        return $this->db->quote($val);
+    }
+    final public function parseValue($val)
+    {
         if ($val instanceof Expr) { //表达式
             return $val;
         }
-        if(is_string($val)) {
+        if (is_string($val)) {
             $val = $this->quote($val);
-        }
-        elseif(is_array($val)){
-            $val = array_map(array($this, 'parseValue'), $val);
-        }
-        elseif(is_null($val)){
+        } elseif (is_array($val)) {
+            $val = array_map([$this, 'parseValue'], $val);
+        } elseif (is_null($val)) {
             $val = 'null';
         }
         return $val;
     }
     //根据绑定参数组装SQL语句 不允许子类覆盖  sql绑定编译
-    final public function get_real_sql($sql, $bind = null){
+    final public function get_real_sql(string $sql, array $bind = null)
+    {
         if (is_array($bind)) {
             $pos = 0;
             foreach ($bind as $key => $val) {
                 $val = $this->parseValue($val);
                 $isNum = is_numeric($key);
                 // 判断占位符
-                $sql = $isNum ? substr_replace($sql, $val, $pos=strpos($sql, '?', $pos), 1) :
+                $sql = $isNum ? substr_replace($sql, $val, $pos = strpos($sql, '?', $pos), 1) :
                     str_replace(
-                        array(':' . $key . ')', ':' . $key . ',', ':' . $key . ' '),
-                        array($val . ')', $val . ',', $val . ' '),
-                        $sql . ' ');
+                        [':' . $key . ')', ':' . $key . ',', ':' . $key . ' '],
+                        [$val . ')', $val . ',', $val . ' '],
+                        $sql . ' '
+                    );
                 $isNum && $pos += strlen($val);
             }
         }
         return $sql;
     }
     //特殊符转换
-    public function specTransfer(&$sql){
-        switch($this->config['dbms']){
+    public function specTransfer(string &$sql): void
+    {
+        switch ($this->config['dbms']) {
             case 'mssql':
             case 'oracle':
             case 'pgsql':
@@ -327,57 +356,63 @@ class Db {
      * @param string $sql
      * @return bool 是否读取数据的sql
      */
-    public function isReadSql($sql)
+    public function isReadSql(string $sql): bool
     {
         $pattern = '/^\s*(SELECT|SHOW|DESCRIBE)\b/i';
         return preg_match($pattern, $sql) > 0;
     }
-    public function resetOptions(){
+    public function resetOptions(): void
+    {
         $this->options = null;
     }
-    public function conn(){
+    public function conn()
+    {
         return $this->db;
     }
     //对sql部分语句进行转换
-    final public function chkSql(&$sql, $curd=false) {
+    final public function chkSql(string &$sql, bool $curd = false): void
+    {
         $isMysql = $this->config['dbms'] == 'mysql';
         $sql = trim($sql);
-        if(!$curd){ #非execute
+        if (!$curd) { #非execute
             //([0-9]+(,[0-9]+)?) | ([0-9]+)
-            if (stripos($sql, 'select top')!==false && preg_match('/^(select top )([0-9]+(,[0-9]+)?)/i', $sql, $topArr)) {
-                $pos = strpos($topArr[2],',');
+            if (stripos($sql, 'select top') !== false && preg_match('/^(select top )([0-9]+(,[0-9]+)?)/i', $sql, $topArr)) {
+                $pos = strpos($topArr[2], ',');
                 $limit = 0;
-                if($pos!==false) {
-                    $offset = substr($topArr[2],0,$pos);
-                    $limit = substr($topArr[2],$pos+1);
-                }else {
+                if ($pos !== false) {
+                    $offset = substr($topArr[2], 0, $pos);
+                    $limit = substr($topArr[2], $pos + 1);
+                } else {
                     $offset = $topArr[2];
                 }
-                if($limit==0){
-                    $max = $offset;$min = 0;
-                }else{
-                    $max = $offset+$limit;$min = $offset;
+                if ($limit == 0) {
+                    $max = $offset;
+                    $min = 0;
+                } else {
+                    $max = $offset + $limit;
+                    $min = $offset;
                 }
-                switch($this->config['dbms']){
+                switch ($this->config['dbms']) {
                     case 'mysql':
                         $sql = str_replace($topArr[0], 'SELECT ', $sql);
                         $sql .= ' LIMIT ' . $topArr[2];
                         break;
                     case 'mssql'://mssql2005及以上版本  //支持top
-                        if($pos!==false){
+                        if ($pos !== false) {
                             $sql = str_replace($topArr[0], 'SELECT ', $sql);
-                            if(preg_match('/(order by .* (asc|desc))/i', $sql, $order)){
+                            if (preg_match('/(order by .* (asc|desc))/i', $sql, $order)) {
                                 $sql = str_replace($order[0], '', $sql);
                                 $sql = 'SELECT T1.* FROM (SELECT myphp.*, ROW_NUMBER() OVER ('.$order[0].') AS ROW_NUMBER FROM ('.$sql.') AS myphp) AS T1 WHERE (T1.ROW_NUMBER BETWEEN '.$min.'+1 AND '.$max.')';
-                            }else{
+                            } else {
                                 $sql = preg_replace('/^SELECT /', 'SELECT TOP '.$max, $sql);
-                                if($min>0)
+                                if ($min > 0) {
                                     $sql = 'SELECT TOP '.$min.' * FROM ('.$sql.') AS T1';
+                                }
                             }
                         }
                         break;
                     case 'oracle': //支持top
-                        if($pos!==false){
+                        if ($pos !== false) {
                             $sql = str_replace($topArr[0], 'SELECT ', $sql);
                             $sql = 'SELECT * FROM ( SELECT "tmp".*, ROWNUM AS "row_num" FROM ('.$sql.') "tmp" WHERE ROWNUM<='.$max.') WHERE "row_num">'.$min;
                         }
@@ -385,17 +420,18 @@ class Db {
                     case 'pgsql':
                     case 'sqlite':
                         $sql = str_replace($topArr[0], 'SELECT ', $sql);
-                        if($min>0)
+                        if ($min > 0) {
                             $sql .= ' LIMIT ' .$max.' OFFSET '.$min;
-                        else
+                        } else {
                             $sql .= ' LIMIT ' .$max;
+                        }
                         break;
                 }
                 unset($topArr);
             }
 
             if (isset($this->options['lock'])) { #&& stripos($sql, 'select')===0
-                switch($this->config['dbms']){
+                switch ($this->config['dbms']) {
                     case 'mssql'://mssql2005及以上版本
                         $lock = $this->options['lock'] == 'FOR UPDATE' ? 'WITH (UPDLOCK, ROWLOCK)' : $this->options['lock'];
                         $sql = preg_replace('/from\s{1,}([\w\.]{1,})/i', 'FROM $1 '.$lock, $sql);
@@ -411,13 +447,13 @@ class Db {
             }
         }
 
-        if (!$isMysql && stripos($sql, 'CONCAT(')!==false) { //连接处理
-            switch($this->config['dbms']){
+        if (!$isMysql && stripos($sql, 'CONCAT(') !== false) { //连接处理
+            switch ($this->config['dbms']) {
                 case 'mssql'://mssql2005及以上版本
                 case 'oracle':
                 case 'pgsql':
                 case 'sqlite':
-                    $sql = preg_replace_callback('/CONCAT(\([^\)]*?\))/i',function($matches){return str_replace(',','+',$matches[1]);},$sql);
+                    $sql = preg_replace_callback('/CONCAT(\([^\)]*?\))/i', function ($matches) {return str_replace(',', '+', $matches[1]);}, $sql);
                     break;
             }
         }
@@ -432,21 +468,22 @@ class Db {
      * @param string $joinWay
      * @return $this
      */
-	public function join($tb, $on, $joinWay='inner'){
+    public function join(string $tb, $on, string $joinWay = 'inner'): Db
+    {
         $where = '';
-        if(is_array($on)){
-            foreach($on as $k=>$v){
+        if (is_array($on)) {
+            foreach ($on as $k => $v) {
                 $field = is_int($k) ? $v : ($k . '=' . $this->parseValue($v));
-                $where .= $where==''?$field:' and '.$field;
+                $where .= $where == '' ? $field : ' and '.$field;
             }
-        }elseif(is_string($on)){
+        } elseif (is_string($on)) {
             $where = $on;
         }
         $this->_table($tb);
-        if(!isset($this->options['fields'])){
+        if (!isset($this->options['fields'])) {
             $this->options['fields'] = '*'; //联合查询 直接使用星号显示所有字段
         }
-	    $join = $joinWay.' join '.$tb.' on '.$where;
+        $join = $joinWay.' join '.$tb.' on '.$where;
         $this->options['join'] = isset($this->options['join']) ? $this->options['join'] . ' ' . $join : ' ' . $join;
         return $this;
     }
@@ -455,7 +492,7 @@ class Db {
      * @param string|array $on
      * @return $this
      */
-    public function leftJoin($tb, $on)
+    public function leftJoin(string $tb, $on): Db
     {
         return $this->join($tb, $on, 'left');
     }
@@ -464,7 +501,7 @@ class Db {
      * @param string|array $on
      * @return $this
      */
-    public function rightJoin($tb, $on)
+    public function rightJoin(string $tb, $on): Db
     {
         return $this->join($tb, $on, 'right');
     }
@@ -473,28 +510,34 @@ class Db {
      * @param $val
      * @return $this
      */
-	public function fields($val){
-        $this->options['fields'] = is_array($val) ? implode(',',$val) : $val;
+    public function fields($val): Db
+    {
+        $this->options['fields'] = is_array($val) ? implode(',', $val) : $val;
         return $this;
     }
     /**
      * where处理
      * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
-     * @param array $bind 要解析的参数
+     * @param array|string $bind 要解析的参数
      * @return $this
     */
-	public function where($case, $bind=null){ //and
+    public function where($case, $bind = null): Db //and
+    {
         $this->_where($case, $bind, $bind === 'or' && is_array($case) ? false : true);
         return $this;
-	}
-	public function whereOr($case, $bind=null){ //or
-		$this->_where($case, $bind, false);
-		return $this;
-	}
-    private function _where($case, $bind=null, $and=true){
-        if (is_array($case)) $bind = $and ? 'and' : 'or';
-	    $where = $this->makeWhere($case, $bind);
-        if($where!==''){
+    }
+    public function whereOr($case, $bind = null): Db //or
+    {
+        $this->_where($case, $bind, false);
+        return $this;
+    }
+    private function _where($case, $bind = null, $and = true): void
+    {
+        if (is_array($case)) {
+            $bind = $and ? 'and' : 'or';
+        }
+        $where = $this->makeWhere($case, $bind);
+        if ($where !== '') {
             if (isset($this->options['where'])) {
                 $where = '(' . $where . ')';
                 $_where = '(' . $this->options['where'] . ')';
@@ -515,28 +558,29 @@ class Db {
      * @param null|array|string $args  array参数绑定|'and|or'条件组合
      * @return string|string[]
      */
-    public function makeWhere($case, $args=null){
-		$where = '';
-		if(is_array($case)){ //数组组合条件
+    public function makeWhere($case, $args = null)
+    {
+        $where = '';
+        if (is_array($case)) { //数组组合条件
             $and = $args === 'or' ? 'or' : 'and';
             if (isset($case[0]) && ($case[0] === 'and' || $case[0] === 'or')) {
                 $and = $case[0];
                 unset($case[0]);
             }
-			foreach($case as $k=>$v){
+            foreach ($case as $k => $v) {
                 if (is_int($k)) { // '1=1'
                     $field = $v;
                 } else {  // ['a'=>1] || ['a::like'=>'%s%']
                     $operator = '=';
                     $pos = strpos($k, '::');
-                    if ($pos!==false) {
+                    if ($pos !== false) {
                         $operator = trim(substr($k, $pos + 2));
                         $operator = $operator == '' ? '=' : ' ' . $operator . ' ';
                         $k = substr($k, 0, $pos);
                     } elseif (is_array($v) || $v instanceof Model) {
                         $operator = ' in ';
                     }
-                    switch ($operator){
+                    switch ($operator) {
                         case ' between ':
                         case ' not between ':
                             $v = is_array($v) ? $v : explode(',', $v);
@@ -547,7 +591,7 @@ class Db {
                         case ' not in ':
                             if (is_array($v)) {
                                 $field = empty($v) ? '1=0' : $k . $operator . '(' . implode(',', $this->parseValue($v)) . ')';
-                            } elseif($v instanceof Model) {
+                            } elseif ($v instanceof Model) {
                                 $field = $k . $operator . '(' . $v->select_sql() . ')';
                             } else {
                                 $field = $v === '' ? '1=0' : $k . $operator . '(' . $v . ')';
@@ -555,7 +599,7 @@ class Db {
                             break;
                         case ' exists ':
                         case ' not exists ':
-                            if($v instanceof Model) {
+                            if ($v instanceof Model) {
                                 $field = $k . $operator . '(' . $v->select_sql() . ')';
                             } else {
                                 $field = $k . $operator . '(' . $v . ')';
@@ -567,21 +611,28 @@ class Db {
                     }
                 }
                 $where .= ($where === '' ? $field : ' ' . $and . ' ' . $field);
-			}
-            if ($and === 'or') $where = '(' . $where . ')';
+            }
+            if ($and === 'or') {
+                $where = '(' . $where . ')';
+            }
         } elseif (is_string($case)) { //参数绑定方式条件
-            $where = $args!==null ? $this->get_real_sql($case, (array)$args) : $case;
+            $where = $args !== null ? $this->get_real_sql($case, (array)$args) : $case;
         }
         return $where;
-	}
-	//sql处理 记数
-	private function _run_init(&$sql, $bind=null, $curd=false){
+    }
+    //sql处理 记数
+    private function _run_init(string &$sql, array $bind = null, bool $curd = false): void
+    {
         $this->chkSql($sql, $curd);
         self::$sql = $this->_sql = $sql = $this->get_real_sql($sql, $bind); //解析绑定参数
-		if($this->resetOption) $this->options = null; //重置
-		if(self::$log_type==2 || (self::$log_type==1 && $curd)) Log::write($sql,'SQL'. ($this->_slaveLog ? '.SLAVE.'.$this->_slaveIdx : ''));
-		self::$times++;
-	}
+        if ($this->resetOption) { //重置
+            $this->options = null;
+        }
+        if (self::$log_type == 2 || (self::$log_type == 1 && $curd)) {
+            Log::write($sql, 'SQL'. ($this->_slaveLog ? '.SLAVE.'.$this->_slaveIdx : ''));
+        }
+        self::$times++;
+    }
 
     /**
      * todo:有主从时 默认都走主库
@@ -590,7 +641,7 @@ class Db {
      * @param array $options
      * @return false|\mysqli_stmt|\PDOStatement
      */
-    public function prepare($sql, $options = [])
+    public function prepare($sql, array $options = [])
     {
         //$this->specTransfer($sql);
         $this->_run_init($sql, null, true);
@@ -604,33 +655,37 @@ class Db {
 
     /**
      * 执行sql  todo:有主从时 默认都走主库
-     * @param $sql
-     * @param null $bind
+     * @param string $sql
+     * @param array|null $bind
      * @return bool|int
-     * @throws Exception
      */
-	public function execute($sql, $bind=null) {
-		$this->_run_init($sql, $bind, true);
-		if(self::$execCustom instanceof Closure) { //自定义exec处理
+    public function execute(string $sql, array $bind = null)
+    {
+        $this->_run_init($sql, $bind, true);
+        if (self::$execCustom instanceof Closure) { //自定义exec处理
             return call_user_func(self::$execCustom, $this->db, $sql);
-        }else{
+        } else {
             return $this->db->exec($sql);
         }
-	}
+    }
 
     /**
      * 执行查询 返回数据 $bind[array:绑定数据, true:直接返回查询数据],$isArr $bind为array时才有效
-     * @param $sql
-     * @param null $bind
+     * @param string $sql
+     * @param null|bool|array $bind
      * @param bool $isArr
      * @param string $type
      * @return array|false|\PDOStatement
+     * @throws Exception
      */
-	public function query($sql, $bind=null, $isArr=false, $type='assoc') {
-        if(is_bool($bind)) $isArr = $bind;
-        $idx = isset($this->options['idx']) ? $this->options['idx'] : null; //指定键名
+    public function query(string $sql, $bind = null, bool $isArr = false, string $type = 'assoc')
+    {
+        if (is_bool($bind)) {
+            $isArr = $bind;
+        }
+        $idx = $this->options['idx'] ?? null; //指定键名
         // 替换前缀
-        if(!isset($this->options['table']) && strpos($sql, '{prefix}')){
+        if (!isset($this->options['table']) && strpos($sql, '{prefix}')) {
             $sql = str_replace('{prefix}', $this->config['prefix'], $sql);
         }
 
@@ -642,31 +697,35 @@ class Db {
 
         $this->_run_init($sql, $bind === null || is_bool($bind) ? null : (array)$bind);
         $this->_slaveLog = false;
-        if(!$isArr) return $db->query($sql);
+        if (!$isArr) {
+            return $db->query($sql);
+        }
 
         $data = [];
         if ($idx) {
             $rs = $db->query($sql);
             $isColumn = $type == 'column';
-            while($row = $db->fetch($rs)) {
+            while ($row = $db->fetch($rs)) {
                 $data[$row[$idx]] = $isColumn ? reset($row) : $row;
             }
         } else {
             $data = $db->queryAll($sql, $type);
         }
         return $data;
-	}
+    }
 
     /**
      * @param int $num
      * @return \Generator|\SplFixedArray[][]|array[][]
+     * @throws Exception
      */
-	public function batch($num){
+    public function batch(int $num)
+    {
         //任何包含 yield 的函数都是一个生成器函数。
-        $idx = isset($this->options['idx']) ? $this->options['idx'] : null; //指定键名
+        $idx = $this->options['idx'] ?? null; //指定键名
         $n = 0;
         $data = $idx ? [] : new \SplFixedArray($num);
-        $rs = $this->query($this->select_sql(),false);
+        $rs = $this->query($this->select_sql(), false);
         while ($row = $this->db->fetch($rs)) {
             if ($idx) {
                 $data[$row[$idx]] = $row;
@@ -686,63 +745,113 @@ class Db {
             yield $data;
         }
     }
-	//获取记录 简单单表查询
-    public function select_sql($table='', $where = '', $order='', $fields = '*', $limit=''){
-        if($where) $this->_where($where);
-        if(isset($this->options['table'])) $table=$this->options['table'];
-        if(isset($this->options['fields'])) $fields=$this->options['fields'];
-        if(isset($this->options['limit'])) $limit=$this->options['limit'];
-        if(isset($this->options['order'])) $order=$this->options['order'];
-        if(isset($this->options['where'])) $where=$this->options['where'];
-        if($limit!='') $limit = 'TOP '.$limit.' ';
+    //获取记录 简单单表查询
+    public function select_sql(string $table = '', string $where = '', string $order = '', string $fields = '*', string $limit = ''): string
+    {
+        if ($where) {
+            $this->_where($where);
+        }
+        if (isset($this->options['table'])) {
+            $table = $this->options['table'];
+        }
+        if (isset($this->options['fields'])) {
+            $fields = $this->options['fields'];
+        }
+        if (isset($this->options['limit'])) {
+            $limit = $this->options['limit'];
+        }
+        if (isset($this->options['order'])) {
+            $order = $this->options['order'];
+        }
+        if (isset($this->options['where'])) {
+            $where = $this->options['where'];
+        }
+        if ($limit != '') {
+            $limit = 'TOP '.$limit.' ';
+        }
         $this->_table($table);
-        $sql = 'SELECT '.$limit.$fields.' FROM '.$table.(isset($this->options['join'])?$this->options['join']:'');
+        $sql = 'SELECT '.$limit.$fields.' FROM '.$table.($this->options['join'] ?? '');
 
-        if($where!='') $sql .= ' WHERE '.$where;
-        if(isset($this->options['group'])) $sql .= ' GROUP BY '.$this->options['group'];
-        if(isset($this->options['having'])) $sql .= ' HAVING '.$this->options['having'];
-        if($order!= '') $sql .= ' ORDER BY '.$order;
+        if ($where != '') {
+            $sql .= ' WHERE '.$where;
+        }
+        if (isset($this->options['group'])) {
+            $sql .= ' GROUP BY '.$this->options['group'];
+        }
+        if (isset($this->options['having'])) {
+            $sql .= ' HAVING '.$this->options['having'];
+        }
+        if ($order != '') {
+            $sql .= ' ORDER BY '.$order;
+        }
 
         return $sql;
     }
-    public function select($table='', $where = '', $order='', $fields = '*', $limit=''){
-		return $this->query($this->select_sql($table, $where, $order, $fields, $limit),$table===false?false:true);
-	}
-    public function all($table='', $where = '', $order='', $fields = '*', $limit=''){
-        return $this->query($this->select_sql($table, $where, $order, $fields, $limit),$table===false?false:true);
+    public function select($table = '', string $where = '', string $order = '', string $fields = '*', string $limit = '')
+    {
+        return $this->query($this->select_sql($table, $where, $order, $fields, $limit), $table === false ? false : true);
     }
+    public function all($table = '', string $where = '', string $order = '', string $fields = '*', string $limit = '')
+    {
+        return $this->query($this->select_sql($table, $where, $order, $fields, $limit), $table === false ? false : true);
+    }
+
     /**
      * 获取第一列数据
      * @return array
+     * @throws Exception
      */
-    public function column(){
-        return $this->query($this->select_sql(),true, true, 'column');
+    public function column()
+    {
+        return $this->query($this->select_sql(), true, true, 'column');
     }
-	public function find_sql($table='', $where='', $order='', $fields = '*'){
-        if($where!='') $this->_where($where);
-        if(isset($this->options['table'])) $table=$this->options['table'];
-        if(isset($this->options['fields'])) $fields=$this->options['fields'];
-        if(isset($this->options['order'])) $order=$this->options['order'];
-        if(isset($this->options['where'])) $where=$this->options['where'];
+    public function find_sql($table = '', $where = '', $order = '', $fields = '*'): string
+    {
+        if ($where != '') {
+            $this->_where($where);
+        }
+        if (isset($this->options['table'])) {
+            $table = $this->options['table'];
+        }
+        if (isset($this->options['fields'])) {
+            $fields = $this->options['fields'];
+        }
+        if (isset($this->options['order'])) {
+            $order = $this->options['order'];
+        }
+        if (isset($this->options['where'])) {
+            $where = $this->options['where'];
+        }
 
         $this->_table($table);
         $this->options['limit'] = 1;
-        $sql = 'SELECT TOP 1 '.$fields.' FROM '.$table.(isset($this->options['join'])?$this->options['join']:'');
+        $sql = 'SELECT TOP 1 '.$fields.' FROM '.$table.($this->options['join'] ?? '');
         //$sql = 'SELECT '.$fields.' FROM '.$table.(isset($this->options['join'])?$this->options['join']:'');
 
-        if($where!='') $sql .= ' WHERE '.$where;
-        if(isset($this->options['group'])) $sql .= ' GROUP BY '.$this->options['group'];
-        if(isset($this->options['having'])) $sql .= ' HAVING '.$this->options['having'];
-        if($order!= '') $sql .= ' ORDER BY '.$order;
+        if ($where != '') {
+            $sql .= ' WHERE '.$where;
+        }
+        if (isset($this->options['group'])) {
+            $sql .= ' GROUP BY '.$this->options['group'];
+        }
+        if (isset($this->options['having'])) {
+            $sql .= ' HAVING '.$this->options['having'];
+        }
+        if ($order != '') {
+            $sql .= ' ORDER BY '.$order;
+        }
         return $sql;
     }
-    public function find($table='', $where='', $order='', $fields = '*'){
-		return $this->getOne($this->find_sql($table, $where, $order, $fields));
-	}
-    public function one($table='', $where='', $order='', $fields = '*'){
+    public function find($table = '', $where = '', $order = '', $fields = '*')
+    {
         return $this->getOne($this->find_sql($table, $where, $order, $fields));
     }
-	public function lock($mode = 'FOR UPDATE'){
+    public function one($table = '', $where = '', $order = '', $fields = '*')
+    {
+        return $this->getOne($this->find_sql($table, $where, $order, $fields));
+    }
+    public function lock($mode = 'FOR UPDATE')
+    {
         $this->options['lock'] = $mode;
         return $this;
     }
@@ -752,38 +861,48 @@ class Db {
      * @param $name
      * @return mixed|null
      */
-    public function val($name){
+    public function val($name)
+    {
         $row = $this->find('', '', '', $name);
-        return isset($row[$name]) ? $row[$name] : null;
+        return $row[$name] ?? null;
     }
-	//[批量]添加记录
-    public function add_sql($post, $table='') {
-		$field=''; $value=''; $values = '';
-		if(isset($post[0])){ //批量
-            foreach ($post as $n=>$data){
-                $value='';
-                foreach ($data as $k=>$v) {
-                    if ($n == 0) $field .= ',' . $this->startSpec . $k . $this->endSpec;
+    //[批量]添加记录
+    public function add_sql($post, $table = '')
+    {
+        $field = '';
+        $value = '';
+        $values = '';
+        if (isset($post[0])) { //批量
+            foreach ($post as $n => $data) {
+                $value = '';
+                foreach ($data as $k => $v) {
+                    if ($n == 0) {
+                        $field .= ',' . $this->startSpec . $k . $this->endSpec;
+                    }
                     //val值得预先过滤处理
                     $value .= ','. $this->parseValue($v);
                 }
-                $value=substr($value, 1);
+                $value = substr($value, 1);
                 $values .= ',('.$value.')';
             }
-            $field=substr($field, 1); $values = substr($values, 1);
-        }else{
-            foreach ($post as $k=>$v) {
+            $field = substr($field, 1);
+            $values = substr($values, 1);
+        } else {
+            foreach ($post as $k => $v) {
                 $field .= ',' . $this->startSpec . $k . $this->endSpec;
                 //val值得预先过滤处理
                 $value .= ','. $this->parseValue($v);
             }
-            $field=substr($field, 1); $values='('.substr($value, 1).')';
+            $field = substr($field, 1);
+            $values = '('.substr($value, 1).')';
         }
-        if($table=='' && isset($this->options['table'])) $table=$this->options['table'];
+        if ($table == '' && isset($this->options['table'])) {
+            $table = $this->options['table'];
+        }
         $this->_table($table, false);
         $sql = 'INSERT INTO '.$table.'('.$field.') VALUES '.$values;
-		return $sql;//返回执行sql
-	}
+        return $sql;//返回执行sql
+    }
 
     /**
      * @param array|array[] $post 可批量
@@ -791,12 +910,14 @@ class Db {
      * @return mixed|string 自动自增获取最后插入记录的id
      * @throws Exception
      */
-    public function add($post, $table='') {
-		$this->execute($this->add_sql($post, $table));
-		return $this->db->insert_id();
+    public function add($post, $table = '')
+    {
+        $this->execute($this->add_sql($post, $table));
+        return $this->db->insert_id();
     }
-	//更新记录 $where[str|arr]
-    public function update_sql($post, $table='', $where = '') {
+    //更新记录 $where[str|arr]
+    public function update_sql($post, $table = '', $where = '')
+    {
         $value = '';
         if (is_array($post)) {
             foreach ($post as $k => $v) {
@@ -807,15 +928,21 @@ class Db {
         } else {
             $value = $post;
         }
-		
-		if($table=='' && isset($this->options['table'])) $table=$this->options['table'];
-		$this->_table($table, false);
-		$sql = 'UPDATE '.$table.' SET '.$value;
-		
-		if($where!='') $this->_where($where);
-		if(isset($this->options['where'])) $sql .= ' WHERE '.$this->options['where'];
-		return $sql;
-	}
+
+        if ($table == '' && isset($this->options['table'])) {
+            $table = $this->options['table'];
+        }
+        $this->_table($table, false);
+        $sql = 'UPDATE '.$table.' SET '.$value;
+
+        if ($where != '') {
+            $this->_where($where);
+        }
+        if (isset($this->options['where'])) {
+            $sql .= ' WHERE '.$this->options['where'];
+        }
+        return $sql;
+    }
 
     /**
      * 返回更新成功修改记录的行数
@@ -825,16 +952,24 @@ class Db {
      * @return bool|int|mixed
      * @throws Exception
      */
-    public function update($post, $table='', $where = '') {
-		return $this->execute($this->update_sql($post, $table, $where));
-	}
-    public function del_sql($table='', $where = ''){
-        if($table=='' && isset($this->options['table'])) $table=$this->options['table'];
+    public function update($post, $table = '', $where = '')
+    {
+        return $this->execute($this->update_sql($post, $table, $where));
+    }
+    public function del_sql($table = '', $where = '')
+    {
+        if ($table == '' && isset($this->options['table'])) {
+            $table = $this->options['table'];
+        }
         $this->_table($table, false);
         $sql = 'DELETE FROM '.$table;
 
-        if($where!='') $this->_where($where);
-        if(isset($this->options['where'])) $sql .= ' WHERE '.$this->options['where'];
+        if ($where != '') {
+            $this->_where($where);
+        }
+        if (isset($this->options['where'])) {
+            $sql .= ' WHERE '.$this->options['where'];
+        }
 
         return $sql;
     }
@@ -844,10 +979,12 @@ class Db {
      * @return int|false
      * @throws Exception
      */
-    public function del($table='', $where = '') {
-		return $this->execute($this->del_sql($table, $where)); //返回删除记录数
-	}
-	public function count($table='', $where = '', $field='*'){
+    public function del($table = '', $where = '')
+    {
+        return $this->execute($this->del_sql($table, $where)); //返回删除记录数
+    }
+    public function count($table = '', $where = '', $field = '*')
+    {
         return $this->getCount($table, $where, $field);
     }
 
@@ -859,36 +996,50 @@ class Db {
      * @return int
      * @throws Exception
      */
-	public function getCount($table='', $where = '', $field='*') {
+    public function getCount($table = '', $where = '', $field = '*')
+    {
         $join = '';
         if (isset($this->options['join'])) { //联合统计时处理
             $field = '*'; //strpos($field, '.') ? $field :
             $join = $this->options['join'];
-        }elseif ($field != '*') { //非联合统计
+        } elseif ($field != '*') { //非联合统计
             if (strpos($field, '.')) {
                 $field = $this->startSpec . str_replace('.', $this->endSpec.'.'.$this->startSpec, $field) . $this->endSpec;
             } elseif (!strpos($field, ' ')) {
                 $field = $this->startSpec . $field . $this->endSpec;
             }
         }
-        if ($table=='' && isset($this->options['table'])) $table = $this->options['table'];
+        if ($table == '' && isset($this->options['table'])) {
+            $table = $this->options['table'];
+        }
         $this->_table($table);
         $sql = 'SELECT COUNT(' . $field . ') FROM ' . $table . $join;
 
-        if ($where != '') $this->_where($where);
-        if (isset($this->options['where'])) $sql .= ' WHERE ' . $this->options['where'];
-        if (isset($this->options['group'])) $sql .= ' GROUP BY ' . $this->options['group'];
-        if (isset($this->options['having'])) $sql .= ' HAVING ' . $this->options['having'];
+        if ($where != '') {
+            $this->_where($where);
+        }
+        if (isset($this->options['where'])) {
+            $sql .= ' WHERE ' . $this->options['where'];
+        }
+        if (isset($this->options['group'])) {
+            $sql .= ' GROUP BY ' . $this->options['group'];
+        }
+        if (isset($this->options['having'])) {
+            $sql .= ' HAVING ' . $this->options['having'];
+        }
 
         $row = $this->getOne($sql, null, 'num');
         return $row ? (int)$row[0] : 0;
-	}
-	//获取指定字段最新值
-	public function getLastId($table, $idName, $where = '', $orderByName = ''){
-		if ($orderByName == '') $orderByName = $idName;
+    }
+    //获取指定字段最新值
+    public function getLastId($table, $idName, $where = '', $orderByName = '')
+    {
+        if ($orderByName == '') {
+            $orderByName = $idName;
+        }
 
-		return $this->getCustomId($table, $idName, $where, $orderByName.' DESC');
-	}
+        return $this->getCustomId($table, $idName, $where, $orderByName.' DESC');
+    }
 
     /**
      * 获取自定字段值
@@ -899,31 +1050,39 @@ class Db {
      * @return bool|mixed
      * @throws Exception
      */
-	public function getCustomId($table, $idName, $where = '', $orderBy = ''){
-		$this->_table($table);
+    public function getCustomId($table, $idName, $where = '', $orderBy = '')
+    {
+        $this->_table($table);
         $sql = 'SELECT TOP 1 ' . $this->startSpec . $idName . $this->endSpec . ' FROM ' . $table;
-		
-		if($where!='') $this->_where($where);
-		if(isset($this->options['where'])) $sql .= ' WHERE '.$this->options['where'];
-		
-		if ($orderBy != '') $sql .= ' ORDER BY '. $orderBy;
-		
-		$row = $this->getOne($sql, null, 'num');
+
+        if ($where != '') {
+            $this->_where($where);
+        }
+        if (isset($this->options['where'])) {
+            $sql .= ' WHERE '.$this->options['where'];
+        }
+
+        if ($orderBy != '') {
+            $sql .= ' ORDER BY '. $orderBy;
+        }
+
+        $row = $this->getOne($sql, null, 'num');
         return $row ? $row[0] : false;
-	}
+    }
 
     /**
      * 执行一个SQL语句,仅返回一条记录 $bind[array:绑定数据],$type $bind为array时才有效
-     * @param $sql
-     * @param null $bind
+     * @param string $sql
+     * @param null|array $bind
      * @param string $type
      * @return array|false
      * @throws Exception
      */
-	public function getOne($sql, $bind=null, $type = 'assoc') {
+    public function getOne(string $sql, $bind = null, string $type = 'assoc')
+    {
         $rs = $this->query($sql, $bind === null || is_bool($bind) ? null : (array)$bind);
         return $this->db->fetch($rs, $type);//无记录返回false
-	}
+    }
 
     /**
      * 返回当前的一条记录并把游标移向下一记录
@@ -931,8 +1090,11 @@ class Db {
      * @param string $type
      * @return mixed
      */
-    public function fetch($rs=null, $type = 'assoc') {
-        if($rs===null) $rs=$this->db->rs;
+    public function fetch($rs = null, string $type = 'assoc')
+    {
+        if ($rs === null) {
+            $rs = $this->db->rs;
+        }
         return $this->db->fetch($rs, $type);
     }
 
@@ -941,10 +1103,12 @@ class Db {
      * @param string $type
      * @return mixed
      */
-	public function fetch_array($rs=null, $type = 'assoc') {
+    public function fetch_array($rs = null, string $type = 'assoc')
+    {
         return $this->fetch($rs, $type);
-	}
-	public function isTrans(){
+    }
+    public function isTrans(): bool
+    {
         return $this->db->inTrans();
     }
 
@@ -954,39 +1118,49 @@ class Db {
      * @return $this
      * @throws Exception
      */
-    public function setTransactionLevel($level){
+    public function setTransactionLevel($level): Db
+    {
         $sql = 'transaction isolationLevel '.$level;
         $this->_run_init($sql, null, true);
         $this->db->setTransactionLevel($level);
         return $this;
     }
-	//开始一个事务，关闭自动提交 todo:有主从时 默认都走主库
-	public function beginTrans(){
-		$sql = 'beginTrans';
-		$this->_run_init($sql, null, true);
+    //开始一个事务，关闭自动提交 todo:有主从时 默认都走主库
+    public function beginTrans(): Db
+    {
+        $sql = 'beginTrans';
+        $this->_run_init($sql, null, true);
         $this->db->beginTrans();
         return $this;
-	}
-	//提交事务 返回到自动提交模式
-	public function commit($force=false){
-		$sql = 'commit';
-		if($force) $sql .= ' force';
-		$this->_run_init($sql, null, true);
-		$this->db->commit($force);
-	}
-	//回滚当前事务
-	public function rollBack($force=false){
-		$sql = 'rollback';
-        if($force) $sql .= ' force';
-		$this->_run_init($sql, null, true);
-		$this->db->rollback($force);
-	}
-	//获取影响行数
-	public function getRows() {
-		return $this->db->num_rows();
-	}
-	//初始化缓存类，如果开启缓存，则加载缓存类并实例化
-	public function initCache() {
+    }
+    //提交事务 返回到自动提交模式
+    public function commit($force = false): void
+    {
+        $sql = 'commit';
+        if ($force) {
+            $sql .= ' force';
+        }
+        $this->_run_init($sql, null, true);
+        $this->db->commit($force);
+    }
+    //回滚当前事务
+    public function rollBack($force = false): void
+    {
+        $sql = 'rollback';
+        if ($force) {
+            $sql .= ' force';
+        }
+        $this->_run_init($sql, null, true);
+        $this->db->rollback($force);
+    }
+    //获取影响行数
+    public function getRows(): int
+    {
+        return $this->db->num_rows();
+    }
+    //初始化缓存类，如果开启缓存，则加载缓存类并实例化
+    public function initCache()
+    {
         if (!$this->cache) {
             $this->cache = Cache::getInstance();
             $this->cache->setCacheDir(RUNTIME . DS . $this->config['dbms']);
@@ -994,91 +1168,97 @@ class Db {
             $this->cache->suffix = '.bin';
         }
         return $this->cache;
-	}
-	//格式名称-关键字冲突处理
-	public function formatName($val){
+    }
+    //格式名称-关键字冲突处理
+    public function formatName(string $val): string
+    {
         $val = trim(str_replace('`', '', $val));
-        if(strpos($val,'.')){
-            $val = str_replace('.',$this->endSpec.'.'.$this->startSpec, $val);
+        if (strpos($val, '.')) {
+            $val = str_replace('.', $this->endSpec.'.'.$this->startSpec, $val);
         }
-        if(strpos($val,',')) {
-            $val = str_replace(',',$this->endSpec.','.$this->startSpec, $val);
+        if (strpos($val, ',')) {
+            $val = str_replace(',', $this->endSpec.','.$this->startSpec, $val);
         }
-        if(strpos($val,' ')){ //有别名
-            $val = str_replace(' ',$this->endSpec.' '.$this->startSpec, $val);
+        if (strpos($val, ' ')) { //有别名
+            $val = str_replace(' ', $this->endSpec.' '.$this->startSpec, $val);
         }
         return $this->startSpec . $val . $this->endSpec;
     }
 
-	//是否给表名增加关键字冲突处理符号
-	private function _table(&$tb, $more=true){
+    //是否给表名增加关键字冲突处理符号
+    private function _table(&$tb, bool $more = true)
+    {
         if ($tb instanceof Expr) { //表达式
             return $tb;
         }
 
-        if(strpos($tb,'{prefix}')!==false){ //表名前缀处理
+        if (strpos($tb, '{prefix}') !== false) { //表名前缀处理
             $tb = str_replace('{prefix}', $this->config['prefix'], $tb);
         }
 
-        if($more){
+        if ($more) {
             $tb = trim($tb);
-            if ($tb[0]=='(' || strpos($tb, '.') || strpos($tb, ',')) return $tb; //子查询|联合查询[.,]
+            if ($tb[0] == '(' || strpos($tb, '.') || strpos($tb, ',')) { //子查询|联合查询[.,]
+                return $tb;
+            }
             if ($pos = strpos($tb, ' ')) { //有别名
-                if(strpos($tb, ' ', $pos+1)){ //多个空格 可能非别名
+                if (strpos($tb, ' ', $pos + 1)) { //多个空格 可能非别名
                     return $tb;
                 }
                 $tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, $tb); //, str_replace('`', '', $tb)
             }
-        }elseif (strpos($tb, '.')) { //指定库名
+        } elseif (strpos($tb, '.')) { //指定库名
             $tb = str_replace('.', $this->endSpec . '.' . $this->startSpec, $tb);
         }
 
         $tb = $this->startSpec . $tb . $this->endSpec;
         return $tb;
-	}
+    }
 }
 //数据库表
-abstract class TbBase{
+abstract class TbBase
+{
     //字段类型对应规则
-    protected $fieldType = array(
-        'tinyint'=>'%d{-128,127}',
-        'untinyint'=>'%d{0,255}',
-        'smallint'=>'%d{-32768,32767}',
-        'unsmallint'=>'%d{0,65535}',
-        'mediumint'=>'%d{-8388608,8388607}',
-        'unmediumint'=>'%d{0,16777215}',
-        'int'=>'%d{-2147483648,2147483647}',
-        'unint'=>'%d{0,4294967295}',
-        'bigint'=>'%d{-9233372036854775808,9223372036854775807}',
-        'unbigint'=>'%d{0,18446744073709551615}',
-        'float'=>'%f',
-        'unfloat'=>'%f{0,}',
-        'double'=>'%f',
-        'undouble'=>'%f{0,}',
-        'decimal'=>'%f',
-        'undecimal'=>'%f{0,}',
-        'date'=>'%ymd',
-        'time'=>'%his',
-        'datetime'=>'%date',
-        'timestamp'=>'%date',
-        'char'=>'%s{}', //通过字段设置获取长度
-        'varchar'=>'%s{}', //通过字段设置获取长度
-        'tinyblob'=>'%s{255}',
-        'tinytext'=>'%s{255}',
-        'blob'=>'%s{65535}',
-        'text'=>'%s{65535}',
-        'mediumblob'=>'%s', //{16777215}
-        'mediumtext'=>'%s',
-        'longblob'=>'%s', //{4294967295}
-        'longtext'=>'%s',
-        'json'=>'%json',
-        'bit'=>'%b'
-    );
+    protected $fieldType = [
+        'tinyint' => '%d{-128,127}',
+        'untinyint' => '%d{0,255}',
+        'smallint' => '%d{-32768,32767}',
+        'unsmallint' => '%d{0,65535}',
+        'mediumint' => '%d{-8388608,8388607}',
+        'unmediumint' => '%d{0,16777215}',
+        'int' => '%d{-2147483648,2147483647}',
+        'unint' => '%d{0,4294967295}',
+        'bigint' => '%d{-9233372036854775808,9223372036854775807}',
+        'unbigint' => '%d{0,18446744073709551615}',
+        'float' => '%f',
+        'unfloat' => '%f{0,}',
+        'double' => '%f',
+        'undouble' => '%f{0,}',
+        'decimal' => '%f',
+        'undecimal' => '%f{0,}',
+        'date' => '%ymd',
+        'time' => '%his',
+        'datetime' => '%date',
+        'timestamp' => '%date',
+        'char' => '%s{}', //通过字段设置获取长度
+        'varchar' => '%s{}', //通过字段设置获取长度
+        'tinyblob' => '%s{255}',
+        'tinytext' => '%s{255}',
+        'blob' => '%s{65535}',
+        'text' => '%s{65535}',
+        'mediumblob' => '%s', //{16777215}
+        'mediumtext' => '%s',
+        'longblob' => '%s', //{4294967295}
+        'longtext' => '%s',
+        'json' => '%json',
+        'bit' => '%b'
+    ];
 
-    protected function toType($type){
-        if(strpos($type,'int')){
+    protected function toType(string $type): string
+    {
+        if (strpos($type, 'int')) {
             $unsigned = strpos($type, 'un') === 0;
-            switch ($type){
+            switch ($type) {
                 case 'int':
                 case 'unint':
                     return PHP_INT_SIZE === 4 && $unsigned ? 'string' : 'int';
@@ -1089,7 +1269,7 @@ abstract class TbBase{
             }
             return 'int';
         }
-        switch ($type){
+        switch ($type) {
             case 'real':
             case 'float':
             case 'double':
@@ -1107,103 +1287,115 @@ abstract class TbBase{
      * @param string $vType 返回给php的类型
      * @return mixed
      */
-    abstract public function fieldToRule($type, &$vType);
+    abstract public function fieldToRule(string $type, string &$vType);
 
     /**
      * 取得数据表的字段信息
-     * @param \myphp\db\db_pdo $db
+     * @param db_pdo $db
      * @param string $tableName
      * @return mixed array('fields'=>string,'prikey'=>string,'rule'=>array)
      */
-    abstract public function getFields($db, $tableName);
+    abstract public function getFields($db, string $tableName): array;
     //取得数据库的表信息
-    abstract public function getTables($db, $dbName);
+    abstract public function getTables($db, string $dbName): array;
 }
 
 /**
  * Class DbBase
  * @property \PDO $conn
  */
-abstract class DbBase{
+abstract class DbBase
+{
     //隔离级别
-    const READ_UNCOMMITTED = 'READ UNCOMMITTED'; //读未提交：脏读、不可重复读、幻读
-    const READ_COMMITTED = 'READ COMMITTED'; //读已提交：不可重复读、幻读 如:mssql oracle
-    const REPEATABLE_READ = 'REPEATABLE READ'; //可重复读：幻读 如:mysql
-    const SERIALIZABLE = 'SERIALIZABLE'; //串行化
+    public const READ_UNCOMMITTED = 'READ UNCOMMITTED'; //读未提交：脏读、不可重复读、幻读
+    public const READ_COMMITTED = 'READ COMMITTED'; //读已提交：不可重复读、幻读 如:mssql oracle
+    public const REPEATABLE_READ = 'REPEATABLE READ'; //可重复读：幻读 如:mysql
+    public const SERIALIZABLE = 'SERIALIZABLE'; //串行化
 
-	public $conn; //连接实例
-	public $rs; //数据集
+    public $conn; //连接实例
+    public $rs; //数据集
     public $config;
     public $transCounter = 0;
-	
-	public function __construct($config) {
+
+    public function __construct(array $config)
+    {
         $this->config = $config;
         $this->connect();
-	}
-	//释放结果集
-	public function free() {
-		$this->rs = null;
-	}
-	//是否在事务内
-	public function inTrans(){
-        if($this->config['type']=='pdo'){
+    }
+    //释放结果集
+    public function free(): void
+    {
+        $this->rs = null;
+    }
+    //是否在事务内
+    public function inTrans(): bool
+    {
+        if ($this->config['type'] == 'pdo') {
             return $this->conn->inTransaction();
-        }else{
+        } else {
             return $this->transCounter > 0;
         }
     }
-	//开始一个事务，关闭自动提交
-	public function beginTrans(){
-		if (!$this->transCounter++) {
-            if($this->config['type']=='pdo'){
+    //开始一个事务，关闭自动提交
+    public function beginTrans(): void
+    {
+        if (!$this->transCounter++) {
+            if ($this->config['type'] == 'pdo') {
                 $this->conn->beginTransaction();
-            }else{
+            } else {
                 $this->exec('START TRANSACTION');
             }
             return;
         }
-        if($this->config['dbms']=='mssql'){
+        if ($this->config['dbms'] == 'mssql') {
             $this->exec('SAVE TRANSACTION trans'.$this->transCounter);
-        }else{
+        } else {
             $this->exec('SAVEPOINT trans'.$this->transCounter);
         }
-	}
+    }
     //回滚当前事务
-    public function rollBack($force=false){
-        if(!--$this->transCounter){
-            if($this->config['type']=='pdo'){
+    public function rollBack(bool $force = false): void
+    {
+        if (!--$this->transCounter) {
+            if ($this->config['type'] == 'pdo') {
                 $this->conn->rollback();
-            }else{
+            } else {
                 $this->exec('ROLLBACK');
             }
             return;
         }
-        if($this->config['dbms']=='mssql'){
-            $this->exec('ROLLBACK TRANSACTION trans'.($this->transCounter+1));
-        }else{
-            $this->exec('ROLLBACK TO trans'.($this->transCounter+1));
+        if ($this->config['dbms'] == 'mssql') {
+            $this->exec('ROLLBACK TRANSACTION trans'.($this->transCounter + 1));
+        } else {
+            $this->exec('ROLLBACK TO trans'.($this->transCounter + 1));
         }
-        if($force && $this->transCounter) $this->rollBack($force);
+        if ($force && $this->transCounter) {
+            $this->rollBack($force);
+        }
     }
-	//提交事务 返回到自动提交模式
-	public function commit($force=false){
-		if (!--$this->transCounter) {
-		    if($this->config['type']=='pdo'){
+    //提交事务 返回到自动提交模式
+    public function commit(bool $force = false): void
+    {
+        if (!--$this->transCounter) {
+            if ($this->config['type'] == 'pdo') {
                 $this->conn->commit();
-            }else{
+            } else {
                 $this->exec('COMMIT');
             }
             return;
-		}
-        if($force && $this->transCounter>0) $this->commit($force);
-	}
+        }
+        if ($force && $this->transCounter > 0) {
+            $this->commit($force);
+        }
+    }
 
     /**
      * 设置事务隔离等级 isolation
      * @param $level
      * @throws Exception
      */
-	public function setTransactionLevel($level){
+    public function setTransactionLevel(string $level): void
+    {
         if ($this->config['dbms'] == 'sqlite') {
             switch ($level) {
                 case self::SERIALIZABLE:
@@ -1219,39 +1411,42 @@ abstract class DbBase{
             $this->exec("SET TRANSACTION ISOLATION LEVEL $level");
         }
     }
-	// 连接数据库 $cfg_db array数据库配置
-	abstract public function connect();
-	//安全过滤 是字符串时在格式后需要使用单引号包括返回
-	abstract protected function quote($str);
-	//执行sql 返回影响的行数
-	abstract public function exec($sql);
+    // 连接数据库 $cfg_db array数据库配置
+    abstract public function connect();
+    //安全过滤 是字符串时在格式后需要使用单引号包括返回
+    abstract protected function quote(string $str);
+    //执行sql 返回影响的行数
+    abstract public function exec(string $sql);
     /** 返回所有行的数组
      * @param $sql
      * @param string $type
      * @return mixed
      */
-    abstract function queryAll($sql, $type = 'assoc');
-	//执行查询
-	abstract public function query($sql);
+    abstract public function queryAll(string $sql, string $type = 'assoc');
+    //执行查询
+    abstract public function query(string $sql);
     /**
      * 从结果集中取得一行作为关联数组/数字索引数组
      * @param \PDOStatement|\mysqli_result $query 数据集
      * @param string $type 默认MYSQL_ASSOC 关联，MYSQL_NUM 数字，MYSQL_BOTH 两者
      * @return mixed
      */
-	abstract public function fetch(&$query, $type = 'assoc');
-	//取得结果集行的数目
-	abstract public function num_rows();
-	//取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
-	abstract public function insert_id($sequenceName);
+    abstract public function fetch(&$query, string $type = 'assoc');
+    //取得结果集行的数目
+    abstract public function num_rows();
+    //取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
+    abstract public function insert_id($sequenceName);
 }
 //表达式
-class Expr{
+class Expr
+{
     private $expr;
-    public function __construct($expr) {
+    public function __construct($expr)
+    {
         $this->expr = (string)$expr;
     }
-    public function __toString() {
+    public function __toString()
+    {
         return $this->expr;
     }
 }
