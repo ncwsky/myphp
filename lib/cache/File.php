@@ -1,139 +1,171 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp\cache;
 
 //文件缓存类
 use myphp\Log;
 
-class File extends \myphp\CacheAbstract{
+class File extends \myphp\CacheAbstract
+{
     public $gcProbability = 10; //100000次设置有10次机率触发垃圾回收
     public $suffix = '.php';
 
-    const MODE_SERIALIZE = 1;
-    const MODE_PHP = 2;
+    public const MODE_SERIALIZE = 1;
+    public const MODE_PHP = 2;
 
-	//配置
+    //配置
     protected $options = [
         'path' => "./",
         'prefix' => '_',
-    	'mode' => self::MODE_SERIALIZE, //mode 1 为serialize model 2为保存为可执行文件
-		'expire' => 0, //有效期
-        'dir_level'=>0 //缓存层级
+        'mode' => self::MODE_SERIALIZE, //mode 1 为serialize model 2为保存为可执行文件
+        'expire' => 0, //有效期
+        'dir_level' => 0, //缓存层级
     ];
 
-	public function __construct($options = []){
+    public function __construct(array $options = [])
+    {
         parent::__construct($options);
-		$this->setCacheDir();
-	}
-	/**
-	 * 设置缓存路径
-	 * @param string $path
-	 */
-	public function setCacheDir($path=''){
-        if($path) $this->options['path'] = $path;
+        $this->setCacheDir();
+    }
+    /**
+     * 设置缓存路径
+     * @param string $path
+     */
+    public function setCacheDir(string $path = ''): void
+    {
+        if ($path) {
+            $this->options['path'] = $path;
+        }
         if (!is_dir($this->options['path'])) {
             @mkdir($this->options['path'], 0755, true);
         }
-	}
-	/**
-	 * 设置缓存文件前缀
-	 * @param string $prefix
-	 */
-	public function setCachePrefix($prefix){
-		$this->options['prefix'] = $prefix;
-	}
-	/**
-	 * 设置缓存存储类型
-	 * @param int $mode
-	 */
-	public function setCacheMode($mode = self::MODE_SERIALIZE){
+    }
+    /**
+     * 设置缓存文件前缀
+     * @param string $prefix
+     */
+    public function setCachePrefix(string $prefix): void
+    {
+        $this->options['prefix'] = $prefix;
+    }
+    /**
+     * 设置缓存存储类型
+     * @param int $mode
+     */
+    public function setCacheMode(int $mode = self::MODE_SERIALIZE): void
+    {
         $this->options['mode'] = $mode == self::MODE_SERIALIZE ? self::MODE_SERIALIZE : self::MODE_PHP;
-	}
-    public function buildKey($key){
+    }
+    public function buildKey($key): string
+    {
         if (is_scalar($key)) {
-            $key = str_replace(['\\','/',':','*','?','"','<','>','|'],'',$key);
+            $key = str_replace(['\\','/',':','*','?','"','<','>','|'], '', $key);
             $key = strlen($key) <= 128 ? $key : md5($key); //ctype_alnum($key)
         } else {
             $key = md5(json_encode($key));
         }
         return $key;
     }
+
     /**
      * 设置一个缓存
      * @param string $name 缓存name
-     * @param mixed  $data 缓存内容
-     * @param int    $expire 缓存生命 默认为0无限生命
+     * @param mixed $data 缓存内容
+     * @param int|null $expire 缓存生命 默认为0无限生命
      * @return bool
      */
-	public function set($name, $data, $expire = null){
-        if($expire===null) $expire = $this->options['expire'];
+    public function set(string $name, $data, int $expire = null): bool
+    {
+        if ($expire === null) {
+            $expire = $this->options['expire'];
+        }
 
         $this->gc();//触发垃圾回收
 
-		$time = time();
+        $time = time();
         $cache = ['contents' => $data, 'expire' => $expire == 0 ? 0 : $time + $expire];
         $file = $this->_file($name, true);
-        if(false!==$this->_filePutContent($file, $cache)){
-            return @touch($file, $expire ? $time+$expire : 0); //修改访问时间 用于垃圾回收 $time+($expire == 0 ? 31536000 : $expire)
+        if (false !== $this->_filePutContent($file, $cache)) {
+            return @touch($file, $expire ? $time + $expire : 0); //修改访问时间 用于垃圾回收 $time+($expire == 0 ? 31536000 : $expire)
         }
         $error = error_get_last();
         Log::WARN("Unable to write cache file '{$file}': {$error['message']}");
-		return false;
-	}
-	/**
-	 * 得到缓存信息
-	 * @param string $name
-	 * @return mixed
-	 */
-	public function get($name){
-		$file = $this->_file($name);
-		$data = $this->_fileGetContent($file);
-		if($data && ($data['expire'] == 0 || time() < $data['expire'])) return $data['contents'];
-		return false;
-	}
-	/**
-	 * 判断缓存是否存在
-	 * @param string $name
-	 * @return bool
-	 */
-	public function has($name){
-		$file = $this->_file($name);
-        if (!is_file($file)) return false;
-        if (($mTime = @filemtime($file)) && $mTime < time()) return false;
+        return false;
+    }
+    /**
+     * 得到缓存信息
+     * @param string $name
+     * @return mixed
+     */
+    public function get(string $name)
+    {
+        $file = $this->_file($name);
+        $data = $this->_fileGetContent($file);
+        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
+            return $data['contents'];
+        }
+        return false;
+    }
+    /**
+     * 判断缓存是否存在
+     * @param string $name
+     * @return bool
+     */
+    public function has(string $name): bool
+    {
+        $file = $this->_file($name);
+        if (!is_file($file)) {
+            return false;
+        }
+        if (($mTime = @filemtime($file)) && $mTime < time()) {
+            return false;
+        }
         return true;
-	}
-	public function exists($name){
-	    return $this->has($name);
+    }
+    public function exists(string $name): bool
+    {
+        return $this->has($name);
     }
     /**
      * 清除一条缓存
-     * @param string name
+     * @param string $name
      * @return bool
-     */   
-	public function del($name){
+     */
+    public function del(string $name): bool
+    {
         $hName = $this->buildKey($name);
         $hDir = $this->options['path'].DIRECTORY_SEPARATOR.$hName;
-	    if(is_dir($hDir)){
+        if (is_dir($hDir)) {
             $this->gcRecursive($hDir, false);
             @rmdir($hDir);
         }
-    	$file = $this->_file($name);
-        if(!is_file($file)) return false;
-    	return @unlink($file);
-	}
+        $file = $this->_file($name);
+        if (!is_file($file)) {
+            return false;
+        }
+        return @unlink($file);
+    }
 
     /** 设置过期时间
-     * @param $name
+     * @param string $name
      * @param int $time  过期秒数 0不过期
      * @return bool
      */
-	public function expire($name, $time=0){
+    public function expire($name, int $time = 0): bool
+    {
         $file = $this->_file($name);
         $data = $this->_fileGetContent($file);
-        if(!$data) return false;
+        if (!$data) {
+            return false;
+        }
 
-        if($time) $time = $time+time();
+        if ($time) {
+            $time = $time + time();
+        }
         $data['expire'] = $time;
-        if(false!==$this->_filePutContent($file, $data)){
+        if (false !== $this->_filePutContent($file, $data)) {
             return @touch($file, $data['expire']);
         }
         $error = error_get_last();
@@ -141,15 +173,20 @@ class File extends \myphp\CacheAbstract{
         return false;
     }
     //针对h的多键 key 过期设置 暂不支持主目录 name过期设置
-    public function hExpire($name, $key, $time=0){
+    public function hExpire($name, $key, int $time = 0): bool
+    {
         $file = $this->_hFile($name, $key);
         $data = $this->_fileGetContent($file);
-        if(!$data) return false;
+        if (!$data) {
+            return false;
+        }
 
-        if($time) $time = $time+time();
+        if ($time) {
+            $time = $time + time();
+        }
         $data['expire'] = $time;
 
-        if(false!==$this->_filePutContent($file, $data)){
+        if (false !== $this->_filePutContent($file, $data)) {
             return @touch($file, $data['expire']);
         }
         $error = error_get_last();
@@ -157,7 +194,8 @@ class File extends \myphp\CacheAbstract{
         return false;
     }
     //多个键值设置 不支持过期时间
-    public function hSet($name, $key, $val){
+    public function hSet($name, $key, $val): bool
+    {
         $this->gc();//触发垃圾回收
 
         $cache = [];
@@ -165,29 +203,36 @@ class File extends \myphp\CacheAbstract{
         $cache['expire'] = 0;
 
         $file = $this->_hFile($name, $key, true);
-        if(false!==$this->_filePutContent($file, $cache)){
+        if (false !== $this->_filePutContent($file, $cache)) {
             return @touch($file, 0);
         }
         $error = error_get_last();
         Log::WARN("Unable to write cache file '{$file}': {$error['message']}");
         return false;
     }
-    public function hGet($name, $key){
+    public function hGet($name, $key)
+    {
         $file = $this->_hFile($name, $key);
         $data = $this->_fileGetContent($file);
-        if($data && ($data['expire'] == 0 || time() < $data['expire'])) return $data['contents'];
+        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
+            return $data['contents'];
+        }
         return false;
     }
-    public function hDel($name, $key){
+    public function hDel($name, $key): bool
+    {
         $file = $this->_hFile($name, $key);
-        if(!is_file($file)) return false;
+        if (!is_file($file)) {
+            return false;
+        }
         return @unlink($file);
     }
-    public function hGetAll($name){
+    public function hGetAll($name): array
+    {
         $name = $this->buildKey($name);
         $keyList = [];
         $path = $this->options['path'].DIRECTORY_SEPARATOR.$name;
-/*
+        /*
         $files = glob($path.DIRECTORY_SEPARATOR.'*'.$this->suffix);
         if($files) {
             foreach ($files as $file){
@@ -201,11 +246,13 @@ class File extends \myphp\CacheAbstract{
 
         if (is_dir($path) && ($handle = opendir($path)) !== false) {
             while (($file = readdir($handle)) !== false) {
-                if ($file === '.' || $file === '..') continue;
+                if ($file === '.' || $file === '..') {
+                    continue;
+                }
 
                 $fullPath = $path . DIRECTORY_SEPARATOR . $file;
                 $data = $this->_fileGetContent($fullPath);
-                if($data && ($data['expire'] == 0 || time() < $data['expire'])) {
+                if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
                     $keyList[basename($file, $this->suffix)] = $data['contents'];
                 }
             }
@@ -225,17 +272,20 @@ class File extends \myphp\CacheAbstract{
         }*/
         return $keyList;
     }
-    public function hLen($name){
+    public function hLen($name): int
+    {
         $name = $this->buildKey($name);
         $len = 0;
         $path = $this->options['path'].DIRECTORY_SEPARATOR.$name;
-/*
+        /*
         $files = glob($path.DIRECTORY_SEPARATOR.'*'.$this->suffix);
         if($files) $len = count($files);*/
 
         if (($handle = opendir($path)) !== false) {
             while (($file = readdir($handle)) !== false) {
-                if ($file === '.' || $file === '..') continue;
+                if ($file === '.' || $file === '..') {
+                    continue;
+                }
                 $len++;
             }
             closedir($handle);
@@ -251,18 +301,19 @@ class File extends \myphp\CacheAbstract{
         return $len;
     }
     //多键值的缓存文件路径
-    protected function _hFile($name, $key, $mkdir=false){
+    protected function _hFile($name, $key, $mkdir = false): string
+    {
         $name = $this->buildKey($name);
         if ($mkdir && !is_dir($this->options['path'].DIRECTORY_SEPARATOR.$name)) {
             @mkdir($this->options['path'].DIRECTORY_SEPARATOR.$name, 0755, true);
         }
 
         $key = $this->buildKey($key);
-        $file = $this->options['path'] . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . $key . $this->suffix;
-        return $file;
+        return $this->options['path'] . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . $key . $this->suffix;
     }
     //多个键值设置
-    public function mSet($name, $key, $val){
+    public function mSet($name, $key, $val): bool
+    {
         $this->gc();//触发垃圾回收
 
         $file = $this->_file($name, true);
@@ -274,51 +325,55 @@ class File extends \myphp\CacheAbstract{
         }
         $data['contents'][$key] = $val;
 
-        if(false!==$this->_filePutContent($file, $data)){
+        if (false !== $this->_filePutContent($file, $data)) {
             return @touch($file, $data['expire']);
         }
         $error = error_get_last();
         Log::WARN("Unable to write cache file '{$file}': {$error['message']}");
         return false;
     }
-    public function mGet($name, $key){
+    public function mGet($name, $key)
+    {
         $file = $this->_file($name);
         $data = $this->_fileGetContent($file);
-        if($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-            return isset($data['contents'][$key]) ? $data['contents'][$key] : null;
+        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
+            return $data['contents'][$key] ?? null;
         }
         return false;
     }
-    public function mGetAll($name){
+    public function mGetAll($name)
+    {
         return $this->get($name);
     }
-    public function mLen($name){
+    public function mLen($name): int
+    {
         $file = $this->_file($name);
         $data = $this->_fileGetContent($file);
-        if($data && ($data['expire'] == 0 || time() < $data['expire'])) {
+        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
             return count($data['contents']);
         }
         return 0;
     }
-	public function mDel($name, $key){
+    public function mDel($name, $key): bool
+    {
         $file = $this->_file($name);
         $data = $this->_fileGetContent($file);
-        if($data && ($data['expire'] == 0 || time() < $data['expire'])) {
+        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
             unset($data['contents'][$key]);
-            if(false!==$this->_filePutContent($file, $data)){
+            if (false !== $this->_filePutContent($file, $data)) {
                 return @touch($file, $data['expire']);
             }
         }
         return false;
     }
-	//删除所有缓存
-	public function clear(){
-        $this->gc(true, false);
-        return true;
-	}
-    public function gc($force = false, $expiredOnly = true)
+    //删除所有缓存
+    public function clear()
     {
-        if ($force || mt_rand(0, 100000) < $this->gcProbability) {
+        $this->gc(true, false);
+    }
+    public function gc($force = false, $expiredOnly = true): void
+    {
+        if ($force || random_int(0, 100000) < $this->gcProbability) {
             Log::INFO('cache gc:' . ($force ? 'force' : 'probability'));
             $this->gcRecursive($this->options['path'], $expiredOnly);
         }
@@ -330,25 +385,25 @@ class File extends \myphp\CacheAbstract{
      * @param bool $expiredOnly whether to only remove expired cache files. If false, all files
      * under `$path` will be removed.
      */
-    protected function gcRecursive($path, $expiredOnly)
+    protected function gcRecursive(string $path, bool $expiredOnly): void
     {
         if (($handle = opendir($path)) !== false) {
             $len = strlen($this->suffix);
             $time = time();
             while (($file = readdir($handle)) !== false) {
-                if ($file[0] === '.' || substr($file, -$len)!=$this->suffix) {
+                if ($file[0] === '.' || substr($file, -$len) != $this->suffix) {
                     continue;
                 }
                 $fullPath = $path . DIRECTORY_SEPARATOR . $file;
                 if (is_dir($fullPath)) {
                     $this->gcRecursive($fullPath, $expiredOnly);
                     if (!$expiredOnly) {
-                        if (count(scandir($fullPath))==2 && !@rmdir($fullPath)) {
+                        if (count(scandir($fullPath)) == 2 && !@rmdir($fullPath)) {
                             $error = error_get_last();
                             Log::WARN("Unable to remove directory '{$fullPath}': {$error['message']}");
                         }
                     }
-                } elseif (!$expiredOnly || $expiredOnly && (($mTime=@filemtime($fullPath)) && $mTime < $time)) {
+                } elseif (!$expiredOnly || $expiredOnly && (($mTime = @filemtime($fullPath)) && $mTime < $time)) {
                     if (!@unlink($fullPath)) {
                         $error = error_get_last();
                         Log::WARN("Unable to remove file '{$fullPath}': {$error['message']}");
@@ -359,14 +414,15 @@ class File extends \myphp\CacheAbstract{
         }
     }
 
-	/**
-	 * 通过缓存name得到缓存信息路径
-	 * @param string $name
+    /**
+     * 通过缓存name得到缓存信息路径
+     * @param string $name
      * @param bool $mkdir 目录检测及生成
-	 * @return string 缓存文件路径
-	 */
-	protected function _file($name, $mkdir=false){
-	    $name = $this->buildKey($name);
+     * @return string 缓存文件路径
+     */
+    protected function _file(string $name, bool $mkdir = false): string
+    {
+        $name = $this->buildKey($name);
         $base = DIRECTORY_SEPARATOR;
         if ($this->options['dir_level'] > 0) {
             for ($i = 0; $i < $this->options['dir_level']; ++$i) {
@@ -378,27 +434,33 @@ class File extends \myphp\CacheAbstract{
         $file = $this->options['path'] . $base . $this->options['prefix'] . $name . $this->suffix;
         if ($mkdir && $this->options['dir_level'] > 0) {
             $dir = dirname($file);
-            if(!is_dir($dir)) @mkdir($dir, 0755, true);
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0755, true);
+            }
         }
         return $file;
-	}
-	/**
-	 * 把数据写入文件
-	 * @param string $file 文件
-	 * @param $data
-	 * @return bool
-	 */
-	protected function _filePutContent($file, $data){
+    }
+    /**
+     * 把数据写入文件
+     * @param string $file 文件
+     * @param mixed $data
+     * @return false|int
+     */
+    protected function _filePutContent(string $file, $data)
+    {
         $content = $this->options['mode'] == self::MODE_SERIALIZE ? '<?php exit;//' . serialize($data) : "<?php\n return " . var_export($data, true).';';
         return @file_put_contents($file, $content, LOCK_EX);
-	}
-	/**
-	 * 从文件得到数据
-	 * @param  string $file
-	 * @return bool|array
-	 */
-	protected function _fileGetContent($file){
-        if (!is_file($file)) return false;
+    }
+    /**
+     * 从文件得到数据
+     * @param string $file
+     * @return false|array
+     */
+    protected function _fileGetContent(string $file)
+    {
+        if (!is_file($file)) {
+            return false;
+        }
         if (($mTime = @filemtime($file)) && $mTime < time()) {
             //@unlink($file);
             return false;
@@ -410,7 +472,7 @@ class File extends \myphp\CacheAbstract{
         } else {
             return require($file);
         }
-	}
+    }
 }
 
 /* 初始化设置cache的配置信息什么的 */

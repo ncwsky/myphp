@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp\db;
 
 //获取表信息
@@ -18,12 +21,12 @@ class tb_taos extends \myphp\TbBase
      * @param int $len
      * @return mixed|string
      */
-    public function fieldToRule($type, &$vType, $len=0)
+    public function fieldToRule(string $type, string &$vType, int $len=0)
     {
         $rule = '%s';
         if (strpos($type, 'unsigned')) { //无符号型
             $type = 'un' . $type;
-            list($type,) = explode(' ', $type, 2);
+            [$type, ] = explode(' ', $type, 2);
         }
         if (isset($this->fieldType[$type])) {
             $rule = $len > 0 && strpos($this->fieldType[$type], '{}') ? str_replace('{}', '{' . $len . '}', $this->fieldType[$type]) : $this->fieldType[$type];
@@ -34,33 +37,35 @@ class tb_taos extends \myphp\TbBase
 
     /** 取得数据表的字段信息
      * @param db_taos $db
-     * @param $tableName
+     * @param string $tableName
      * @return array
      */
-    public function getFields($db, $tableName)
+    public function getFields($db, string $tableName): array
     {
         $fields = '';
         $prikey = ''; //taosdata 表的第一个字段必须是 TIMESTAMP，并且系统自动将其设为主键；相同TIMESTAMP的插入时会被覆写
         $autoKey = '';
-        $rule = array();
+        $rule = [];
         $sql = 'DESCRIBE ' . $tableName;
         $res = $db->query($sql);
         while ($rs = $db->fetch($res)) {
             $rs = array_change_key_case($rs);
-            if ($prikey == '') $prikey = $rs['field']; //第一个字段 主键
+            if ($prikey == '') { //第一个字段 主键
+                $prikey = $rs['field'];
+            }
 
             $null = 1;
             $toRule = $this->fieldToRule(strtolower($rs['type']), $vType, $rs['length']);
             //规则
-            $rule[$rs['field']] = array(
+            $rule[$rs['field']] = [
                 'type' => $this->toType($vType),
                 'rule' => $toRule,
                 'null' => $null
-            );
+            ];
             //字段
             $fields .= $rs['field'].',';
         }
-        return array('fields'=>$fields==''?'*':substr($fields,0,-1),'prikey'=>$prikey,'auto_increment'=>$autoKey,'rule'=>$rule);
+        return ['fields' => $fields == '' ? '*' : substr($fields, 0, -1),'prikey' => $prikey,'auto_increment' => $autoKey,'rule' => $rule];
     }
 
     /** 取得数据库的表信息
@@ -69,7 +74,7 @@ class tb_taos extends \myphp\TbBase
      * @return array
      * @throws \Exception
      */
-    public function getTables($db, $dbName = '')
+    public function getTables($db, string $dbName = ''): array
     {
         $tables = [];
         $sql = 'SHOW TABLES';

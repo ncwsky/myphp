@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp\driver;
 
 use myphp\Log;
@@ -501,8 +504,8 @@ class Redis
     public $beautify = true;
 
     //集群配置
-    const REDIS_CLUSTER = 1; //todo 通过redis服务数自动计算槽点  'cluster slots'槽节点信息
-    const PHP_HASH = 2; //todo crc32(key)%n[redis服务数]
+    public const REDIS_CLUSTER = 1; //todo 通过redis服务数自动计算槽点  'cluster slots'槽节点信息
+    public const PHP_HASH = 2; //todo crc32(key)%n[redis服务数]
     public $cluster = 0;
 
     /**
@@ -522,9 +525,9 @@ class Redis
     /**
      * Multi
      */
-    const ATOMIC                = 0;
-    const MULTI                 = 1;
-    const PIPELINE              = 2;
+    public const ATOMIC                = 0;
+    public const MULTI                 = 1;
+    public const PIPELINE              = 2;
 
     /*
     public function len($str){
@@ -538,6 +541,7 @@ class Redis
     {
         if (!empty($config)) {
             foreach ($config as $name => $value) {
+                //if (property_exists($this, $name))
                 $this->$name = $value;
             }
         }
@@ -562,7 +566,7 @@ class Redis
      * Returns a value indicating whether the DB connection is established.
      * @return bool whether the DB connection is established
      */
-    public function getIsActive()
+    public function getIsActive(): bool
     {
         return $this->_socket !== false;
     }
@@ -578,16 +582,18 @@ class Redis
      * It does nothing if a DB connection has already been established.
      * @throws \Exception if connection fails
      */
-    public function open()
+    public function open(): void
     {
         if ($this->cluster) {
-            if (!$this->_connId) $this->_connId = $this->host . ':' . $this->port;
-            $this->_socket = isset($this->_pool[$this->_connId]) ? $this->_pool[$this->_connId] : false;
+            if (!$this->_connId) {
+                $this->_connId = $this->host . ':' . $this->port;
+            }
+            $this->_socket = $this->_pool[$this->_connId] ?? false;
         }
         if ($this->_socket !== false) {
             return;
         }
-        set_error_handler(function(){});
+        set_error_handler(function (): void {});
         $this->_socket = @stream_socket_client(
             $this->unixSocket ? 'unix://' . $this->unixSocket : 'tcp://' . ($this->_connId ?: $this->host . ':' . $this->port),
             $errorNumber,
@@ -620,7 +626,7 @@ class Redis
      * Closes the currently active DB connection.
      * It does nothing if the connection is already closed.
      */
-    public function close()
+    public function close(): void
     {
         //Log::trace('close:'.$this->_connId.'-'.$this->cluster);
         if ($this->_socket !== false) {
@@ -656,7 +662,7 @@ class Redis
     public function __call($name, $params)
     {
         $this->_lastCmd = $redisCommand = strtoupper($name);
-        if (in_array($redisCommand, $this->redisCommands)) {
+        if (in_array($redisCommand, $this->redisCommands, true)) {
             $this->_lastArgs = $params;
             return $this->executeCommand($redisCommand, $params);
         } else {
@@ -691,14 +697,16 @@ class Redis
      * for details on the mentioned reply types.
      * @throws \Exception for commands that return [error reply](http://redis.io/topics/protocol#error-reply).
      */
-    public function executeCommand($name, $params = [])
+    public function executeCommand(string $name, array $params = [])
     {
         $this->open();
 
         if ($this->_lastCmd == 'MULTI') {
             if (isset($params[0]) && $params[0] == self::PIPELINE) { //管道兼容redis扩展
                 $this->_mode = self::PIPELINE;
-                if (!$this->_commands) $this->_commands = new \SplQueue();
+                if (!$this->_commands) {
+                    $this->_commands = new \SplQueue();
+                }
                 return null;
             }
             $this->_mode = self::MULTI;
@@ -769,7 +777,8 @@ class Redis
         return $this->sendCommandInternal($command, $srcCommand);
     }
 
-    private function retryOnceSendCommand(&$command, &$srcCommand, $response=true){
+    private function retryOnceSendCommand(string &$command, string &$srcCommand, bool $response = true)
+    {
         try {
             return $this->sendCommandInternal($command, $srcCommand, $response);
         } catch (\Exception $e) {
@@ -782,13 +791,13 @@ class Redis
 
     /**
      * Sends RAW command string to the server.
-     * @param $command
-     * @param $srcCommand
+     * @param string $command
+     * @param string $srcCommand
      * @param bool $response
      * @return array|bool|mixed|null
      * @throws \Exception
      */
-    private function sendCommandInternal(&$command, &$srcCommand, $response=true)
+    private function sendCommandInternal(string &$command, string &$srcCommand, bool $response = true)
     {
         $written = @fwrite($this->_socket, $command);
         if ($written === false) {
@@ -801,12 +810,12 @@ class Redis
     }
 
     /**
-     * @param $command
+     * @param string $command
      * @param string $srcCommand
      * @return mixed
      * @throws \Exception on error
      */
-    public function parseResponse(&$command, &$srcCommand='read')
+    public function parseResponse(string &$command, string &$srcCommand = 'read')
     {
         if (($line = fgets($this->_socket)) === false) {
             throw new \Exception("Failed to read from socket.\nRedis command was: " . $srcCommand);
@@ -828,13 +837,13 @@ class Redis
                 $details = explode(' ', $line, 2);
                 switch ($details[0]) {
                     case 'MOVED': //MOVED 7638[slot] 192.168.0.246:6579[connection]
-                        list($slot, $this->_connId) = explode(' ', $details[1], 2);
+                        [$slot, $this->_connId] = explode(' ', $details[1], 2);
                         //连接新节点重新发送命令
                         $this->open();
                         return $this->sendCommandInternal($command, $srcCommand);
                     case 'ASK':
                         //接到ASK，转向至正在导入槽的目标节点，然后首先向目标节点发送一个ASKING命令，之后再重新发送原本想要执行的命令
-                        list($slot, $this->_connId) = explode(' ', $details[1], 2);
+                        [$slot, $this->_connId] = explode(' ', $details[1], 2);
                         //连接新节点重新发送命令
                         $this->open();
                         $this->executeCommand('ASKING');
@@ -844,7 +853,7 @@ class Redis
                 }
             case ':': // Integer reply
                 // no cast to int as it is in the range of a signed 64 bit integer
-                if (in_array($this->_lastCmd, $this->intCommands) && PHP_INT_SIZE === 8) {
+                if (in_array($this->_lastCmd, $this->intCommands, true) && PHP_INT_SIZE === 8) {
                     return (int)$line;
                 }
                 return $line;
@@ -870,8 +879,8 @@ class Redis
                 $count = (int)$line;
                 $data = [];
                 //美化HGETALL ZRANGE
-                if($this->beautify){
-                    if($this->_lastCmd=='HGETALL' || ($this->_lastCmd=='ZRANGE' && !empty($this->_lastArgs[3]))){
+                if ($this->beautify) {
+                    if ($this->_lastCmd == 'HGETALL' || ($this->_lastCmd == 'ZRANGE' && !empty($this->_lastArgs[3]))) {
                         for ($i = 0; $i < $count; $i++) {
                             $data[$this->parseResponse($command, $srcCommand)] = $this->parseResponse($command, $srcCommand);
                             $i++;

@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp\db;
 
 use mysqli;
@@ -11,29 +14,33 @@ use myphp\Log;
  * @property mysqli $conn
  * @property mysqli_result $rs
  */
-class db_mysqli extends \myphp\DbBase{
-	// 连接数据库
-    public function connect() {
-		$cfg_db = &$this->config;
-		//建立新连接 不返回已经打开的连接标识
-		$this->conn = new mysqli($cfg_db['server'].(empty($cfg_db['port']) ? '' : ':'.$cfg_db['port']), $cfg_db['user'], $cfg_db['pwd']);
+class db_mysqli extends \myphp\DbBase
+{
+    // 连接数据库
+    public function connect(): void
+    {
+        $cfg_db = &$this->config;
+        //建立新连接 不返回已经打开的连接标识
+        $this->conn = new mysqli($cfg_db['server'].(empty($cfg_db['port']) ? '' : ':'.$cfg_db['port']), $cfg_db['user'], $cfg_db['pwd']);
 
-		if($this->conn->connect_error) {
-			throw new Exception('mysql connect error!'. $this->conn->connect_errno.':'.$this->conn->connect_error);
-		}
-		
-		if (!empty($cfg_db['char'])) 
-			$this->conn->query('SET NAMES `'.$cfg_db['char'].'`');
-		
-		if($cfg_db['name'] && !$this->conn->select_db($cfg_db['name'])){
-			throw new Exception('Can not use '. $cfg_db['name'] .'!'. mysqli_error($this->conn));
-		}
+        if ($this->conn->connect_error) {
+            throw new Exception('mysql connect error!'. $this->conn->connect_errno.':'.$this->conn->connect_error);
+        }
+
+        if (!empty($cfg_db['char'])) {
+            $this->conn->query('SET NAMES `'.$cfg_db['char'].'`');
+        }
+
+        if ($cfg_db['name'] && !$this->conn->select_db($cfg_db['name'])) {
+            throw new Exception('Can not use '. $cfg_db['name'] .'!'. mysqli_error($this->conn));
+        }
     }
     /** SQL安全过滤
      * @param $str
      * @return string
      */
-    public function quote($str) {
+    public function quote($str)
+    {
         return "'". $this->conn->real_escape_string($str) ."'";
     }
 
@@ -42,36 +49,38 @@ class db_mysqli extends \myphp\DbBase{
      * @return bool|int|mysqli_result
      * @throws Exception
      */
-	public function exec($sql) {
-		$result = $this->conn->query($sql);
-		if($result===false) {
-			if(IS_CLI && ($this->conn->errno=='2006' || $this->conn->errno=='2013') && $this->transCounter==0){ //重连 MySQL server has gone away
-				$this->connect();
-				Log::write('重连 '.$this->conn->error, 'db_connect');
-				return $this->exec($sql);
-			}
+    public function exec($sql)
+    {
+        $result = $this->conn->query($sql);
+        if ($result === false) {
+            if (IS_CLI && ($this->conn->errno == '2006' || $this->conn->errno == '2013') && $this->transCounter == 0) { //重连 MySQL server has gone away
+                $this->connect();
+                Log::write('重连 '.$this->conn->error, 'db_connect');
+                return $this->exec($sql);
+            }
             throw new Exception($this->conn->errno . " | " . $this->conn->error . "; SQL exec: " . $sql);
-		}
-		return $result?$this->conn->affected_rows:$result;
-	}
+        }
+        return $result ? $this->conn->affected_rows : $result;
+    }
 
     /** 执行查询语句
      * @param $sql
      * @return bool|mysqli_result
      * @throws Exception
      */
-	public function query($sql) {
-		$this->rs = $this->conn->query($sql);
-		if($this->rs===false) {
-			if(IS_CLI && ($this->conn->errno=='2006' || $this->conn->errno=='2013') && $this->transCounter==0){
-				$this->connect();
-				Log::write('重连 '.$this->conn->error, 'db_connect');
+    public function query($sql)
+    {
+        $this->rs = $this->conn->query($sql);
+        if ($this->rs === false) {
+            if (IS_CLI && ($this->conn->errno == '2006' || $this->conn->errno == '2013') && $this->transCounter == 0) {
+                $this->connect();
+                Log::write('重连 '.$this->conn->error, 'db_connect');
                 return $this->query($sql);
-			}
+            }
             throw new Exception($this->conn->errno . " | " . $this->conn->error . "; SQL query: " . $sql);
-		}
-		return $this->rs;
-	}
+        }
+        return $this->rs;
+    }
 
     /** 返回所有行的数组
      * @param $sql
@@ -79,14 +88,18 @@ class db_mysqli extends \myphp\DbBase{
      * @return array
      * @throws Exception
      */
-	public function queryAll($sql, $type = 'assoc'){
-        if($type=='assoc') $type = MYSQLI_ASSOC;
-        elseif($type=='num') $type = MYSQLI_NUM;
-        elseif($type=='column') {
+    public function queryAll($sql, string $type = 'assoc'): array
+    {
+        if ($type == 'assoc') {
+            $type = MYSQLI_ASSOC;
+        } elseif ($type == 'num') {
+            $type = MYSQLI_NUM;
+        } elseif ($type == 'column') {
             $ret = $this->query($sql)->fetch_all(MYSQLI_NUM);
             return $ret ? array_column($ret, 0) : [];
+        } else {
+            $type = MYSQLI_BOTH;
         }
-        else $type = MYSQLI_BOTH;
         return $this->query($sql)->fetch_all($type);
     }
 
@@ -96,29 +109,32 @@ class db_mysqli extends \myphp\DbBase{
      * @param string $type 默认MYSQLI_ASSOC关联,MYSQLI_NUM 数字,MYSQLI_BOTH 两者
      * @return mixed
      */
-	public function fetch(&$query, $type = 'assoc') {
+    public function fetch(&$query, string $type = 'assoc')
+    {
         if ($type == 'assoc') {
             return $query->fetch_assoc();
         } elseif ($type == 'num') {
             return $query->fetch_row();
         }
         return $query->fetch_array();
-	}
+    }
 
     /**
      * 结果集行数
      * @return int
      */
-	public function num_rows() {
-		return $this->rs->num_rows;
-	}
+    public function num_rows()
+    {
+        return $this->rs->num_rows;
+    }
 
     /**
      * 取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
      * @param $sequenceName
      * @return mixed
      */
-	public function insert_id($sequenceName=null) {
-		return $this->conn->insert_id;
-	}
+    public function insert_id($sequenceName = null)
+    {
+        return $this->conn->insert_id;
+    }
 }

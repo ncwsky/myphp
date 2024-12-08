@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /**
  * lib_redis
  * @method mixed append($key, $value) Append a value to a key. <https://redis.io/commands/append>
@@ -196,7 +198,8 @@
  * @method mixed hscan($key, $cursor, $MATCH = null, $pattern = null, $COUNT = null, $count = null) Incrementally iterate hash fields and associated values. <https://redis.io/commands/hscan>
  * @method mixed zscan($key, $cursor, $MATCH = null, $pattern = null, $COUNT = null, $count = null) Incrementally iterate sorted sets elements and associated scores. <https://redis.io/commands/zscan>
  */
-class lib_redis{
+class lib_redis
+{
     protected static $instance = array();
     protected $handler;
     public static $isExRedis = null;
@@ -216,8 +219,11 @@ class lib_redis{
      * @return lib_redis
      * @throws Exception
      */
-    public static function getInstance($options = array()){
-        if (!isset($options['name'])) throw new \Exception('Instance Name Not Configured');
+    public static function getInstance(array $options = [])
+    {
+        if (!isset($options['name'])) {
+            throw new \Exception('Instance Name Not Configured');
+        }
         $name = $options['name']; //'redis';
         if (!isset(self::$instance[$name])) {
             self::$instance[$name] = new self($options);
@@ -235,16 +241,19 @@ class lib_redis{
      * 释放资源及连接
      * @param string $name
      */
-    public static function free($name = 'redis')
+    public static function free(string $name = 'redis')
     {
         unset(self::$instance[$name]);
     }
     //构造函数
-    public function __construct($options = array()){
+    public function __construct($options = [])
+    {
         if (!empty($options)) {
             $this->options = array_merge($this->options, $options);
         }
-        if (self::$isExRedis === null) self::$isExRedis = extension_loaded('redis');
+        if (self::$isExRedis === null) {
+            self::$isExRedis = extension_loaded('redis');
+        }
         if (self::$isExRedis) {
             $func = $this->options['pconnect'] ? 'pconnect' : 'connect';
             $this->handler = new \Redis();
@@ -268,21 +277,22 @@ class lib_redis{
 
     public function __get($name)
     {
-        return isset($this->handler->$name) ? $this->handler->$name : null;
+        return $this->handler->$name ?? null;
     }
 
     /**
      * 兼容redis扩展处理
-     * @param $name
+     * @param string $name
      * @param $start
      * @param $end
-     * @param null $opt
+     * @param null|bool|string $opt
      * @return mixed
      */
-    public function zrange($name, $start, $end, $opt=null){
+    public function zrange(string $name, $start, $end, $opt = null)
+    {
         $args = [$name, $start, $end];
-        if($opt!==null){
-            if (false === self::$isExRedis && $opt===true) { //兼容处理 'WITHSCORES'
+        if ($opt !== null) {
+            if (false === self::$isExRedis && $opt === true) { //兼容处理 'WITHSCORES'
                 $opt = 'WITHSCORES';
             }
             $args[] = $opt;
@@ -291,21 +301,28 @@ class lib_redis{
         return call_user_func_array(array($this->handler, 'zrange'), $args);
     }
 
-    public function __call($method_name, $method_args){
+    public function __call($method_name, $method_args)
+    {
         return call_user_func_array(array($this->handler, $method_name), $method_args);
     }
+
     /**
      * 读取缓存
      * @access public
      * @param string $name 缓存变量名
-     * @param $json
+     * @param bool $json
      * @return mixed
      */
-    public function get($name, $json=true){
+    public function get(string $name, bool $json = true)
+    {
         $val = $this->handler->get($name);
-        if (self::$isExRedis && $val === false) return null; //redis扩展兼容处理
+        if (self::$isExRedis && $val === false) { //redis扩展兼容处理
+            return null;
+        }
         if ($json) {
-            if ($val === null) return $val;
+            if ($val === null) {
+                return $val;
+            }
             $jsonData = json_decode($val, true);
             return ($jsonData === null) ? $val : $jsonData;    //检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
         }
@@ -319,8 +336,9 @@ class lib_redis{
      * @param int|string $expire 有效时间（秒） 0表示永久缓存
      * @return boolean
      */
-    public function set($name, $data, $expire = 0){
-        if(func_num_args()>3){ //直接走原生操作
+    public function set(string $name, $data, int $expire = 0)
+    {
+        if (func_num_args() > 3) { //直接走原生操作
             return call_user_func_array(array($this->handler, 'set'), func_get_args());
         }
         //对数组/对象数据进行缓存处理，保证数据完整性
@@ -340,8 +358,9 @@ class lib_redis{
      * @param array|string $name 多个参数或数组同时删除
      * @return int|mixed
      */
-    public function del($name){
-        if(func_num_args()>1){
+    public function del($name)
+    {
+        if (func_num_args() > 1) {
             return call_user_func_array(array($this->handler, 'del'), func_get_args());
         }
         if (is_array($name)) {
@@ -350,7 +369,8 @@ class lib_redis{
         return $this->handler->del($name);
     }
     //清除缓存
-    public function clear(){
+    public function clear()
+    {
         return $this->handler->flushDB();
     }
 
@@ -360,7 +380,8 @@ class lib_redis{
      * @param int $lockTimeout
      * @return bool|int|mixed
      */
-    public function lockBlock($lockKey, $lockTimeout=10){
+    public function lockBlock(string $lockKey, int $lockTimeout = 10)
+    {
         if ($lockTimeout == 0) { //释放锁
             return $this->handler->del($lockKey);
         }
@@ -383,7 +404,8 @@ class lib_redis{
      * @param int $lockTimeout
      * @return bool|int|mixed
      */
-    public function lockOnce($lockKey, $lockTimeout=10){
+    public function lockOnce(string $lockKey, int $lockTimeout = 10)
+    {
         if ($lockTimeout == 0) { //释放锁
             return $this->handler->del($lockKey);
         }
@@ -398,11 +420,11 @@ class lib_redis{
 
     /**
      * 加锁 解锁 主要用于判断是否重复操作 使用setnx方式
-     * @param $lockKey
+     * @param string $lockKey
      * @param int $lockTimeout
      * @return bool|int|mixed
      */
-    public function lockNX($lockKey, $lockTimeout = 10)
+    public function lockNX(string $lockKey, int $lockTimeout = 10)
     {
         if ($lockTimeout == 0) { //释放锁
             return $this->handler->del($lockKey);

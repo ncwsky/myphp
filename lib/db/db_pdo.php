@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp\db;
 
 use PDO;
@@ -11,11 +14,13 @@ use myphp\Log;
  * @property PDO $conn
  * @property PDOStatement $rs
  */
-class db_pdo extends \myphp\DbBase{
-	//连接数据库
-    public function connect() {
-		$cfg_db = &$this->config;
-		//运行参数
+class db_pdo extends \myphp\DbBase
+{
+    //连接数据库
+    public function connect(): void
+    {
+        $cfg_db = &$this->config;
+        //运行参数
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, //以异常的方式报错
             PDO::ATTR_STRINGIFY_FETCHES => false, //提取的时候不将数值转换为字符串
@@ -25,20 +30,20 @@ class db_pdo extends \myphp\DbBase{
             $options = array_merge($options, $cfg_db['options']);
         }
         $cfg_db['pconnect'] = isset($cfg_db['pconnect']) ? $cfg_db['pconnect'] : false;
-        if($cfg_db['pconnect']) { //持久连接开启
-            $options[PDO::ATTR_PERSISTENT] = TRUE;
+        if ($cfg_db['pconnect']) { //持久连接开启
+            $options[PDO::ATTR_PERSISTENT] = true;
         }
         //PDO::ATTR_TIMEOUT:30 设置连接数据库的超时秒数。
         //PDO::MYSQL_ATTR_USE_BUFFERED_QUERY:false mysql非缓冲查询 查询大量数据时设置false不会出现内存不足的情况
 
         $initSql = '';
-        if(empty($cfg_db['dsn'])){//未设置dsn时
-            switch($cfg_db['dbms']){
+        if (empty($cfg_db['dsn'])) {//未设置dsn时
+            switch ($cfg_db['dbms']) {
                 case 'mysql':// PDO_MYSQL DSN
                     $dsn = 'mysql:dbname='.$cfg_db['name'];
-                    if ($cfg_db['server']!='') {
-                        $dsn .= ';host='.$cfg_db['server'].($cfg_db['port']!=''?';port='.$cfg_db['port']:'');
-                    }elseif (!empty($cfg_db['socket'])) {
+                    if ($cfg_db['server'] != '') {
+                        $dsn .= ';host='.$cfg_db['server'].($cfg_db['port'] != '' ? ';port='.$cfg_db['port'] : '');
+                    } elseif (!empty($cfg_db['socket'])) {
                         $dsn .= ';unix_socket='. $cfg_db['socket'];
                     }
                     if (!empty($cfg_db['char'])) {
@@ -54,30 +59,40 @@ class db_pdo extends \myphp\DbBase{
                     }
                     break;
                 case 'mssql':// PDO_SQLSRV
-                    $dsn = 'sqlsrv:Server='.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ','.$cfg_db['port']).';Database='.$cfg_db['name'];break;
+                    $dsn = 'sqlsrv:Server='.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ','.$cfg_db['port']).';Database='.$cfg_db['name'];
+                    break;
                 case 'oracle':// PDO_OCI DSN
-                    $dsn = 'oci:dbname=//'.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ':'.$cfg_db['port']).'/'.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);break;
+                    $dsn = 'oci:dbname=//'.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ':'.$cfg_db['port']).'/'.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);
+                    break;
                 case 'pgsql':// PDO_PGSQL DSN
                     $dsn = 'pgsql:host='.$cfg_db['server'].(empty($cfg_db['port']) ? '' : ';port='.$cfg_db['port']).';dbname='.$cfg_db['name'];
-                    if (!empty($cfg_db['char'])) $initSql .= "SET names '" . $cfg_db['char'] . "';";
-                    if (!empty($cfg_db['timezone'])) $initSql .= "set time zone='" . $cfg_db['timezone'] . "';";
+                    if (!empty($cfg_db['char'])) {
+                        $initSql .= "SET names '" . $cfg_db['char'] . "';";
+                    }
+                    if (!empty($cfg_db['timezone'])) {
+                        $initSql .= "set time zone='" . $cfg_db['timezone'] . "';";
+                    }
                     break;
                 case 'sqlite':// PDO_SQLITE DSN @sqlite:/opt/databases/mydb.sq3
-                    $dsn = 'sqlite:'.$cfg_db['name'];break;
+                    $dsn = 'sqlite:'.$cfg_db['name'];
+                    break;
                 default:// PDO_DBLIB DSN
-                    $dsn = $cfg_db['dbms'].':host='.$cfg_db['server'].';dbname='.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);break;
+                    $dsn = $cfg_db['dbms'].':host='.$cfg_db['server'].';dbname='.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);
+                    break;
             }
-        }else{
+        } else {
             $dsn = $cfg_db['dsn'];
         }
 
         try {
             $this->conn = new PDO($dsn, $cfg_db['user'], $cfg_db['pwd'], $options);
-        } catch(PDOException $e) {
+        } catch (PDOException $e) {
             Log::write('dsn:' . $dsn . '|' . $e->getMessage(), 'db_connect');
             throw $e;
         }
-        if ($initSql) $this->conn->exec($initSql);
+        if ($initSql) {
+            $this->conn->exec($initSql);
+        }
     }
 
     /**
@@ -85,7 +100,8 @@ class db_pdo extends \myphp\DbBase{
      * @param $str
      * @return string
      */
-    public function quote($str) {
+    public function quote($str)
+    {
         return $this->conn->quote($str);
     }
 
@@ -95,7 +111,8 @@ class db_pdo extends \myphp\DbBase{
      * @param int $run
      * @return false|int
      */
-	public function exec($sql, $run=0){
+    public function exec($sql, $run = 0)
+    {
         try {
             $affected = $this->conn->exec($sql);
         } catch (PDOException $e) { //兼容>=8.0处理
@@ -106,7 +123,7 @@ class db_pdo extends \myphp\DbBase{
             }
             if ($errorInfo[1]) {
                 $errInfo = implode('|', $errorInfo);
-                if ($run == 0 && $this->transCounter==0 && IS_CLI) { //重连1次处理 非事务时允许重连
+                if ($run == 0 && $this->transCounter == 0 && IS_CLI) { //重连1次处理 非事务时允许重连
                     #MySQL server has gone away
                     if ($this->config['dbms'] == 'mysql' && ($errorInfo[1] == 2006 || $errorInfo[1] == 2013)) {
                         $this->connect();
@@ -128,7 +145,7 @@ class db_pdo extends \myphp\DbBase{
             throw new PDOException($errInfo . "; SQL exec: " . $sql);
         }
         return $affected;
-	}
+    }
 
     /** 执行查询语句
      * @param $sql
@@ -136,7 +153,8 @@ class db_pdo extends \myphp\DbBase{
      * @return false|PDOStatement
      * @throws PDOException
      */
-    public function query($sql, $run = 0){
+    public function query($sql, $run = 0)
+    {
         try {
             $this->rs = $this->conn->query($sql); //预处理并执行没有占位符的 SQL 语句
         } catch (PDOException $e) {
@@ -169,11 +187,16 @@ class db_pdo extends \myphp\DbBase{
      * @return array|mixed
      * @throws PDOException
      */
-    public function queryAll($sql, $type = 'assoc'){
+    public function queryAll($sql, $type = 'assoc')
+    {
         $mode = PDO::FETCH_BOTH;
-        if($type=='assoc') $mode = PDO::FETCH_ASSOC;
-        elseif($type=='num') $mode = PDO::FETCH_NUM;
-        elseif($type=='column') $mode = PDO::FETCH_COLUMN; //取第一列数据
+        if ($type == 'assoc') {
+            $mode = PDO::FETCH_ASSOC;
+        } elseif ($type == 'num') {
+            $mode = PDO::FETCH_NUM;
+        } elseif ($type == 'column') { //取第一列数据
+            $mode = PDO::FETCH_COLUMN;
+        }
         //$sth = $this->conn->prepare($sql); $sth->execute(); return $sth->fetchAll($mode);
         return $this->query($sql)->fetchAll($mode);
     }
@@ -184,29 +207,35 @@ class db_pdo extends \myphp\DbBase{
      * @param string $type 默认MYSQL_ASSOC 关联，MYSQL_NUM 数字，MYSQL_BOTH 两者
      * @return mixed
      */
-	public function fetch(&$query, $type = 'assoc') {
+    public function fetch(&$query, $type = 'assoc')
+    {
         $mode = PDO::FETCH_BOTH;
-        if($type=='assoc') $mode = PDO::FETCH_ASSOC;
-        elseif($type=='num') $mode = PDO::FETCH_NUM;
+        if ($type == 'assoc') {
+            $mode = PDO::FETCH_ASSOC;
+        } elseif ($type == 'num') {
+            $mode = PDO::FETCH_NUM;
+        }
 
-		return $query->fetch($mode);
-	}
+        return $query->fetch($mode);
+    }
 
     /**
      * 结果集行数
      * @return int
      */
-	public function num_rows() {
-		return $this->rs->rowCount();
-	}
+    public function num_rows()
+    {
+        return $this->rs->rowCount();
+    }
 
     /**
      * 取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
      * @param string $sequenceName
      * @return string
      */
-	public function insert_id($sequenceName=null) {
-	    //mssql 'SELECT CAST(COALESCE(SCOPE_IDENTITY(), @@IDENTITY) AS bigint)'
-		return $this->conn->lastInsertId($sequenceName);//PDO::lastInsertId(); PDO_PGSQL() 要求为 name 参数指定序列对象的名称
-	}
+    public function insert_id($sequenceName = null)
+    {
+        //mssql 'SELECT CAST(COALESCE(SCOPE_IDENTITY(), @@IDENTITY) AS bigint)'
+        return $this->conn->lastInsertId($sequenceName);//PDO::lastInsertId(); PDO_PGSQL() 要求为 name 参数指定序列对象的名称
+    }
 }

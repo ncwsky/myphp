@@ -1,13 +1,17 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp\cache;
 
 // redis缓存类
-class Redis extends \myphp\CacheAbstract{
+class Redis extends \myphp\CacheAbstract
+{
     /**
      * @var \myphp\driver\Redis|\Redis
      */
     private $handler;
-	//配置
+    //配置
     protected $options = [
         'prefix' => '_',
         'host' => '127.0.0.1',
@@ -16,14 +20,14 @@ class Redis extends \myphp\CacheAbstract{
         'select' => 7, //选择库
         'timeout' => 0,
         'pconnect' => false, //持续连接
-        'expire' => 0, //有效期
-        'server' => [] //从服务器 待实现
+        'expire' => 0 //有效期
     ];
-	//构造函数
-	public function __construct($options = []){
+    //构造函数
+    public function __construct(array $options = [])
+    {
         parent::__construct($options);
 
-	    if ( extension_loaded('redis') ) {
+        if (extension_loaded('redis')) {
             $func = $this->options['pconnect'] ? 'pconnect' : 'connect';
             $this->handler = new \Redis();
             $this->options['timeout'] == 0 ? $this->handler->$func($this->options['host'], $this->options['port']) : $this->handler->$func($this->options['host'], $this->options['port'], $this->options['timeout']);
@@ -31,11 +35,11 @@ class Redis extends \myphp\CacheAbstract{
                 $this->handler->auth($this->options['password']);
             }
             $this->handler->select($this->options['select']);
-        }else{
+        } else {
             $this->options['database'] = $this->options['select'];
             $this->handler = new \myphp\driver\Redis($this->options);
         }
-	}
+    }
 
     /**
      * 读取缓存
@@ -43,9 +47,10 @@ class Redis extends \myphp\CacheAbstract{
      * @param string $name 缓存变量名
      * @return mixed
      */
-    public function get($name) {
+    public function get(string $name)
+    {
         $value = $this->handler->get($this->options['prefix'].$name);
-        $jsonData = json_decode( $value, true );
+        $jsonData = json_decode($value, true);
         return ($jsonData === null) ? $value : $jsonData;	//检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
     }
 
@@ -55,30 +60,35 @@ class Redis extends \myphp\CacheAbstract{
      * @param string $name 缓存变量名
      * @param mixed $data  存储数据
      * @param integer $expire  有效时间（秒）
-     * @return boolean
+     * @return mixed
      */
-    public function set($name, $data, $expire = null){
-        if($expire===null) $expire = $this->options['expire'];
-        
+    public function set(string $name, $data, $expire = null)
+    {
+        if ($expire === null) {
+            $expire = $this->options['expire'];
+        }
+
         //$expire = $expire == 0 ? 0 : time() + $expire;//缓存有效期为0表示永久缓存
         $name = $this->options['prefix'].$name;
         //对数组/对象数据进行缓存处理，保证数据完整性
         $data  =  (is_object($data) || is_array($data)) ? json_encode($data) : $data;
-        if(is_int($expire) && $expire) {
+        if (is_int($expire) && $expire) {
             $result = $this->handler->setex($name, $expire, $data);
-        }else{
+        } else {
             $result = $this->handler->set($name, $data);
         }
         return $result;
     }
 
     //删除缓存
-    public function del($name) {
+    public function del(string $name)
+    {
         return $this->handler->del($this->options['prefix'].$name);
     }
 
     //清除缓存
-    public function clear() {
+    public function clear()
+    {
         return $this->handler->flushDB();
     }
 }
