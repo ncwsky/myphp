@@ -253,7 +253,7 @@ class Db
         return $last ? self::$sql : $this->_sql;
     }
     //取得数据表的字段信息
-    public function getFields(string $tb, string &$prikey = '', string &$fields = '*', ?array &$rule = [], string &$autoKey = ''): array
+    public function getFields(string $tb, ?string &$prikey = '', ?string &$fields = '*', ?array &$rule = [], ?string &$autoKey = ''): array
     {
         if (!isset($this->tbFields[$tb])) {
             if ($this->config['prod']) {
@@ -1287,7 +1287,7 @@ abstract class TbBase
      * @param string $vType 返回给php的类型
      * @return mixed
      */
-    abstract public function fieldToRule(string $type, string &$vType);
+    abstract public function fieldToRule(string $type, ?string &$vType = '');
 
     /**
      * 取得数据表的字段信息

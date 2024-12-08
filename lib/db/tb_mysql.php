@@ -12,7 +12,7 @@ class tb_mysql extends \myphp\TbBase
      * @param string $vType 返回给php的类型
      * @return mixed|string
      */
-    public function fieldToRule(string $type, string &$vType)
+    public function fieldToRule(string $type, ?string &$vType = '')
     {
         $rule = '%s';
         $len = 0;
