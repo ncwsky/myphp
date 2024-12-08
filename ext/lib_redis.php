@@ -200,19 +200,19 @@ declare(strict_types=1);
  */
 class lib_redis
 {
-    protected static $instance = array();
+    protected static $instance = [];
     protected $handler;
     public static $isExRedis = null;
     //配置
-    protected $options = array(
+    protected $options = [
         'host' => '127.0.0.1',
         'port' => 6379,
         'password' => '',
         'select' => 0, //选择库
         'timeout' => 0,
         'pconnect' => false, //持续连接
-        'server' => array() //从服务器 待实现
-    );
+        'server' => [] //从服务器 待实现
+    ];
 
     /**
      * @param array $options
@@ -241,7 +241,7 @@ class lib_redis
      * 释放资源及连接
      * @param string $name
      */
-    public static function free(string $name = 'redis')
+    public static function free(string $name = 'redis'): void
     {
         unset(self::$instance[$name]);
     }
@@ -268,7 +268,7 @@ class lib_redis
         }
     }
 
-    public function __set($name, $value)
+    public function __set($name, $value): void
     {
         if (isset($this->handler->$name)) {
             $this->handler->$name = $value;
@@ -298,12 +298,12 @@ class lib_redis
             $args[] = $opt;
         }
 
-        return call_user_func_array(array($this->handler, 'zrange'), $args);
+        return call_user_func_array([$this->handler, 'zrange'], $args);
     }
 
     public function __call($method_name, $method_args)
     {
-        return call_user_func_array(array($this->handler, $method_name), $method_args);
+        return call_user_func_array([$this->handler, $method_name], $method_args);
     }
 
     /**
@@ -339,7 +339,7 @@ class lib_redis
     public function set(string $name, $data, int $expire = 0)
     {
         if (func_num_args() > 3) { //直接走原生操作
-            return call_user_func_array(array($this->handler, 'set'), func_get_args());
+            return call_user_func_array([$this->handler, 'set'], func_get_args());
         }
         //对数组/对象数据进行缓存处理，保证数据完整性
         if (is_array($data) || is_object($data)) {
@@ -361,10 +361,10 @@ class lib_redis
     public function del($name)
     {
         if (func_num_args() > 1) {
-            return call_user_func_array(array($this->handler, 'del'), func_get_args());
+            return call_user_func_array([$this->handler, 'del'], func_get_args());
         }
         if (is_array($name)) {
-            return call_user_func_array(array($this->handler, 'del'), $name);
+            return call_user_func_array([$this->handler, 'del'], $name);
         }
         return $this->handler->del($name);
     }
