@@ -67,7 +67,7 @@ class Control
         $this->_init();
     }
 
-    protected function _init(): void
+    protected function _init()
     {
         //todo
     }
@@ -76,7 +76,7 @@ class Control
      * @return bool
      * @throws \Exception
      */
-    protected function _before(): bool
+    protected function _before()
     {
         if ($this->enableCsrf) {
             if ($this->request::method() == 'GET') {
