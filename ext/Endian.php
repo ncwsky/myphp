@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Class Endian 字节序 大小端
  */
@@ -13,7 +15,9 @@ class Endian
     public static function enBig($val, $byte = 1)
     {
         $ret = chr($val & 0xff);
-        if ($byte == 1) return $ret;
+        if ($byte == 1) {
+            return $ret;
+        }
 
         for ($i = 1; $i < $byte; $i++) {
             $ret = chr($val >> $i * 8) . $ret;
@@ -28,8 +32,12 @@ class Endian
      */
     public static function deBig($val, $len = null)
     {
-        if ($len === null) $len = strlen($val);
-        if ($len == 1) return ord($val) & 0xff; #$val[0]
+        if ($len === null) {
+            $len = strlen($val);
+        }
+        if ($len == 1) { //$val[0]
+            return ord($val) & 0xff;
+        }
 
         $j = $len - 1;
         $ret = 0x00;
@@ -48,7 +56,9 @@ class Endian
     public static function enLittle($val, $byte = 1)
     {
         $ret = chr($val & 0xff);
-        if ($byte == 1) return $ret;
+        if ($byte == 1) {
+            return $ret;
+        }
 
         for ($i = 1; $i < $byte; $i++) {
             $ret .= chr($val >> $i * 8);
@@ -63,9 +73,13 @@ class Endian
      */
     public static function deLittle($val, $len = null)
     {
-        if ($len === null) $len = strlen($val);
+        if ($len === null) {
+            $len = strlen($val);
+        }
         $ret = ord($val) & 0xff; #$val[0]
-        if ($len == 1) return $ret;
+        if ($len == 1) {
+            return $ret;
+        }
 
         for ($i = 1; $i < $len; $i++) {
             $ret |= (ord($val[$i]) & 0xff) << $i * 8;

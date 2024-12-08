@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Class HttpReqInfo
  */
@@ -118,7 +120,6 @@ class HttpReqInfo
         return $_SERVER['HTTP_REFERER'] ?? '';
     }
 
-
     /**
      * @return string
      */
@@ -163,7 +164,7 @@ class HttpReqInfo
         return $number ? sprintf("%u", ip2long($realIP)) : $realIP;
     }
 
-    public function clear()
+    public function clear(): void
     {
         $this->_rawBody = null;
         $this->headers = null;
@@ -206,7 +207,9 @@ class HttpReqInfo
                     $_name = strtr(ucwords(strtr(substr($name, 5), $upper, $lower)), ' ', '-');
                     $this->headers[$_name] = $value;
                 } elseif (strncmp($name, 'CONTENT_', 8) === 0) {
-                    if ($value === '') continue;
+                    if ($value === '') {
+                        continue;
+                    }
                     $_name = strtr(ucwords(strtr($name, $upper, $lower)), ' ', '-');
                     $this->headers[$_name] = $value;
                 }
@@ -222,7 +225,9 @@ class HttpReqInfo
             }
         }
 
-        if ($header_name === null) return $this->headers;
+        if ($header_name === null) {
+            return $this->headers;
+        }
         if (is_array($header_name)) {
             $values = [];
             foreach ($header_name as $item) {
@@ -284,9 +289,11 @@ class HttpReqInfo
      * @param null|mixed $default
      * @return array|mixed|null
      */
-    public function post(string $name=null, $default = null)
+    public function post(string $name = null, $default = null)
     {
-        if ($name === null) return $_POST ?? [];
+        if ($name === null) {
+            return $_POST ?? [];
+        }
         return $_POST[$name] ?? $default;
     }
 
@@ -306,9 +313,11 @@ class HttpReqInfo
      * @param null|mixed $default
      * @return array|mixed|null
      */
-    public function get(string $name=null, $default = null)
+    public function get(string $name = null, $default = null)
     {
-        if ($name === null) return $_GET ?? [];
+        if ($name === null) {
+            return $_GET ?? [];
+        }
         return $_GET[$name] ?? $default;
     }
 

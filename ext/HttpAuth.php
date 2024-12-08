@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 //Http认证
 class HttpAuth
 {
@@ -10,7 +12,9 @@ class HttpAuth
 
     public static function auth($logout = false)
     {
-        if (empty(self::$authUsers)) return true;
+        if (empty(self::$authUsers)) {
+            return true;
+        }
         if ($logout) {
             unset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'], $_SERVER['PHP_AUTH_DIGEST']);
             return false;
@@ -46,8 +50,8 @@ class HttpAuth
             $_SERVER['PHP_AUTH_DIGEST'] = $_SERVER['HTTP_AUTHORIZATION'];
         }
 
-        $needed_parts = array('nonce' => 1, 'nc' => 1, 'cnonce' => 1, 'qop' => 1, 'username' => 1, 'uri' => 1, 'response' => 1);
-        $data = array();
+        $needed_parts = ['nonce' => 1, 'nc' => 1, 'cnonce' => 1, 'qop' => 1, 'username' => 1, 'uri' => 1, 'response' => 1];
+        $data = [];
         $keys = implode('|', array_keys($needed_parts));
 
         preg_match_all('/(' . $keys . ')=(?:([\'"])([^\2]+?)\2|([^\s,]+))/', $_SERVER['PHP_AUTH_DIGEST'], $matches, PREG_SET_ORDER);

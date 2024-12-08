@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * openssl 实现的 DES 加密类，支持各种 PHP 版本
  * java DES/CBC/PKCS5Padding 源码中 key 实际只取了前8个字节
@@ -32,8 +34,8 @@ class DesSecurity
     protected $options;
 
     // output 的类型
-    const OUTPUT_BASE64 = 'base64';
-    const OUTPUT_HEX = 'hex';
+    public const OUTPUT_BASE64 = 'base64';
+    public const OUTPUT_HEX = 'hex';
 
     /**
      * DES constructor.
@@ -71,7 +73,7 @@ class DesSecurity
 
         if ($this->output == self::OUTPUT_BASE64) {
             $sign = base64_encode($sign);
-        } else if ($this->output == self::OUTPUT_HEX) {
+        } elseif ($this->output == self::OUTPUT_HEX) {
             $sign = bin2hex($sign);
         }
         return $sign;
@@ -87,7 +89,7 @@ class DesSecurity
     {
         if ($this->output == self::OUTPUT_BASE64) {
             $encrypted = base64_decode($encrypted);
-        } else if ($this->output == self::OUTPUT_HEX) {
+        } elseif ($this->output == self::OUTPUT_HEX) {
             $encrypted = hex2bin($encrypted);
         }
 

@@ -1,4 +1,6 @@
-<?PHP
+<?php
+
+declare(strict_types=1);
 /*
 <?php
     require_once('AES.php');
@@ -23,14 +25,14 @@
  */
 class AES
 {
-    private $rcon = array(
+    private $rcon = [
         0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8,
         0xab, 0x4d, 0x9a, 0x2f, 0x5e, 0xbc, 0x63, 0xc6, 0x97, 0x35, 0x6a, 0xd4,
         0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91
-    );
+    ];
 
     // S盒变换
-    private $S = array(
+    private $S = [
         99, 124, 119, 123, 242, 107, 111, 197, 48, 1, 103, 43, 254, 215, 171, 118,
         202, 130, 201, 125, 250, 89, 71, 240, 173, 212, 162, 175, 156, 164, 114, 192,
         183, 253, 147, 38, 54, 63, 247, 204, 52, 165, 229, 241, 113, 216, 49, 21,
@@ -47,10 +49,10 @@ class AES
         112, 62, 181, 102, 72, 3, 246, 14, 97, 53, 87, 185, 134, 193, 29, 158,
         225, 248, 152, 17, 105, 217, 142, 148, 155, 30, 135, 233, 206, 85, 40, 223,
         140, 161, 137, 13, 191, 230, 66, 104, 65, 153, 45, 15, 176, 84, 187, 22
-    );
+    ];
 
     // S盒逆变换
-    private $Si = array(
+    private $Si = [
         82, 9, 106, 213, 48, 54, 165, 56, 191, 64, 163, 158, 129, 243, 215, 251,
         124, 227, 57, 130, 155, 47, 255, 135, 52, 142, 67, 68, 196, 222, 233, 203,
         84, 123, 148, 50, 166, 194, 35, 61, 238, 76, 149, 11, 66, 250, 195, 78,
@@ -67,10 +69,10 @@ class AES
         96, 81, 127, 169, 25, 181, 74, 13, 45, 229, 122, 159, 147, 201, 156, 239,
         160, 224, 59, 77, 174, 42, 245, 176, 200, 235, 187, 60, 131, 83, 153, 97,
         23, 43, 4, 126, 186, 119, 214, 38, 225, 105, 20, 99, 85, 33, 12, 125
-    );
+    ];
 
     // 线性混合层列变换矩阵
-    private $T2 = array(
+    private $T2 = [
         0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30,
         32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62,
         64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 92, 94,
@@ -88,8 +90,8 @@ class AES
         189, 179, 177, 183, 181, 171, 169, 175, 173, 163, 161, 167, 165, 219, 217,
         223, 221, 211, 209, 215, 213, 203, 201, 207, 205, 195, 193, 199, 197, 251,
         249, 255, 253, 243, 241, 247, 245, 235, 233, 239, 237, 227, 225, 231, 229
-    );
-    private $T3 = array(
+    ];
+    private $T3 = [
         0, 3, 6, 5, 12, 15, 10, 9, 24, 27, 30, 29, 20, 23, 18, 17,
         48, 51, 54, 53, 60, 63, 58, 57, 40, 43, 46, 45, 36, 39, 34,
         33, 96, 99, 102, 101, 108, 111, 106, 105, 120, 123, 126, 125, 116, 119,
@@ -107,10 +109,10 @@ class AES
         110, 103, 100, 97, 98, 115, 112, 117, 118, 127, 124, 121, 122, 59, 56,
         61, 62, 55, 52, 49, 50, 35, 32, 37, 38, 47, 44, 41, 42, 11,
         8, 13, 14, 7, 4, 1, 2, 19, 16, 21, 22, 31, 28, 25, 26
-    );
+    ];
 
     // 线性混合层列变换逆矩阵
-    private $T9 = array(
+    private $T9 = [
         0, 9, 18, 27, 36, 45, 54, 63, 72, 65, 90, 83, 108, 101, 126, 119,
         144, 153, 130, 139, 180, 189, 166, 175, 216, 209, 202, 195, 252, 245, 238,
         231, 59, 50, 41, 32, 31, 22, 13, 4, 115, 122, 97, 104, 87, 94,
@@ -128,10 +130,10 @@ class AES
         17, 46, 39, 60, 53, 66, 75, 80, 89, 102, 111, 116, 125, 161, 168,
         179, 186, 133, 140, 151, 158, 233, 224, 251, 242, 205, 196, 223, 214, 49,
         56, 35, 42, 21, 28, 7, 14, 121, 112, 107, 98, 93, 84, 79, 70
-    );
+    ];
 
     /* Definicion de 0x0b*state[i][j] en GF(2^8)(para InvMixColumns)*/
-    private $T11 = array(
+    private $T11 = [
         0, 11, 22, 29, 44, 39, 58, 49, 88, 83, 78, 69, 116, 127, 98, 105,
         176, 187, 166, 173, 156, 151, 138, 129, 232, 227, 254, 245, 196, 207, 210,
         217, 123, 112, 109, 102, 87, 92, 65, 74, 35, 40, 53, 62, 15, 4,
@@ -149,10 +151,10 @@ class AES
         172, 157, 150, 139, 128, 233, 226, 255, 244, 197, 206, 211, 216, 122, 113,
         108, 103, 86, 93, 64, 75, 34, 41, 52, 63, 14, 5, 24, 19, 202,
         193, 220, 215, 230, 237, 240, 251, 146, 153, 132, 143, 190, 181, 168, 163
-    );
+    ];
 
     /* Definicion de 0x0d*state[i][j] en GF(2^8) (para InvMixColumns)*/
-    private $T13 = array(
+    private $T13 = [
         0, 13, 26, 23, 52, 57, 46, 35, 104, 101, 114, 127, 92, 81, 70, 75,
         208, 221, 202, 199, 228, 233, 254, 243, 184, 181, 162, 175, 140, 129, 150,
         155, 187, 182, 161, 172, 143, 130, 149, 152, 211, 222, 201, 196, 231, 234,
@@ -170,8 +172,8 @@ class AES
         112, 83, 94, 73, 68, 15, 2, 21, 24, 59, 54, 33, 44, 12, 1,
         22, 27, 56, 53, 34, 47, 100, 105, 126, 115, 80, 93, 74, 71, 220,
         209, 198, 203, 232, 229, 242, 255, 180, 185, 174, 163, 128, 141, 154, 151
-    );
-    private $T14 = array(
+    ];
+    private $T14 = [
         0, 14, 28, 18, 56, 54, 36, 42, 112, 126, 108, 98, 72, 70, 84, 90,
         224, 238, 252, 242, 216, 214, 196, 202, 144, 158, 140, 130, 168, 166, 180,
         186, 219, 213, 199, 201, 227, 237, 255, 241, 171, 165, 183, 185, 147, 157,
@@ -189,23 +191,23 @@ class AES
         30, 52, 58, 40, 38, 124, 114, 96, 110, 68, 74, 88, 86, 55, 57,
         43, 37, 15, 1, 19, 29, 71, 73, 91, 85, 127, 113, 99, 109, 215,
         217, 203, 197, 239, 225, 243, 253, 167, 169, 187, 181, 159, 145, 131, 141
-    );
+    ];
 
     private $Nr = 10;// 轮变换圈数
     private $Nb = 4;// 存放中间结果状态的矩阵列数
     private $Nk = 4;
-    private $state = array(array());// 存放中间结果状态
-    private $shifts_r = array(array(0, 1, 2, 3), array(3, 0, 1, 2), array(2, 3, 0, 1), array(1, 2, 3, 0));
-    private $shifts_l = array(array(0, 1, 2, 3), array(1, 2, 3, 0), array(2, 3, 0, 1), array(3, 0, 1, 2));
+    private $state = [[]];// 存放中间结果状态
+    private $shifts_r = [[0, 1, 2, 3], [3, 0, 1, 2], [2, 3, 0, 1], [1, 2, 3, 0]];
+    private $shifts_l = [[0, 1, 2, 3], [1, 2, 3, 0], [2, 3, 0, 1], [3, 0, 1, 2]];
     private $debug = false;
     private $toHex = false;
 
     /*
-	 * 构造函数
-	 * @param: hex 结果是否以十六进制显示，true：显示
-	 * @param: debug 是否打印调试信息 true：打印调试信息
-	 */
-    function __construct($hex = false, $debug = false)
+     * 构造函数
+     * @param: hex 结果是否以十六进制显示，true：显示
+     * @param: debug 是否打印调试信息 true：打印调试信息
+     */
+    public function __construct($hex = false, $debug = false)
     {
         $this->debug = $debug;
         $this->toHex = $hex;
@@ -219,8 +221,9 @@ class AES
         $buf = "";
         for ($i = 0; $i < strlen($sa); $i++) {
             $val = dechex(ord($sa[$i]));
-            if (strlen($val) < 2)
+            if (strlen($val) < 2) {
                 $val = "0" . $val;
+            }
             $buf .= $val;
         }
         return $buf;
@@ -242,7 +245,7 @@ class AES
     /*
      * @function showInt 输出调试信息
      */
-    private function showInt($texto)
+    private function showInt($texto): void
     {
         if ($this->debug) {
             echo($texto . ": ");
@@ -268,8 +271,9 @@ class AES
             }
         }
         $rconpocharer = 0;
-        $tk = array(array());;
-        $rk = array(array(array()));
+        $tk = [[]];
+
+        $rk = [[[]]];
         for ($j = 0; $j < $this->Nk; $j++) {
             for ($i = 0; $i < 4; $i++) {
                 // 转换成ASCII码值
@@ -321,7 +325,9 @@ class AES
         for ($i = 0; $i < $cnt; $i++) {
             $out .= $this->blockEncrypt(substr($excodeStr, $i * 16, 16), $expandedKeys);
         }
-        if ($this->toHex) $out = $this->toHexString($out);
+        if ($this->toHex) {
+            $out = $this->toHexString($out);
+        }
         return $out;
     }
 
@@ -366,7 +372,9 @@ class AES
      */
     public function decryptString($decodeStr, $expandedKeys)
     {
-        if ($this->toHex) $decodeStr = $this->fromHexString($decodeStr);
+        if ($this->toHex) {
+            $decodeStr = $this->fromHexString($decodeStr);
+        }
         if (strlen($decodeStr) % 16 == 0) {
             $cnt = strlen($decodeStr) / 16;
         } else {
@@ -416,9 +424,9 @@ class AES
     /*
      * @function ByteSubShiftRow 作用在状态中每个字节上的一种非线性字节转换
      */
-    private function ByteSubShiftRow()
+    private function ByteSubShiftRow(): void
     {
-        $tmp = array(array());
+        $tmp = [[]];
         for ($i = 0; $i < 4; $i++) {
             for ($j = 0; $j < $this->Nb; $j++) {
                 $tmp[$i][$this->shifts_r[$i][$j]] = $this->S[$this->state[$i][$j]];
@@ -428,9 +436,9 @@ class AES
     }
 
     /*
-	 * @function KeyAddition 将圈密钥状态中的对应字节按位"异或"
-	 */
-    private function KeyAddition($rk)
+     * @function KeyAddition 将圈密钥状态中的对应字节按位"异或"
+     */
+    private function KeyAddition($rk): void
     {
         for ($i = 0; $i < 4; $i++) {
             for ($j = 0; $j < $this->Nb; $j++) {
@@ -440,11 +448,11 @@ class AES
     }
 
     /*
-	 * @function InvShiftRowInvByteSub 作用在状态中每个字节上的一种非线性字节反转换，与ByteSubShiftRow()互逆
-	 */
-    private function InvShiftRowInvByteSub()
+     * @function InvShiftRowInvByteSub 作用在状态中每个字节上的一种非线性字节反转换，与ByteSubShiftRow()互逆
+     */
+    private function InvShiftRowInvByteSub(): void
     {
-        $tmp = array(array());
+        $tmp = [[]];
         for ($i = 0; $i < 4; $i++) {
             for ($j = 0; $j < $this->Nb; $j++) {
                 $tmp[$i][$this->shifts_l[$i][$j]] = $this->Si[$this->state[$i][$j]];
@@ -454,11 +462,11 @@ class AES
     }
 
     /*
-	 * @function MixColumnKeyAddition 混合列变换
-	 */
-    private function MixColumnKeyAddition($rk)
+     * @function MixColumnKeyAddition 混合列变换
+     */
+    private function MixColumnKeyAddition($rk): void
     {
-        $b = array(array());
+        $b = [[]];
         for ($j = 0; $j < 4; $j++) {
             for ($i = 0; $i < $this->Nb; $i++) {
                 $b[$i][$j] = $this->T2[$this->state[$i][$j]] ^ $this->T3[$this->state[($i + 1) % 4][$j]] ^ $this->state[($i + 2) % 4][$j] ^ $this->state[($i + 3) % 4][$j];
@@ -469,11 +477,11 @@ class AES
     }
 
     /*
-	 * @function InvMixColumn 混合列逆变换
-	 */
-    private function InvMixColumn()
+     * @function InvMixColumn 混合列逆变换
+     */
+    private function InvMixColumn(): void
     {
-        $b = array(array());
+        $b = [[]];
         for ($j = 0; $j < 4; $j++) {
             for ($i = 0; $i < $this->Nb; $i++) {
                 $b[$i][$j] = $this->T14[$this->state[$i][$j]] ^ $this->T11[$this->state[($i + 1) % 4][$j]] ^ $this->T13[$this->state[($i + 2) % 4][$j]] ^ $this->T9[$this->state[($i + 3) % 4][$j]];
@@ -483,7 +491,7 @@ class AES
     }
 
     //AES 128位加密
-    public static function encode($string, $key, $raw_output=false)
+    public static function encode($string, $key, $raw_output = false)
     {
         $aes = new self($raw_output ? false : true);// 把加密后的字符串按十六进制进行存储
         //$aes = new AES(true,true);// 带有调试信息且加密字符串按十六进制存储
@@ -491,7 +499,7 @@ class AES
         return $aes->encryptString($string, $keys);
     }
 
-    public static function decode($string, $key, $raw_input=false)
+    public static function decode($string, $key, $raw_input = false)
     {
         $aes = new self($raw_input ? false : true);// 把加密后的字符串按十六进制进行存储
         //$aes = new AES(true,true);// 带有调试信息且加密字符串按十六进制存储

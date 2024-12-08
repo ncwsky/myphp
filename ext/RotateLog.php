@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * 循环日志写入 并发写入时日志记录时间可能顺序错乱
  * 示例
@@ -17,9 +19,9 @@ class RotateLog
 {
     public static $isLog = true;
 
-    const MODE_DEF = 0; //达到大小自动生成新文件
-    const MODE_YMD = 1; //按年月日生成
-    const MODE_FIXED = 2; //固定大小 超出保留ratio分之一最新日志
+    public const MODE_DEF = 0; //达到大小自动生成新文件
+    public const MODE_YMD = 1; //按年月日生成
+    public const MODE_FIXED = 2; //固定大小 超出保留ratio分之一最新日志
 
     private $keepSize; //截断保留x分之一
     private $logSize; //4M
@@ -29,7 +31,7 @@ class RotateLog
     private $tplYmdFile = '';
     private $ymd = '';
 
-    public function __construct($logFile, $mode=self::MODE_DEF, $logSize=4194304, $ratio=3)
+    public function __construct($logFile, $mode = self::MODE_DEF, $logSize = 4194304, $ratio = 3)
     {
         $this->mode = $mode;
         $this->logSize = $logSize;
@@ -63,13 +65,15 @@ class RotateLog
     }
 
     //仅记录指定大小的日志 超出大小重置重新记录
-    public function write($content)
+    public function write($content): void
     {
-        if (!self::$isLog) return;
+        if (!self::$isLog) {
+            return;
+        }
         $time = time();
         $this->truncate($time);
 
-        $msg = '[' . date($this->mode == self::MODE_YMD ? 'H:i:s':'Y-m-d H:i:s', $time) . '.' . substr(microtime(), 2, 3) . ']';
+        $msg = '[' . date($this->mode == self::MODE_YMD ? 'H:i:s' : 'Y-m-d H:i:s', $time) . '.' . substr(microtime(), 2, 3) . ']';
         if (func_num_args() > 1) {
             $args = func_get_args();
             foreach ($args as $v) {
@@ -87,7 +91,7 @@ class RotateLog
         }
     }
 
-    private function truncate($time)
+    private function truncate($time): void
     {
         if ($this->mode == self::MODE_YMD) { //按年月日生成
             $logYmd = date('Ymd', $time);
@@ -103,7 +107,9 @@ class RotateLog
         $fileSize = fstat($this->fp)['size'];
         //$fileSize = filesize($this->logFile); //测试有缓存大小读取不对
         //global $i; if($i>99990) var_dump($fileSize.'-'. $this->logSize);
-        if ($this->logSize > $fileSize) return;
+        if ($this->logSize > $fileSize) {
+            return;
+        }
 
         //读写方式
         $fp = fopen($this->logFile, 'r+b');
@@ -140,13 +146,15 @@ class RotateLog
                     fwrite($fp, $chunk);
                     $w_offset = ftell($fp);
 
-                    if ($eof) break;
+                    if ($eof) {
+                        break;
+                    }
                     fseek($fp, $pos); //移动回原来读取位置
                 }
                 // 截断文件，删除多余的内容
                 ftruncate($fp, $w_offset);
                 //stat
-                fwrite($fp, '['.date('Y-m-d H:i:s').'.'.substr(microtime(), 2,3) . ']'. sprintf('use %s truncate, %s -> %s', run_time($microtime), $fileSize, $size) . PHP_EOL);
+                fwrite($fp, '['.date('Y-m-d H:i:s').'.'.substr(microtime(), 2, 3) . ']'. sprintf('use %s truncate, %s -> %s', run_time($microtime), $fileSize, $size) . PHP_EOL);
             } else {
                 $new_fp = fopen(dirname($this->logFile).'/'.date('YmdHis').'.log', 'ab');
                 stream_copy_to_stream($fp, $new_fp);

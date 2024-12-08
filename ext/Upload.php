@@ -1,13 +1,16 @@
 <?php
+
+declare(strict_types=1);
 //上传类
-class Upload {
-    const TYPE_RAW = 'raw_string';
+class Upload
+{
+    public const TYPE_RAW = 'raw_string';
 
     public $fileMd5 = false; //文件名md5加密
     public $fileName = ''; //指定保存文件名
     public $fileZero = false; //文件零字节开关
     public $useOriFileName = false; //使用原始上传文件名
-	private static $instance = null; //内部实例对象
+    private static $instance = null; //内部实例对象
     //上传配置
     public $uploadPath = 'up/'; //相对的上传路径
     public $realPath = 'up/'; //绝对路径
@@ -22,43 +25,53 @@ class Upload {
     private $height = 0;
 
     private $defData = ['state' => '1', 'title' => null, 'url' => null, 'fileType' => null, 'fileSize' => null];
-	// 构造函数
-    public function __construct() {}
+
     //静态方法，返回实例
-    public static function getInstance() {
+    public static function getInstance()
+    {
         if (self::$instance == null) {
             self::$instance = new self();
         }
         return self::$instance;
     }
-	//设置上传路径
-	public function setUpPath($val){
-		$this->uploadPath = $val;
-	}
-	//设置真实上传路径
-	public function setRealPath($val){
+    //设置上传路径
+    public function setUpPath($val): void
+    {
+        $this->uploadPath = $val;
+    }
+    //设置真实上传路径
+    public function setRealPath($val): void
+    {
         $this->realPath = $val;
-	}
-	//设置允许格式 格式使用,分隔
-	public function setFileType($val){
-		$val = trim($val);
-		if(empty($val)) return false;
-		$this->fileType = $val;
-	}
-	//设置图片宽高 @w int @h int 用于生成指定像素范围的图片
-	public function setWH($w, $h){
-		$this->width = $w;
-		$this->height = $h;
-	}
-	//设置文件大小限制 ,单位MB
-	public function setFileSize($val){
-		//$val = floatval($val);
-		if(empty($val)) return false;
-		$this->fileSize = $val;
-	}
+    }
+    //设置允许格式 格式使用,分隔
+    public function setFileType($val)
+    {
+        $val = trim($val);
+        if (empty($val)) {
+            return false;
+        }
+        $this->fileType = $val;
+    }
+    //设置图片宽高 @w int @h int 用于生成指定像素范围的图片
+    public function setWH($w, $h): void
+    {
+        $this->width = $w;
+        $this->height = $h;
+    }
+    //设置文件大小限制 ,单位MB
+    public function setFileSize($val)
+    {
+        //$val = floatval($val);
+        if (empty($val)) {
+            return false;
+        }
+        $this->fileSize = $val;
+    }
     //递归创建目录 createPath("./up/img/ap")
-    public function createPath( $path, $mode=0755 ) {
-        if ( !is_dir($path) && !@mkdir( $path, $mode, true)) {
+    public function createPath($path, $mode = 0755)
+    {
+        if (!is_dir($path) && !@mkdir($path, $mode, true)) {
             throw new \Exception('创建目录 '. $path .' 失败');
         }
         return true;
@@ -71,7 +84,8 @@ class Upload {
      * @return array
      * @throws \Exception
      */
-    public function remote($url, $path=''){
+    public function remote($url, $path = '')
+    {
         $this->fileName = md5($url);
         $this->fileMd5 = false;
         if ($pos = strpos($url, '?')) {
@@ -90,7 +104,9 @@ class Upload {
             "type" => self::TYPE_RAW,
         ];
         $f_name = $this->fileName . strrchr($clientFile['name'], '.');
-        if ($path === '') $path = '/' . substr($this->fileName, 0, 1) . '/' . substr($this->fileName, 1, 2) . '/';
+        if ($path === '') {
+            $path = '/' . substr($this->fileName, 0, 1) . '/' . substr($this->fileName, 1, 2) . '/';
+        }
         $this->uploadPath = rtrim($this->uploadPath, '/') . $path;
         $this->realPath = rtrim($this->realPath, '/') . $path;
 
@@ -118,15 +134,16 @@ class Upload {
     /**
      * 返回数据格式
      * {
-	 *   'state'    :'1'  //上传状态，成功时返回1,其他任何值将原样返回至图片上传框中
-	 *   'title'    :'hello.jpg',   //文件描述，对图片来说在前端会添加到title属性上
+     *   'state'    :'1'  //上传状态，成功时返回1,其他任何值将原样返回至图片上传框中
+     *   'title'    :'hello.jpg',   //文件描述，对图片来说在前端会添加到title属性上
      *   'url'      :'a.jpg',   //保存后的文件路径
      *   'fileType' :'jpg',   //文件类型
      *   'fileSize' :'100',   //文件大小
      * }
-     */	
-	//文件上传表单元素名称
-	public function upload($name='upfile') {
+     */
+    //文件上传表单元素名称
+    public function upload($name = 'upfile')
+    {
         if (!isset($_FILES[$name])) {
             $data = $this->defData;
             $data['state'] = '未选择上传文件！';
@@ -154,36 +171,37 @@ class Upload {
         }
         return $data;
     }
-	//执行上传保存
-	private function doupload(&$clientFile){
-		//返回数组初始 文件上传状态,当成功时返回1，其余值将直接返回对应字符窜  $state = "1";
-		$data = $this->defData;
-		//判断文件上传是否出错
-		if($clientFile['error']>0){
-			switch($clientFile['error']){
-				case UPLOAD_ERR_INI_SIZE:
-					$data['state'] = "上传文件大小超出了PHP配置文件中的约定值:upload_max_filesize";
-					break;
-				case UPLOAD_ERR_FORM_SIZE:
-					$data['state'] = "上传文件大小超出了表单中的约定值:MAX_FILE_SIZE";
-					break;
-				case UPLOAD_ERR_PARTIAL:
-					$data['state'] = "文件只有部分被上传";
-					break;
-				case UPLOAD_ERR_NO_FILE:
-					$data['state'] = "没有文件被上传";
-					break;
+    //执行上传保存
+    private function doupload(&$clientFile)
+    {
+        //返回数组初始 文件上传状态,当成功时返回1，其余值将直接返回对应字符窜  $state = "1";
+        $data = $this->defData;
+        //判断文件上传是否出错
+        if ($clientFile['error'] > 0) {
+            switch ($clientFile['error']) {
+                case UPLOAD_ERR_INI_SIZE:
+                    $data['state'] = "上传文件大小超出了PHP配置文件中的约定值:upload_max_filesize";
+                    break;
+                case UPLOAD_ERR_FORM_SIZE:
+                    $data['state'] = "上传文件大小超出了表单中的约定值:MAX_FILE_SIZE";
+                    break;
+                case UPLOAD_ERR_PARTIAL:
+                    $data['state'] = "文件只有部分被上传";
+                    break;
+                case UPLOAD_ERR_NO_FILE:
+                    $data['state'] = "没有文件被上传";
+                    break;
                 case UPLOAD_ERR_NO_TMP_DIR:
                     $data['state'] = "找不到临时文件夹";
                     break;
                 case UPLOAD_ERR_CANT_WRITE:
                     $data['state'] = "文件写入失败";
                     break;
-				default:
-					$data['state'] = "未知错误";
-			}
-			return $data;
-		}
+                default:
+                    $data['state'] = "未知错误";
+            }
+            return $data;
+        }
         //无效文件名字符验证 '\\', '/', ':', '*', '?', '"', '<', '>', '|'
         if ($clientFile["name"] === '' || strlen($clientFile["name"]) > 250 || preg_match('/[\/:*?"<>|\\\\]/', $clientFile["name"])) {
             $data['state'] = '无效的文件名！';
@@ -227,7 +245,7 @@ class Upload {
         //保存文件
         $fileUrl = "";
         //是否文件流
-        $raw_string = $clientFile['type']==self::TYPE_RAW;
+        $raw_string = $clientFile['type'] == self::TYPE_RAW;
         $cli = PHP_SAPI == 'cli';
         //cli模式is_uploaded_file无效
         if ($cli || $raw_string || is_uploaded_file($clientFile['tmp_name'])) {//判断文件是上传文件
@@ -269,15 +287,15 @@ class Upload {
             if (!$result) {
                 $data['state'] = "文件保存失败";
             }
-		} else {
-			$data['state'] = '上传文件 '. $clientFile['tmp_name'] .' 不是一个合法文件';
-		}
+        } else {
+            $data['state'] = '上传文件 '. $clientFile['tmp_name'] .' 不是一个合法文件';
+        }
 
         if ($data['state'] === '1') {
             $data['url'] = $fileUrl;
         }
         return $data;
-	}
+    }
 }
 //范例
 /*
@@ -292,29 +310,29 @@ class Upload {
 <?php
 require('Upload.php');
 if($_POST['dofile']=='1'){
-	echo $_POST['des'].'<br>';
-	//上传框中的描述表单名称，描述内容
-   	//$title = $des!='' ? htmlspecialchars($_POST[$des], ENT_QUOTES) : '';//编码双引号和单引号
-	$upload = Upload::getInstance();
-	$upload->setUpPath('app/up/'); //设置文件相对的上传路径
-	$upload->setRealPath('app/up/'); //设置文件的绝对路径
-	
-	$data = $upload->upload('file');
-	if (isset($data[0]['state'])){//多个文件上传
-		for($i=0;$i<count($data);$i++){
-			if ($data[$i]['state']=='1'){
-				echo '上传成功：'. $data[$i]['url'] .'，类型：'. $data[$i]['fileType'] .'，大小：'. $data[$i]['fileSize'] .'<br>';
-			} else {
-				echo '上传失败：'. $data[$i]['url'] .'，类型：'. $data[$i]['fileType'] .'，大小：'. $data[$i]['fileSize'] .'<br>';
-			}	
-		}
-	} else {//单个文件上传
-		if ($data['state']=='1'){
-			echo '上传成功：'. $data['url'] .'，类型：'. $data['fileType'] .'，大小：'. $data['fileSize'].'<br>';
-		} else {
-			echo '上传失败：'. $data['url'] .'，类型：'. $data['fileType'] .'，大小：'. $data['fileSize'] .'<br>';
-		}	
-	}
+    echo $_POST['des'].'<br>';
+    //上传框中的描述表单名称，描述内容
+    //$title = $des!='' ? htmlspecialchars($_POST[$des], ENT_QUOTES) : '';//编码双引号和单引号
+    $upload = Upload::getInstance();
+    $upload->setUpPath('app/up/'); //设置文件相对的上传路径
+    $upload->setRealPath('app/up/'); //设置文件的绝对路径
+
+    $data = $upload->upload('file');
+    if (isset($data[0]['state'])){//多个文件上传
+        for($i=0;$i<count($data);$i++){
+            if ($data[$i]['state']=='1'){
+                echo '上传成功：'. $data[$i]['url'] .'，类型：'. $data[$i]['fileType'] .'，大小：'. $data[$i]['fileSize'] .'<br>';
+            } else {
+                echo '上传失败：'. $data[$i]['url'] .'，类型：'. $data[$i]['fileType'] .'，大小：'. $data[$i]['fileSize'] .'<br>';
+            }
+        }
+    } else {//单个文件上传
+        if ($data['state']=='1'){
+            echo '上传成功：'. $data['url'] .'，类型：'. $data['fileType'] .'，大小：'. $data['fileSize'].'<br>';
+        } else {
+            echo '上传失败：'. $data['url'] .'，类型：'. $data['fileType'] .'，大小：'. $data['fileSize'] .'<br>';
+        }
+    }
 }
 ?>
 */

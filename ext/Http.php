@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 //数据采集 doGET,doPOST,doSend自定义发送数据,文件下载
 class Http
 {
@@ -18,7 +20,7 @@ class Http
     /**
      * @param $proxy `proxy://user:pass@hostname:port`
      */
-    public static function setCurlProxy($proxy)
+    public static function setCurlProxy($proxy): void
     {
         if ($proxy === null) { //清除代理设置
             self::$curlProxy = [];
@@ -34,70 +36,80 @@ class Http
     public static function getSupport()
     {
         //如果指定访问方式，则按指定的方式去访问
-        if(isset(self::$way) && in_array(self::$way,array(1,2,3)))
+        if (isset(self::$way) && in_array(self::$way, [1,2,3])) {
             return self::$way;
+        }
         //自动获取最佳访问方式
-        if(function_exists('curl_init'))//curl方式
+        if (function_exists('curl_init')) {//curl方式
             return 1;
-        elseif(function_exists('fsockopen'))//socket
+        } elseif (function_exists('fsockopen')) {//socket
             return 2;
-        elseif(function_exists('file_get_contents'))//php系统函数file_get_contents
+        } elseif (function_exists('file_get_contents')) {//php系统函数file_get_contents
             return 3;
-        else
+        } else {
             return 0;
+        }
     }
     //通过get方式获取数据 $header string|array
-    public static function doGet($url, $timeout=30, $header='', $opt=[])
+    public static function doGet($url, $timeout = 30, $header = '', $opt = [])
     {
         $code = self::doInit($url, $timeout);
-        if(!$code) return false;
-        switch($code)
-        {
-            case 1:return self::curlGet($url,$timeout,$header,$opt);
-            case 2:return self::socketGet($url,$timeout,$header);
-            case 3:return self::phpGet($url,$timeout,$header);
+        if (!$code) {
+            return false;
+        }
+        switch ($code) {
+            case 1:return self::curlGet($url, $timeout, $header, $opt);
+            case 2:return self::socketGet($url, $timeout, $header);
+            case 3:return self::phpGet($url, $timeout, $header);
         }
         return false;
     }
     //通过POST方式发送数据 $header string|array
-    public static function doPost($url, $data=null, $timeout=30, $header='', $opt=[])
+    public static function doPost($url, $data = null, $timeout = 30, $header = '', $opt = [])
     {
         $code = self::doInit($url, $timeout);
-        if(!$code) return false;
-        switch($code)
-        {
-            case 1:return self::curlPost($url,$data,$timeout,$header,$opt);
-            case 2:return self::socketPost($url,$data,$timeout,$header);
-            case 3:return self::phpPost($url,$data,$timeout,$header);
+        if (!$code) {
+            return false;
+        }
+        switch ($code) {
+            case 1:return self::curlPost($url, $data, $timeout, $header, $opt);
+            case 2:return self::socketPost($url, $data, $timeout, $header);
+            case 3:return self::phpPost($url, $data, $timeout, $header);
         }
         return false;
     }
     //通过Send自定义方式发送数据 $header string|array
-    public static function doSend($url, $type='GET', $data=null, $timeout=30, $header='', $opt=[])
+    public static function doSend($url, $type = 'GET', $data = null, $timeout = 30, $header = '', $opt = [])
     {
         $code = self::doInit($url, $timeout);
-        if(!$code) return false;
-        switch($code)
-        {
-            case 1:return self::curlSend($url,$type,$data,$timeout,$header,$opt);
-            case 2:return self::socketSend($url,$type,$data,$timeout,$header);
-            case 3:return self::phpSend($url,$type,$data,$timeout,$header);
+        if (!$code) {
+            return false;
+        }
+        switch ($code) {
+            case 1:return self::curlSend($url, $type, $data, $timeout, $header, $opt);
+            case 2:return self::socketSend($url, $type, $data, $timeout, $header);
+            case 3:return self::phpSend($url, $type, $data, $timeout, $header);
         }
         return false;
     }
-    public static function doInit(&$url, $timeout){
-        if (empty($url) || empty($timeout)) return false;
-        if (stripos($url, 'http') !== 0) $url = 'http://' . $url;
+    public static function doInit(&$url, $timeout)
+    {
+        if (empty($url) || empty($timeout)) {
+            return false;
+        }
+        if (stripos($url, 'http') !== 0) {
+            $url = 'http://' . $url;
+        }
         return self::getSupport();
     }
 
     //通过curl get数据
-    public static function curlGet($url, $timeout=30, $header='', $opt=[])
+    public static function curlGet($url, $timeout = 30, $header = '', $opt = [])
     {
         return self::curlSend($url, 'GET', null, $timeout, $header, $opt);
     }
     //通过curl post数据 支持post string
-    public static function curlPost($url, $data=null, $timeout=30, $header='', $opt=[])
+    public static function curlPost($url, $data = null, $timeout = 30, $header = '', $opt = [])
     {
         return self::curlSend($url, 'POST', $data, $timeout, $header, $opt);
     }
@@ -111,10 +123,10 @@ class Http
      * @param array $opt
      * @return array|bool|string
      */
-    public static function curlPostFile($url, $files, $data=[], $timeout=30, $header=[], $opt=[])
+    public static function curlPostFile($url, $files, $data = [], $timeout = 30, $header = [], $opt = [])
     {
         self::$curlPostEncode = false;
-        if (PHP_VERSION_ID < 80100){
+        if (PHP_VERSION_ID < 80100) {
             $hasStringFile = false;
             foreach ($files as $name => $file) {
                 if (is_array($file)) {
@@ -124,7 +136,9 @@ class Http
             }
             if ($hasStringFile) {
                 if ($header) {
-                    if (is_string($header)) $header = explode("\r\n", $header);
+                    if (is_string($header)) {
+                        $header = explode("\r\n", $header);
+                    }
                 } else {
                     $header = [];
                 }
@@ -135,7 +149,9 @@ class Http
 
         foreach ($files as $name => $file) {
             if (is_array($file)) { //[filename, content, mime_type]
-                if (!isset($file[0]) || !isset($file[1])) continue;
+                if (!isset($file[0]) || !isset($file[1])) {
+                    continue;
+                }
                 $type = isset($file[2]) ? $file[2] : 'application/octet-stream';
 
                 //是否远程下载获取内容
@@ -163,11 +179,13 @@ class Http
      * @param array $opt
      * @return array|bool|string
      */
-    public static function curlSend($url, $type='GET', $data=null, $timeout=30, $header='', $opt=[])
+    public static function curlSend($url, $type = 'GET', $data = null, $timeout = 30, $header = '', $opt = [])
     {
-        if(!$opt) $opt = self::$curlOpt;
+        if (!$opt) {
+            $opt = self::$curlOpt;
+        }
 
-        if(self::$curlBeforeCall){
+        if (self::$curlBeforeCall) {
             //call_user_func不支持引用传值
             call_user_func_array(self::$curlBeforeCall, [&$url, &$type, &$data, &$timeout, &$header, &$opt]);
         }
@@ -200,18 +218,18 @@ class Http
             $options[CURLOPT_NOSIGNAL] = true;
         }
 
-        if(substr($url,0,5)=='https'){ //ssl
+        if (substr($url, 0, 5) == 'https') { //ssl
             $options[CURLOPT_SSL_VERIFYHOST] = 0; //检查服务器SSL证书 正式环境中使用 2
             $options[CURLOPT_SSL_VERIFYPEER] = false; //取消验证证书
 
-            if(isset($opt['cert']) && isset($opt['key'])){
+            if (isset($opt['cert']) && isset($opt['key'])) {
                 $opt['type'] = isset($opt['type']) ? $opt['type'] : 'PEM';
                 $options[CURLOPT_SSLCERTTYPE] = $opt['type'];
                 $options[CURLOPT_SSLKEYTYPE] = $opt['type'];
                 $options[CURLOPT_SSLCERT] = $opt['cert'];
                 $options[CURLOPT_SSLKEY] = $opt['key'];
             }
-            if(isset($opt['cainfo']) || isset($opt['capath'])){
+            if (isset($opt['cainfo']) || isset($opt['capath'])) {
                 isset($opt['cainfo']) && $options[CURLOPT_CAINFO] = $opt['cainfo'];
                 isset($opt['capath']) && $options[CURLOPT_CAPATH] = $opt['capath'];
                 $options[CURLOPT_SSL_VERIFYHOST] = 2;
@@ -237,7 +255,7 @@ class Http
         } else {
             $options[CURLOPT_HTTP_VERSION] = CURL_HTTP_VERSION_1_0;
         }
-        if(!empty($opt['redirect'])){ #是否重定向
+        if (!empty($opt['redirect'])) { #是否重定向
             $options[CURLOPT_FOLLOWLOCATION] = true; #302 redirect
             $options[CURLOPT_MAXREDIRS] = (int)$opt['redirect']; #次数
         }
@@ -246,8 +264,10 @@ class Http
         $options[CURLOPT_CUSTOMREQUEST] = $type;
         switch ($type) {
             case 'GET':
-                if ( $data ) {
-                    if (is_array($data)) $data = http_build_query($data, "", "&", PHP_QUERY_RFC3986);
+                if ($data) {
+                    if (is_array($data)) {
+                        $data = http_build_query($data, "", "&", PHP_QUERY_RFC3986);
+                    }
                     $url = strpos($url, '?') === false ? ($url . '?' . $data) : ($url . '&' . $data);
                     $options[CURLOPT_URL] = $url;
                 }
@@ -281,7 +301,7 @@ class Http
                 break;
         }
 
-        if(isset($opt['referer'])){
+        if (isset($opt['referer'])) {
             $options[CURLOPT_REFERER] = $opt['referer'];
         }
 
@@ -297,7 +317,9 @@ class Http
         }
 
         $options[CURLOPT_HTTPHEADER] = is_string($header) ? explode("\r\n", $header) : $header;
-        if (isset($opt['cookie'])) $options[CURLOPT_COOKIE] = $opt['cookie'];
+        if (isset($opt['cookie'])) {
+            $options[CURLOPT_COOKIE] = $opt['cookie'];
+        }
 
         $ch = curl_init();
         curl_setopt_array($ch, $options);
@@ -309,9 +331,11 @@ class Http
         $result = false;
         if (isset($opt['res'])) {
             curl_setopt($ch, CURLOPT_HEADER, true);    // 是否需要响应 header
-            if (self::$isMulti) return $ch;
+            if (self::$isMulti) {
+                return $ch;
+            }
             $output          = curl_exec($ch);
-            if($output!==false){
+            if ($output !== false) {
                 $header_size     = curl_getinfo($ch, CURLINFO_HEADER_SIZE);    // 获得响应结果里的：头大小
                 //$res_header = substr($output, 0, $header_size);    // 根据头大小去获取头信息内容
                 //$http_code  = curl_getinfo($ch, CURLINFO_HTTP_CODE);    // 获取响应状态码
@@ -328,13 +352,15 @@ class Http
                 ];
             }
         } else {
-            if (self::$isMulti) return $ch;
+            if (self::$isMulti) {
+                return $ch;
+            }
             $result = curl_exec($ch);
         }
         self::$curlErr = '';
-        if(curl_errno($ch)){
+        if (curl_errno($ch)) {
             self::$curlErr = curl_error($ch);
-            \myphp\Log::write('err:'. self::$curlErr."\nurl:".$url.($data!==null?"\ndata:".(is_string($data)?urldecode($data):toJson($data)):''), 'curl');
+            \myphp\Log::write('err:'. self::$curlErr."\nurl:".$url.($data !== null ? "\ndata:".(is_string($data) ? urldecode($data) : toJson($data)) : ''), 'curl');
             //\myphp\Log::write($options, 'options');
             //\myphp\Log::write($opt, 'opt');
 
@@ -385,7 +411,7 @@ class Http
      * @param array $data
      * @param string $header
      */
-    public static function multiAdd($url, $method='get', $data=[], $header='')
+    public static function multiAdd($url, $method = 'get', $data = [], $header = ''): void
     {
         if ($data || $header || $method != 'get') {
             self::$multiUrl[] = ['url' => $url, 'data' => $data, 'method' => $method, 'header' => $header];
@@ -401,7 +427,7 @@ class Http
      * @param array $opt
      * @return array
      */
-    public static function multiRun($timeout=5, $header='', $opt=[])
+    public static function multiRun($timeout = 5, $header = '', $opt = [])
     {
         return self::multi(self::$multiUrl, $timeout, $header, $opt);
     }
@@ -414,10 +440,14 @@ class Http
      * @param array $opt
      * @return array
      */
-    public static function multi($urls=[], $timeout=5, $header='', $opt=[]){
+    public static function multi($urls = [], $timeout = 5, $header = '', $opt = [])
+    {
         if (!$urls) {
-            if (self::$multiUrl) $urls = self::$multiUrl;
-            else return [];
+            if (self::$multiUrl) {
+                $urls = self::$multiUrl;
+            } else {
+                return [];
+            }
         }
         self::$multiUrl = []; //重置
         self::$isMulti = true; //标记为批量处理
@@ -443,7 +473,9 @@ class Http
          */
         do {
             //执行
-            do {$mrc = curl_multi_exec($mh, $active);} while ($mrc === CURLM_CALL_MULTI_PERFORM);
+            do {
+                $mrc = curl_multi_exec($mh, $active);
+            } while ($mrc === CURLM_CALL_MULTI_PERFORM);
             // 使用 curl_multi_select 等待活动
             if (curl_multi_select($mh) === -1) { //失败时返回-1 没有任何活动的则为 0
                 usleep(100); // 等待少许时间以避免高CPU占用
@@ -470,7 +502,9 @@ class Http
         $res = [];
         foreach ($urls as $i => $url) {
             $res[$i] = $multiRes[(int)$conn[$i]];
-            if ($res[$i] === false) self::$multiErr[$i] = 'err' . curl_errno($conn[$i]) . ':' . curl_error($conn[$i]);
+            if ($res[$i] === false) {
+                self::$multiErr[$i] = 'err' . curl_errno($conn[$i]) . ':' . curl_error($conn[$i]);
+            }
             curl_close($conn[$i]);
         }
         unset($multiRes, $conn);
@@ -492,13 +526,14 @@ class Http
      * @param array $header
      * @param bool $phpArr php数组是带[]的
      */
-    public static function withCurlFiles($postFields, $fileFields, &$body='', &$header=[], $phpArr=true){
+    public static function withCurlFiles($postFields, $fileFields, &$body = '', &$header = [], $phpArr = true): void
+    {
         //生成分隔符
         $delimiter = '-------------' . uniqid('', true);
         //先将post的普通数据生成主体字符串
         if ($postFields != null) {
             foreach ($postFields as $name => $value) {
-                if (!$phpArr && $pos=strpos($name, '[')) {
+                if (!$phpArr && $pos = strpos($name, '[')) {
                     $name = substr($name, 0, $pos);
                 }
                 $body .= "--" . $delimiter . "\r\n";
@@ -509,7 +544,7 @@ class Http
         //将上传的文件生成主体字符串
         if ($fileFields != null) {
             foreach ($fileFields as $name => $file) {
-                if (!$phpArr && $pos=strpos($name, '[')) {
+                if (!$phpArr && $pos = strpos($name, '[')) {
                     $name = substr($name, 0, $pos);
                 }
                 $body .= "--" . $delimiter . "\r\n";
@@ -545,7 +580,9 @@ class Http
      */
     private static function _curlIsRetry($url, $err)
     {
-        if (self::$curlRetries <= 0) return false;
+        if (self::$curlRetries <= 0) {
+            return false;
+        }
         //有指定重试判断
         if (self::$curlRetryCond) {
             return call_user_func(self::$curlRetryCond, $url, $err);
@@ -556,43 +593,48 @@ class Http
         return strpos($err, ' timed out') !== false || strpos($err, 'Failed to connect') !== false || strpos($err, 'Unknown SSL protocol') !== false || strpos($err, 'SSL read') !== false;
     }
     //通过socket get数据
-    public static function socketGet($url,$timeout=30,$header='')
+    public static function socketGet($url, $timeout = 30, $header = '')
     {
         return self::socketSend($url, 'GET', null, $timeout, $header);
     }
     //通过socket post数据
-    public static function socketPost($url, $data=null, $timeout=30,$header='')
+    public static function socketPost($url, $data = null, $timeout = 30, $header = '')
     {
         return self::socketSend($url, 'POST', $data, $timeout, $header);
     }
     //通过socket 自定义发送请求
-    public static function socketSend($url, $type='GET', $data=null, $timeout=30,$header='')
+    public static function socketSend($url, $type = 'GET', $data = null, $timeout = 30, $header = '')
     {
-        if (!$header) $header = self::defaultHeader();
+        if (!$header) {
+            $header = self::defaultHeader();
+        }
         $header = self::header2string($header);
-        $post_string = is_array($data)?http_build_query($data, "", "&", PHP_QUERY_RFC3986):$data;
+        $post_string = is_array($data) ? http_build_query($data, "", "&", PHP_QUERY_RFC3986) : $data;
 
-        $def_port = 80;$scheme = '';
-        if(substr($url,0,5)=='https'){ //ssl
+        $def_port = 80;
+        $scheme = '';
+        if (substr($url, 0, 5) == 'https') { //ssl
             $def_port = 443;
             $scheme = 'ssl://';
         }
 
         $url2 = parse_url($url);
-        $url2["path"] = isset($url2["path"])? $url2["path"]: "/" ;
-        $url2["port"] = isset($url2["port"])? $url2["port"] : $def_port;
+        $url2["path"] = isset($url2["path"]) ? $url2["path"] : "/" ;
+        $url2["port"] = isset($url2["port"]) ? $url2["port"] : $def_port;
 
-        if(!($fsock = fsockopen($scheme.$url2["host"], $url2['port'], $errno, $errstr, $timeout))){
+        if (!($fsock = fsockopen($scheme.$url2["host"], $url2['port'], $errno, $errstr, $timeout))) {
             return false;
         }
         $request =  $url2["path"].(isset($url2["query"]) ? "?" . $url2["query"] : "");
 
         $type = strtoupper($type);
         $in  = $type." " . $request . " HTTP/1.1\r\n";
-        if(false===stripos($header, "Host:"))
+        if (false === stripos($header, "Host:")) {
             $in .= "Host: " . $url2["host"] . "\r\n";
-        if(stripos($header, 'Referer')===false)
+        }
+        if (stripos($header, 'Referer') === false) {
             $in .= "Referer: " . $url . "\r\n";
+        }
 
         $in .= $header. "\r\n";
         switch ($type) {
@@ -606,7 +648,7 @@ class Http
 
         $in .= "Connection: Close\r\n\r\n";
         $in .= $post_string . "\r\n\r\n";
-        if(!@fwrite($fsock, $in, strlen($in))){
+        if (!@fwrite($fsock, $in, strlen($in))) {
             @fclose($fsock);
             return false;
         }
@@ -614,25 +656,27 @@ class Http
     }
 
     //通过file_get_contents函数get数据
-    public static function phpGet($url,$timeout=30, $header='')
+    public static function phpGet($url, $timeout = 30, $header = '')
     {
         return self::phpSend($url, 'GET', null, $timeout, $header);
     }
     //通过file_get_contents 函数post数据
-    public static function phpPost($url, $data=null, $timeout=30, $header='')
+    public static function phpPost($url, $data = null, $timeout = 30, $header = '')
     {
         return self::phpSend($url, 'POST', $data, $timeout, $header);
     }
     //通过file_get_contents 函数自定义Send数据
-    public static function phpSend($url, $type='GET', $data=null, $timeout=30, $header='')
+    public static function phpSend($url, $type = 'GET', $data = null, $timeout = 30, $header = '')
     {
-        if (!$header) $header = self::defaultHeader();
+        if (!$header) {
+            $header = self::defaultHeader();
+        }
         $header = self::header2string($header);
         $opt_http = 'http';
-        if(substr($url,0,5)=='https'){ //ssl
+        if (substr($url, 0, 5) == 'https') { //ssl
             //$opt_http = 'https';
         }
-        $post_string = is_array($data)?http_build_query($data, "", "&", PHP_QUERY_RFC3986):$data;
+        $post_string = is_array($data) ? http_build_query($data, "", "&", PHP_QUERY_RFC3986) : $data;
         $type = strtoupper($type);
         switch ($type) {
             case 'POST':
@@ -642,14 +686,14 @@ class Http
                 $header .= "Content-length: ".strlen($post_string);
                 break;
         }
-        $opts = array(
-            $opt_http=>array(
-                'protocol_version'=>'1.1',
-                'method'=>$type,//获取方式
-                'timeout'=> $timeout ,//超时时间
-                'header'=> $header
-            )
-        );
+        $opts = [
+            $opt_http => [
+                'protocol_version' => '1.1',
+                'method' => $type,//获取方式
+                'timeout' => $timeout ,//超时时间
+                'header' => $header
+            ]
+        ];
         switch ($type) {
             case 'POST':
             case 'PATCH':
@@ -658,7 +702,7 @@ class Http
                 break;
         }
         $context = stream_context_create($opts);
-        return @file_get_contents($url,false,$context);
+        return @file_get_contents($url, false, $context);
     }
 
     private static function header2string($header)
@@ -684,27 +728,25 @@ class Http
     }
 
     //获取通过socket方式get和post页面的返回数据
-    private static function _getHttpContent($fsock=null)
+    private static function _getHttpContent($fsock = null)
     {
         $out = null;
-        while($buff = @fgets($fsock, 2048)){
+        while ($buff = @fgets($fsock, 2048)) {
             $out .= $buff;
         }
         fclose($fsock);
         $pos = strpos($out, "\r\n\r\n");
         $head = substr($out, 0, $pos);    //http head
         $status = substr($head, 0, strpos($head, "\r\n"));    //http status line
-        $body = substr($out, $pos+4, strpos($out, "\r\n0\r\n\r\n")-$pos-4);
-        $body = substr($body, strpos($body, "\r\n")+2);
-        if(preg_match("/^HTTP\/\d\.\d\s([\d]+)\s.*$/", $status, $matches))
-        {
-            if(intval($matches[1]) / 100 == 2)
+        $body = substr($out, $pos + 4, strpos($out, "\r\n0\r\n\r\n") - $pos - 4);
+        $body = substr($body, strpos($body, "\r\n") + 2);
+        if (preg_match("/^HTTP\/\d\.\d\s([\d]+)\s.*$/", $status, $matches)) {
+            if (intval($matches[1]) / 100 == 2) {
                 return $body;
-            else
+            } else {
                 return false;
-        }
-        else
-        {
+            }
+        } else {
             return false;
         }
     }
@@ -715,7 +757,7 @@ class Http
      $showname 下载显示的文件名
      $expire  下载内容浏览器缓存时间
     */
-    public static function download($filename, $showname='',$expire=1800)
+    public static function download($filename, $showname = '', $expire = 1800)
     {
         if (is_file($filename)) {
             $length = filesize($filename);
@@ -730,19 +772,19 @@ class Http
         header("Pragma: public");
         header("Cache-control: max-age=".$expire);
         //header('Cache-Control: no-store, no-cache, must-revalidate');
-        header("Expires: " . gmdate("D, d M Y H:i:s",time()+$expire) . "GMT");
-        header("Last-Modified: " . gmdate("D, d M Y H:i:s",time()) . "GMT");
+        header("Expires: " . gmdate("D, d M Y H:i:s", time() + $expire) . "GMT");
+        header("Last-Modified: " . gmdate("D, d M Y H:i:s", time()) . "GMT");
         header("Content-Disposition: attachment; filename=".$showname);
         header("Content-Length: ".$length);
         header("Content-type: ".$type);
         header('Content-Encoding: none');
-        header("Content-Transfer-Encoding: binary" );
+        header("Content-Transfer-Encoding: binary");
         readfile($filename);
         return true;
     }
 }
 
-if( !function_exists ('mime_content_type')) {
+if (!function_exists('mime_content_type')) {
     /**
     +----------------------------------------------------------
      * 获取文件的mime_content类型
@@ -752,7 +794,7 @@ if( !function_exists ('mime_content_type')) {
      */
     function mime_content_type($filename)
     {
-        static $contentType = array(
+        static $contentType = [
             'ai'	=> 'application/postscript',
             'aif'	=> 'audio/x-aiff',
             'aifc'	=> 'audio/x-aiff',
@@ -859,7 +901,7 @@ if( !function_exists ('mime_content_type')) {
             'ps'	=> 'application/postscript',
             'qt'	=> 'video/quicktime',
             'ra'	=> 'audio/x-realaudio',
-            'rar'=>'application/octet-stream',
+            'rar' => 'application/octet-stream',
             'ram'	=> 'audio/x-pn-realaudio',
             'ras'	=> 'image/x-cmu-raster',
             'rgb'	=> 'image/x-rgb',
@@ -945,12 +987,12 @@ if( !function_exists ('mime_content_type')) {
             'xwd'	=> 'image/x-xwindowdump',
             'xyz'	=> 'chemical/x-xyz',
             'z'	=> 'application/x-compress',
-            'zip'	=> 'application/zip',
-        );
-        $type = strtolower(substr(strrchr($filename, '.'),1));
-        if(isset($contentType[$type])) {
+            'zip'	=> 'application/zip'
+        ];
+        $type = strtolower(substr(strrchr($filename, '.'), 1));
+        if (isset($contentType[$type])) {
             $mime = $contentType[$type];
-        }else {
+        } else {
             $mime = 'application/octet-stream';
         }
         return $mime;

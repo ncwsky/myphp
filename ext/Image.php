@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 //GD库 - 生成图像缩略图和生成验证码
 class Image
 {
@@ -23,21 +25,25 @@ class Image
      * @param bool $raw_string 是否原始内容
      * @return bool|array
      */
-    public static function getImageInfo($img, $raw_string=null)
+    public static function getImageInfo($img, $raw_string = null)
     {
-        if ($raw_string === null) $raw_string = self::$rawString;
+        if ($raw_string === null) {
+            $raw_string = self::$rawString;
+        }
         $imageInfo = $raw_string ? getimagesizefromstring($img) : getimagesize($img);
         if ($imageInfo) {
             $imageSize = $raw_string ? strlen($img) : filesize($img);
-            if (!$imageSize) return false;
+            if (!$imageSize) {
+                return false;
+            }
             $imageType = strtolower(image_type_to_extension($imageInfo[2], false));
-            return array(
+            return [
                 "width" => $imageInfo[0],
                 "height" => $imageInfo[1],
                 "type" => $imageType,
                 "size" => $imageSize,
                 "mime" => $imageInfo['mime']
-            );
+            ];
         }
         return false;
     }
@@ -50,9 +56,14 @@ class Image
      * @param null|array $info
      * @return bool
      */
-    public static function optimize($image, $out = '', $quality = -1, $info=null){
-        if ($info === null) $info = self::getImageInfo($image); // 获取原图信息
-        if ($info === false) return false;
+    public static function optimize($image, $out = '', $quality = -1, $info = null)
+    {
+        if ($info === null) {
+            $info = self::getImageInfo($image); // 获取原图信息
+        }
+        if ($info === false) {
+            return false;
+        }
         if ($out == '') {
             if (self::$rawString) {
                 //self::$rawString = false; //Reset
@@ -70,9 +81,13 @@ class Image
             $imagecreatefrom = 'imagecreatefrom' . $type;
             $srcImg = $imagecreatefrom($image);
         }
-        if (!$srcImg) return false;
+        if (!$srcImg) {
+            return false;
+        }
 
-        if ($quality == -1) $quality = self::$quality; //默认质量
+        if ($quality == -1) {
+            $quality = self::$quality; //默认质量
+        }
         if (self::$outType) { //指定输出类型
             $type = self::$outType;
             self::$outType = '';
@@ -112,7 +127,9 @@ class Image
     public static function thumb($image, $thumbName, $maxWidth = 200, $maxHeight = 50, $fixed = false, $interlace = false, $quality = -1)
     {
         $info = self::getImageInfo($image); // 获取原图信息
-        if ($info === false) return false;
+        if ($info === false) {
+            return false;
+        }
 
         $srcWidth = $info['width'];
         $srcHeight = $info['height'];
@@ -157,7 +174,9 @@ class Image
             $imagecreatefrom = 'imagecreatefrom' . $type;
             $srcImg = function_exists($imagecreatefrom) ? $imagecreatefrom($image) : imagecreatefromjpeg($image);
         }
-        if (!$srcImg) return false;
+        if (!$srcImg) {
+            return false;
+        }
 
         if (self::$outType) { //指定输出类型
             $type = self::$outType;
@@ -176,23 +195,30 @@ class Image
         } elseif ($type == 'gif') {
             $trnprt_indx = imagecolortransparent($srcImg); //透明色的标识符
             if ($trnprt_indx !== false && $trnprt_indx >= 0) {
-                if ($trnprt_indx > 0) $trnprt_indx--;
+                if ($trnprt_indx > 0) {
+                    $trnprt_indx--;
+                }
                 $trnprt_color = imagecolorsforindex($srcImg, $trnprt_indx);
                 $trnprt_indx = imagecolorallocate($thumbImg, $trnprt_color['red'], $trnprt_color['green'], $trnprt_color['blue']);
                 imagefill($thumbImg, 0, 0, $trnprt_indx);
                 imagecolortransparent($thumbImg, $trnprt_indx);
-            } else imagefill($thumbImg, 0, 0, $background_color);
+            } else {
+                imagefill($thumbImg, 0, 0, $background_color);
+            }
         } else {
             imagefill($thumbImg, 0, 0, $background_color);
         }
         // 复制图片
-        if (function_exists("imagecopyresampled"))
+        if (function_exists("imagecopyresampled")) {
             imagecopyresampled($thumbImg, $srcImg, $dst_x, $dst_y, 0, 0, $width, $height, $srcWidth, $srcHeight);
-        else
+        } else {
             imagecopyresized($thumbImg, $srcImg, $dst_x, $dst_y, 0, 0, $width, $height, $srcWidth, $srcHeight);
+        }
 
-        $interlace && imageinterlace($thumbImg, 1); //图形设置隔行扫描
-        if ($quality == -1) $quality = self::$quality; //默认质量
+        $interlace && imageinterlace($thumbImg, true); //图形设置隔行扫描
+        if ($quality == -1) {
+            $quality = self::$quality; //默认质量
+        }
         // 生成图片
         if ($type == 'jpeg' || $type == 'jpg') {
             imagejpeg($thumbImg, $thumbName, $quality);
@@ -224,28 +250,32 @@ class Image
      * @param int $alpha 透明度 0:完全透明 ~ 100:完全不透明
      * @return bool
      */
-    public static function water($image, $water, $newImage='', $waterPos = 9, $padding=5, $alpha=75)
+    public static function water($image, $water, $newImage = '', $waterPos = 9, $padding = 5, $alpha = 75)
     {
         $isText = false;
         //水印
         if (is_array($water)) {
             $text = isset($water['text']) ? $water['text'] : '';
             $font = isset($water['font']) ? $water['font'] : '';
-            if ($text === '' || !$font) return false;
+            if ($text === '' || !$font) {
+                return false;
+            }
             $size = isset($water['size']) ? max(12, (int)$water['size']) : 18;
-            $angle = isset($water['angle']) ? max(180, (int)$water['angle']) : mt_rand(-180,180);
+            $angle = isset($water['angle']) ? max(180, (int)$water['angle']) : random_int(-180, 180);
             $color = isset($water['color']) ? explode(',', $water['color']) : [];
 
-            $color[0] = isset($color[0]) ? min(255, (int)$color[0]) : mt_rand(0, 166); //r
-            $color[1] = isset($color[1]) ? min(255, (int)$color[1]) : mt_rand(0, 166); //g
-            $color[2] = isset($color[2]) ? min(255, (int)$color[2]) : mt_rand(0, 166); //b
+            $color[0] = isset($color[0]) ? min(255, (int)$color[0]) : random_int(0, 166); //r
+            $color[1] = isset($color[1]) ? min(255, (int)$color[1]) : random_int(0, 166); //g
+            $color[2] = isset($color[2]) ? min(255, (int)$color[2]) : random_int(0, 166); //b
             //计算长宽
             $box = imagettfbbox($size, $angle, $font, $text);
-            if (!$box) return false;
-            $min_x = min(array($box[0], $box[2], $box[4], $box[6]));
-            $max_x = max(array($box[0], $box[2], $box[4], $box[6]));
-            $min_y = min(array($box[1], $box[3], $box[5], $box[7]));
-            $max_y = max(array($box[1], $box[3], $box[5], $box[7]));
+            if (!$box) {
+                return false;
+            }
+            $min_x = min([$box[0], $box[2], $box[4], $box[6]]);
+            $max_x = max([$box[0], $box[2], $box[4], $box[6]]);
+            $min_y = min([$box[1], $box[3], $box[5], $box[7]]);
+            $max_y = max([$box[1], $box[3], $box[5], $box[7]]);
             $w = ($max_x - $min_x);
             $h = ($max_y - $min_y);
             $left = abs($min_x);
@@ -262,9 +292,13 @@ class Image
             //imagefttext($water_im, $size, $angle, 0, ceil($h/2)+8, $txt_color, $font, $text);
             $isText = true;
         } else {
-            if (!file_exists($water)) return false;
+            if (!file_exists($water)) {
+                return false;
+            }
             $waterInfo = self::getImageInfo($water);
-            if (!$waterInfo) return false;
+            if (!$waterInfo) {
+                return false;
+            }
 
             $w = $waterInfo['width'];
             $h = $waterInfo['height'];
@@ -272,13 +306,19 @@ class Image
             $water_im = function_exists($imagecreatefrom) ? $imagecreatefrom($water) : imagecreatefromjpeg($water);
             unset($waterInfo);
         }
-        if (!$water_im) return false;
+        if (!$water_im) {
+            return false;
+        }
 
         //检查图片是否存在
-        if (!file_exists($image)) return false;
+        if (!file_exists($image)) {
+            return false;
+        }
         //原图像
         $imageInfo = self::getImageInfo($image);
-        if (!$imageInfo) return false;
+        if (!$imageInfo) {
+            return false;
+        }
         $type = $imageInfo['type'];
         $image_w = $imageInfo['width'];
         $image_h = $imageInfo['height'];
@@ -298,11 +338,11 @@ class Image
                 $posY = 0 + $offset_h;
                 break;
             case 3: //3为顶端居右
-                $posX = $image_w - $w - $offset_w;;
+                $posX = $image_w - $w - $offset_w;
                 $posY = 0 + $offset_h;
                 break;
             case 4: //4为中部居左
-                $posX = 0 + $offset_w;;
+                $posX = 0 + $offset_w;
                 $posY = ($image_h - $h) / 2;
                 break;
             case 5: //5为中部居中
@@ -326,8 +366,8 @@ class Image
                 $posY = $image_h - $h - $offset_h;
                 break;
             default: //随机
-                $posX = mt_rand(0, ($image_w - $w));
-                $posY = mt_rand(0, ($image_h - $h));
+                $posX = random_int(0, ($image_w - $w));
+                $posY = random_int(0, ($image_h - $h));
                 break;
         }
 
@@ -337,15 +377,17 @@ class Image
         }
         //设定图像的混色模式
         //imagealphablending($image_im, true);
-        if($isText){
+        if ($isText) {
             imagecopy($image_im, $water_im, $posX, $posY, 0, 0, $w, $h); //合并图片
-        }else{
+        } else {
             imagecopymerge($image_im, $water_im, $posX, $posY, 0, 0, $w, $h, $alpha);
         }
 
         //生成水印后的图片
         $imageFun = 'image' . $type;
-        if($newImage!=='') $image = $newImage;
+        if ($newImage !== '') {
+            $image = $newImage;
+        }
         $result = function_exists($imageFun) ? $imageFun($image_im, $image) : imagejpeg($image_im, $image);
         imagedestroy($image_im);
         return $result;
@@ -362,7 +404,8 @@ class Image
      * @param string $code
      * @return false|string|null
      */
-    public static function code(int $w=80, int $h=36, int $fontsize=18, int $len = 4, int $type=0, $callable = null, string &$code='') {
+    public static function code(int $w = 80, int $h = 36, int $fontsize = 18, int $len = 4, int $type = 0, $callable = null, string &$code = '')
+    {
         //生成随机字符
         $chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHIJKLMNPRSTUVWXYZ0123456789';//0123456789
         $font = __DIR__ . '/../inc/ggbi.ttf';
@@ -388,14 +431,14 @@ class Image
         }
 
         $rndChars = [];
-        if(empty($code)){
+        if (empty($code)) {
             $code = '';
             for ($i = 0; $i < $len; $i++) {
-                $char = $type == 5 ? mb_substr($chars, mt_rand(0, mb_strlen($chars) - 1), 1) : substr($chars, mt_rand(0, strlen($chars) - 1), 1);
+                $char = $type == 5 ? mb_substr($chars, random_int(0, mb_strlen($chars) - 1), 1) : substr($chars, random_int(0, strlen($chars) - 1), 1);
                 $code .= $char;
                 $rndChars[] = $char;
             }
-        }else{
+        } else {
             preg_match_all('/./u', $code, $matches);
             $rndChars = $matches[0];
         }
@@ -408,33 +451,33 @@ class Image
         //imagecreate($w, $h) 返回一个白色图像的标识符
         $img = imagecreatetruecolor($w, $h);//创建指定wh的黑色图像并返回一个图像标识符
 
-        $r = array(225,255,223);
-        $g = array(225,236,255);
-        $b = array(225,236,125);
-        $key = mt_rand(0,2);
+        $r = [225,255,223];
+        $g = [225,236,255];
+        $b = [225,236,125];
+        $key = random_int(0, 2);
 
-        $bgColor = imagecolorallocate($img, $r[$key],$g[$key],$b[$key]);   //背景色（随机）
+        $bgColor = imagecolorallocate($img, $r[$key], $g[$key], $b[$key]);   //背景色（随机）
         //$bgColor = imagecolorallocate($img, 237, 247, 255);   //背景色（随机）
         $borderColor = imagecolorallocate($img, 170, 212, 240);            //边框色
 
         imagefilledrectangle($img, 0, 0, $w, $h, $bgColor);//画一矩形并填充
         //imagefill($img, 0, 0, $bgColor);//区域填充
-        imagerectangle($img, 0, 0, $w-1, $h-1, $borderColor);//画一个矩形
+        imagerectangle($img, 0, 0, $w - 1, $h - 1, $borderColor);//画一个矩形
 
         //imagefill ( resource image, int x, int y, int color ) 区域填充
         //imagefill($img, 0, 0, $bgcol);//设置背景
 
         // mt_rand ( [int min, int max] ) -- 生成更好的随机数
-        $txt_color = imagecolorallocate($img, mt_rand(0, 166), mt_rand(0, 166), mt_rand(0, 166));
+        $txt_color = imagecolorallocate($img, random_int(0, 166), random_int(0, 166), random_int(0, 166));
         //$txt_color = imagecolorallocate($img,mt_rand(0,200),mt_rand(0,120),mt_rand(0,120));
 
         //imagestring  水平地画一行字符串 imagestring ( resource image, int font[1-5], int x, int y, string s, int col )
         //imagechar -- 水平地画一个字符   imagechar ( resource image, int font[1-5], int x, int y, string c, int color )
 
         // 干扰
-        for($i=0;$i<8;$i++){//画椭圆弧
+        for ($i = 0;$i < 8;$i++) {//画椭圆弧
             //$fontcolor=imagecolorallocate($img,mt_rand(0,156),mt_rand(0,156),mt_rand(0,156));
-            imagearc($img,mt_rand(-10,$w),mt_rand(-10,$h),mt_rand(20,250),mt_rand(20,250),55,54,$txt_color);
+            imagearc($img, random_int(-10, $w), random_int(-10, $h), random_int(20, 250), random_int(20, 250), 55, 54, $txt_color);
         }
         /*
         for($i=0;$i<10;$i++){//画一个单一像素
@@ -444,13 +487,12 @@ class Image
         for ($i = 0; $i < $len; $i++) {
             //imagechar($img,5,$i*10+5,mt_rand(1,8), $rndChars[$i], $txt_color);
             $x = $type == 5 ? $i * ($fontsize + 4) : $i * $fontsize + 4;
-            imagefttext($img, $fontsize, mt_rand(-30, 30), $x, $h / 2 + 8, $txt_color, $font, $rndChars[$i]);
+            imagefttext($img, $fontsize, random_int(-30, 30), $x, $h / 2 + 8, $txt_color, $font, $rndChars[$i]);
         }
 
         //输出图像
         return self::output($img);
     }
-
 
     public static $outputString = false;
 
