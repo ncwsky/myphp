@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  *  comm.func.php 功能函数库
  */
-function e404()
+function e404(): void
 {
     header("HTTP/1.1 404 Not Found");
     header('Status:404 Not Found');
@@ -16,7 +18,7 @@ function e404()
  * @param string $msg 重定向前的提示信息
  * @return string|void
  */
-function redirect($url, $time = 0, $msg = '')
+function redirect(string $url, int $time = 0, string $msg = '')
 {
     if ($time && empty($msg)) {
         $msg = "系统将在{$time}秒之后自动跳转到{$url}！";
@@ -57,7 +59,7 @@ function trim_script($str)
     return $str;
 }
 //字符截取 $string中汉字、英文字母、数字、符号每个在$len中占一个数，不存在汉字占两个字节的考虑
-function cutstr($str, $len, $suffix = '', $offset = 0)
+function cutstr(string $str, int $len, string $suffix = '', int $offset = 0): string
 {
     if (function_exists('mb_substr')) {
         $str = mb_substr($str, $offset, $len, 'UTF-8').(mb_strlen($str) > $len ? $suffix : '');
@@ -74,15 +76,15 @@ function cutstr($str, $len, $suffix = '', $offset = 0)
 /**
  * 内容截取 substr_cut
  *
- * @param [string] $str   要处理的字符串
- * @param [string] $s_flag 开始标识
- * @param [string] $e_flag 结束标识
+ * @param string $str   要处理的字符串
+ * @param string $s_flag 开始标识
+ * @param string $e_flag 结束标识
  * @param int $offset 起始位置
  * @param boolean $case 区分大小写 true不区分大小写
  * @param int $pos_e 结束标识位置
  * @return string
  */
-function substr_cut($str, $s_flag, $e_flag, $offset = 0, $case = true, &$pos_e = 0)
+function substr_cut(string $str, string $s_flag, string $e_flag, int $offset = 0, bool $case = true, int &$pos_e = 0): string
 {
     $pos_s = $case ? stripos($str, $s_flag, $offset) : strpos($str, $s_flag, $offset);
     if ($pos_s === false) {
@@ -93,13 +95,13 @@ function substr_cut($str, $s_flag, $e_flag, $offset = 0, $case = true, &$pos_e =
     return $pos_e ? substr($str, $pos_s, $pos_e - $pos_s) : substr($str, $pos_s);
 }
 //正则去除字符串首尾处空白字符-支持中文
-function cn_trim($str, $charlist = '\s')
+function cn_trim(string $str, string $charlist = '\s')
 {
     return preg_replace('/^['.$charlist.']+|['.$charlist.']+$/u', '', $str);
 }
 //字符长度 汉字、英文字母、数字、符号每个在$len中占一个数
 if (!function_exists('mb_strlen')) {
-    function mb_strlen($str, $encoding = 'UTF-8')
+    function mb_strlen(string $str, $encoding = 'UTF-8'): int
     {
         preg_match_all('/./u', $str, $arr);
         $len = count($arr[0]);
@@ -111,7 +113,7 @@ if (!function_exists('mb_strlen')) {
     mb_internal_encoding("UTF-8");
 }
 // 清除HTML代码
-function html_clean($str)
+function html_clean(string $str)
 {
     $str = htmlspecialchars($str);
     $str = str_replace("\n", "<br />", $str);
@@ -120,23 +122,23 @@ function html_clean($str)
     return $str;
 }
 // html_clean 反转
-function html_clean_decode($str)
+function html_clean_decode(string $str)
 {
     $str = htmlspecialchars_decode($str);
     $str = str_replace(['<br>','<br />'], "\n", $str);
     $str = str_replace("&nbsp;&nbsp;", "  ", $str);
     return $str;
 }
-function html_encode($content)
+function html_encode(string $content)
 {
     return htmlspecialchars($content, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
-function html_decode($content)
+function html_decode(string $content)
 {
     return htmlspecialchars_decode($content, ENT_QUOTES);
 }
 //html to txt
-function Html2Text($str)
+function Html2Text(string $str)
 {
     $alltext = strip_tags($str);
     $alltext = str_replace("　", " ", $alltext);
@@ -145,7 +147,7 @@ function Html2Text($str)
     return $alltext;
 }
 //自动闭合html标签
-function closetags($html)
+function closetags(string $html)
 {
     preg_match_all('#<([a-z]+)(?: .*)?(?<!/|/ )>#iU', $html, $result);
     $openedtags = $result[1];
@@ -172,7 +174,7 @@ function closetags($html)
     return $html;
 }
 //html截取 并自动闭合
-function cut_html($s, $max_len = 250)
+function cut_html(string $s, int $max_len = 250)
 {
     if (strlen($s) > $max_len) {
         $i = strpos($s, "\n");//查询是否存在回车换行符
@@ -196,7 +198,7 @@ function cut_html($s, $max_len = 250)
  * @param array $arr2 合并数组
  * @param bool $strict 严格验证
  */
-function array_walk_merge(&$arr1, &$arr2, $strict = false)
+function array_walk_merge(array &$arr1, array &$arr2, bool $strict = false): void
 {
     foreach ($arr2 as $k => $v) {
         if (substr($k, 0, 1) == '@') {
@@ -230,7 +232,7 @@ function array_walk_merge(&$arr1, &$arr2, $strict = false)
  * @param bool $auto 是否开启自动键值（默认开启，字符键值时可以关闭）
  * @return array
  */
-function array_sort($array, $row_id, $order_type = 'asc', $auto = true)
+function array_sort(array $array, string $row_id, string $order_type = 'asc', bool $auto = true): array
 {
     $array_temp = [];
     foreach ($array as $key => $value) {//循环一层；
@@ -256,9 +258,9 @@ function array_sort($array, $row_id, $order_type = 'asc', $auto = true)
 /**
  * 打乱数组,保持键值对关系
  * @param array $array
- * @return true
+ * @return void
  */
-function shuffle_assoc(&$array)
+function shuffle_assoc(array &$array): void
 {
     $keys = array_keys($array);
     shuffle($keys);
@@ -267,7 +269,6 @@ function shuffle_assoc(&$array)
         $new[$key] = $array[$key];
     }
     $array = $new;
-    return true;
 }
 
 /**
@@ -279,9 +280,9 @@ function shuffle_assoc(&$array)
  * 超过3天，则显示完整日期 'Y-m-d H:i'。
  * @param int $time 数据源日期 unix时间戳
  * @param bool $hi
- * @return false|string
+ * @return string
  */
-function getDateStyle($time, $hi = true)
+function getDateStyle(int $time, bool $hi = true)
 {
     $nowTime = time();  //获取今天时间戳
     //一分钟
@@ -467,7 +468,7 @@ function my_hash_md5($val, $verify = false)
 {
     $my_hash = my_hash();
     if ($verify) {
-        if ($my_hash && isset($_GET['my_hash_md5']) && md5(getMd5($val . $my_hash) == $_GET['my_hash_md5'])) {
+        if ($my_hash && isset($_GET['my_hash_md5']) && md5(getMd5($val . $my_hash)) == $_GET['my_hash_md5']) {
             return true;
         } elseif ($my_hash && isset($_POST['my_hash_md5']) && md5(getMd5($val . $my_hash)) == $_POST['my_hash_md5']) {
             return true;
@@ -526,7 +527,7 @@ function sys_auth($string, $operation = 'ENCODE', $key = '', $expiry = 0)
     $key = md5($key != '' ? $key : myphp::$cfg['encode_key']);
     $fixedkey = md5($key);
     $egiskeys = md5(substr($fixedkey, 16, 16));
-    $runtokey = $key_length ? ($operation == 'ENCODE' ? substr(md5(microtime(true)), -$key_length) : substr($string, 0, $key_length)) : '';
+    $runtokey = $key_length ? ($operation == 'ENCODE' ? substr(md5((string)microtime(true)), -$key_length) : substr($string, 0, $key_length)) : '';
     $keys = md5(substr($runtokey, 0, 16) . substr($fixedkey, 0, 16) . substr($runtokey, 16) . substr($fixedkey, 16));
     $string = $operation == 'ENCODE' ? sprintf('%010d', $expiry ? $expiry + time() : 0).substr(md5($string.$egiskeys), 0, 16) . $string : base64_decode(substr($string, $key_length));
 
@@ -662,7 +663,7 @@ function make_thumb($image)
     return $thumb;
 }
 //删除上传文件 文件路径 是否图片
-function del_up_file($file, $is_img = 0)
+function del_up_file($file, $is_img = 0): void
 {
     $realFile = SITE_WEB.$file;//真实路径
     if (is_file($realFile)) {
@@ -1141,10 +1142,10 @@ function ch2num($str)
 
 /**
  * 数字金额转换成中文大写金额的函数 小数位为两位
- * @param int $num 要转换的小写数字或小写字符串
+ * @param int|float $num 要转换的小写数字或小写字符串
  * @return string
  */
-function num_to_rmb($num)
+function num_to_rmb($num): string
 {
     $c1 = "零壹贰叁肆伍陆柒捌玖";
     $c2 = "分角元拾佰仟万拾佰仟亿";
@@ -1152,7 +1153,7 @@ function num_to_rmb($num)
     $num = round($num, 2);
     //将数字转化为整数
     $num = $num * 100;
-    if (strlen($num) > 10) {
+    if (strlen((string)$num) > 10) {
         return "金额太大，请检查";
     }
     $i = 0;
@@ -1160,7 +1161,7 @@ function num_to_rmb($num)
     while (1) {
         if ($i == 0) {
             //获取最后一位数字
-            $n = substr($num, strlen($num) - 1, 1);
+            $n = substr((string)$num, strlen((string)$num) - 1, 1);
         } else {
             $n = $num % 10;
         }
@@ -1271,7 +1272,7 @@ function luck_rand($data, $max = 10000)
 
 //参数说明：TotalResult(记录条数),Page_Size(每页记录条数),CurrentPage(当前记录页),paraUrl(URL参数)
 //分页函数1：PageList1
-function PageList1($TotalResult, $Page_Size, $currentPage, $paraUrl, $pageName = 'page')
+function PageList1(int $TotalResult, int $Page_Size, int $currentPage, string $paraUrl, string $pageName = 'page')
 {
     $Page_Count = $TotalResult / $Page_Size;
     if ($Page_Count > floor($Page_Count)) {
@@ -1281,12 +1282,12 @@ function PageList1($TotalResult, $Page_Size, $currentPage, $paraUrl, $pageName =
     if ($currentPage <= 1) {
         $out .= '首页&nbsp;&nbsp;上一页&nbsp;&nbsp;';
     } else {
-        $out .= '<a href="'. str_replace('{'.$pageName.'}', 1, $paraUrl) .'">首页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}', ($currentPage - 1), $paraUrl) .'">上一页</a>&nbsp;&nbsp;';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', '1', $paraUrl) .'">首页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}', (string)($currentPage - 1), $paraUrl) .'">上一页</a>&nbsp;&nbsp;';
     }
     if ($currentPage >= $Page_Count) {
         $out .= '下一页&nbsp;&nbsp;尾页&nbsp;';
     } else {
-        $out .= '<a href="'. str_replace('{'.$pageName.'}', ($currentPage + 1), $paraUrl) .'">下一页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}', $Page_Count, $paraUrl) .'">尾页</a>&nbsp;';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', (string)($currentPage + 1), $paraUrl) .'">下一页</a>&nbsp;&nbsp;<a href="'. str_replace('{'.$pageName.'}', (string)$Page_Count, $paraUrl) .'">尾页</a>&nbsp;';
     }
     $out .= '&nbsp;页次:'. $currentPage .'/'. $Page_Count .'页&nbsp;&nbsp;'. $Page_Size .'条信息/页&nbsp;&nbsp;转到<select name="select" onChange="javascript:var url=\''. $paraUrl .'\';url=url.replace(\'{'. $pageName .'}\',this.options[this.selectedIndex].value);window.location.href=url;">';
     for ($ipg = 1; $ipg <= $Page_Count; $ipg++) {
@@ -1300,7 +1301,7 @@ function PageList1($TotalResult, $Page_Size, $currentPage, $paraUrl, $pageName =
     return $out;
 }
 //分页函数2：PageList2 , 参数同上
-function PageList2($TotalResult, $Page_Size, $currentPage, $paraUrl, $pageName = 'page')
+function PageList2(int $TotalResult, int $Page_Size, int $currentPage, string $paraUrl, string $pageName = 'page')
 {
     $Page_Count = $TotalResult / $Page_Size;
     if ($Page_Count > floor($Page_Count)) {
@@ -1310,18 +1311,18 @@ function PageList2($TotalResult, $Page_Size, $currentPage, $paraUrl, $pageName =
     if ($currentPage <= 1) {
         $out .= '首页 | 上页 | ';
     } else {
-        $out .= '<A href="'. str_replace('{'.$pageName.'}', 1, $paraUrl) .'">首页</A> | <A href="'. str_replace('{'.$pageName.'}', ($currentPage - 1), $paraUrl) .'">上页</A> | ';
+        $out .= '<A href="'. str_replace('{'.$pageName.'}', '1', $paraUrl) .'">首页</A> | <A href="'. str_replace('{'.$pageName.'}', (string)($currentPage - 1), $paraUrl) .'">上页</A> | ';
     }
 
     if ($currentPage >= $Page_Count) {
         $out .= '下页 | 尾页';
     } else {
-        $out .= '<A href="'. str_replace('{'.$pageName.'}', ($currentPage + 1), $paraUrl) .'">下页</A> | <A href="'. str_replace('{'.$pageName.'}', $Page_Count, $paraUrl) .'">尾页</A>';
+        $out .= '<A href="'. str_replace('{'.$pageName.'}', (string)($currentPage + 1), $paraUrl) .'">下页</A> | <A href="'. str_replace('{'.$pageName.'}', (string)$Page_Count, $paraUrl) .'">尾页</A>';
     }
     return $out;
 }
 //分页函数3：PageList3 ,参数同上,InitPageNum初始显示数*2
-function PageList3($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNum, $pageName = 'page')
+function PageList3(int $TotalResult, int $Page_Size, int $currentPage, string $paraUrl, int $InitPageNum, string $pageName = 'page')
 {
     $Page_Count = ceil($TotalResult / $Page_Size);
 
@@ -1330,7 +1331,7 @@ function PageList3($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNu
         return $out;
     }
     if ($currentPage > $InitPageNum) {
-        $out .= '<a href="'. str_replace('{'.$pageName.'}', 1, $paraUrl) .'">首页</a>';// <a href="'. str_replace('{'.$pageName.'}',($currentPage-1),$paraUrl) .'">上一页</a>
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', '1', $paraUrl) .'">首页</a>';// <a href="'. str_replace('{'.$pageName.'}',(string)($currentPage-1),$paraUrl) .'">上一页</a>
     }
     //获取页码范围
     if ($currentPage <= 1) {
@@ -1355,17 +1356,17 @@ function PageList3($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNu
         if ($currentPage == $PageNo) {
             $out .= '<strong>'.$PageNo .'</strong>';
         } else {
-            $out .= '<a href="'. str_replace('{'.$pageName.'}', $PageNo, $paraUrl) .'">'. $PageNo .'</a>';
+            $out .= '<a href="'. str_replace('{'.$pageName.'}', (string)$PageNo, $paraUrl) .'">'. $PageNo .'</a>';
         }
     }
 
     if ($currentPage <= $Page_Count - $InitPageNum) {
-        $out .= '<a href="'. str_replace('{'.$pageName.'}', $Page_Count, $paraUrl) .'">末页</a>';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', (string)$Page_Count, $paraUrl) .'">末页</a>';
     }//<a href="'. str_replace('{'.$pageName.'}',($currentPage+1),$paraUrl) .'">下一页</a>
 
     return $out;
 }
-function PageList4($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNum, $pageName = 'page')
+function PageList4(int $TotalResult, int $Page_Size, int $currentPage, string $paraUrl, int $InitPageNum, string $pageName = 'page')
 {
     $Page_Count = ceil($TotalResult / $Page_Size);
 
@@ -1374,7 +1375,7 @@ function PageList4($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNu
         return $out;
     }
     if ($currentPage > 1) {
-        $out .= '<a href="'. str_replace('{'.$pageName.'}', ($currentPage - 1), $paraUrl) .'">上一页</a>';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', (string)($currentPage - 1), $paraUrl) .'">上一页</a>';
     } else {
         $out .= '<a>上一页</a>';
     }
@@ -1401,12 +1402,12 @@ function PageList4($TotalResult, $Page_Size, $currentPage, $paraUrl, $InitPageNu
         if ($currentPage == $PageNo) {
             $out .= '<strong>'.$PageNo .'</strong>';
         } else {
-            $out .= '<a href="'. str_replace('{'.$pageName.'}', $PageNo, $paraUrl) .'">'. $PageNo .'</a>';
+            $out .= '<a href="'. str_replace('{'.$pageName.'}', (string)$PageNo, $paraUrl) .'">'. $PageNo .'</a>';
         }
     }
 
     if ($currentPage < $Page_Count) {
-        $out .= '<a href="'. str_replace('{'.$pageName.'}', ($currentPage + 1), $paraUrl) .'">下一页</a>';
+        $out .= '<a href="'. str_replace('{'.$pageName.'}', (string)($currentPage + 1), $paraUrl) .'">下一页</a>';
     } else {
         $out .= '<a>下一页</a>';
     }
@@ -1487,21 +1488,22 @@ function aes($string, $operation = 'ENCODE', $key = '')
 function half_replace($str)
 {
     $len = strlen($str) / 2;
-    return substr_replace($str, str_repeat('*', $len), ceil($len / 2), $len);
+    $offset = (int)ceil($len / 2);
+    return substr_replace($str, str_repeat('*', $len), $offset, $len);
 }
 //替换字符串中间位置字符为星号  仅英文字符
 function half2_replace($str)
 {
-    $len = ceil(strlen($str) / 3);
-    $cLen = floor(strlen($str) / 2 - ($len / 2));
+    $len = (int)ceil(strlen($str) / 3);
+    $cLen = (int)floor(strlen($str) / 2 - ($len / 2));
     return substr_replace($str, str_repeat('*', $len), $cLen, $len);
 }
 //替换字符串中间位置字符为星号  支持中文
 function cn_half_replace($str)
 {
     preg_match_all('/./u', $str, $arr);
-    $len =  ceil(count($arr[0]) / 2);
-    $offset = ceil($len / 2);
+    $len =  (int)ceil(count($arr[0]) / 2);
+    $offset = (int)ceil($len / 2);
     $a = implode('', array_slice($arr[0], 0, $offset));
     $b = implode('', array_slice($arr[0], $offset + $len));
     return $a.str_repeat('*', $len).$b;
