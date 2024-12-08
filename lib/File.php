@@ -179,10 +179,10 @@ class File
      * @param string $reqPath 相对$this->path下的 /a/b/c
      * @param string $sortBy 排序方式 name_asc,name_desc | mtime_asc,mtime_desc | size_asc,size_desc
      * @param string $search 搜索
-     * @param array $list 文件及目录列表
-     * @param array $pathList 目录路径列表
+     * @param array|null $list 文件及目录列表
+     * @param array|null $pathList 目录路径列表
      */
-    public function readPath(string $reqPath, string $sortBy = 'name_asc', string $search = '', array &$list = [], array &$pathList = []): void
+    public function readPath(string $reqPath, string $sortBy = 'name_asc', string $search = '', ?array &$list = [], ?array &$pathList = []): void
     {
         // name_asc,name_desc | mtime_asc,mtime_desc | size_asc,size_desc
         //$sortBy = isset($_GET['sort']) ? trim($_GET['sort']) : 'name_asc';

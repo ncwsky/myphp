@@ -84,7 +84,7 @@ function cutstr(string $str, int $len, string $suffix = '', int $offset = 0): st
  * @param int $pos_e 结束标识位置
  * @return string
  */
-function substr_cut(string $str, string $s_flag, string $e_flag, int $offset = 0, bool $case = true, int &$pos_e = 0): string
+function substr_cut(string $str, string $s_flag, string $e_flag, int $offset = 0, bool $case = true, ?int &$pos_e = 0): string
 {
     $pos_s = $case ? stripos($str, $s_flag, $offset) : strpos($str, $s_flag, $offset);
     if ($pos_s === false) {

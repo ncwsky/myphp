@@ -90,18 +90,18 @@ class Value
     /**
      * 规则解析
      * @param string $rule
-     * @param string $type
+     * @param string|null $type
      * @param null $min
      * @param null $max
-     * @param null $filter
-     * @param int $digit
+     * @param string|null $filter
+     * @param int|null $digit
      *
      * eg.: %s{1,20}:filter  {1,20}取值范围
      * string,bool,int,float,arr,date
      * %s,%b,%d,%f,%a,%date [2014-01-11 13:23:32 | 2014-01-11]
      * filter:fun1,fun2,/regx/i正则过滤
      */
-    public static function parseType(string &$rule, string &$type = 's', &$min = null, &$max = null, &$filter = null, int &$digit = 0): void
+    public static function parseType(string &$rule, ?string &$type = 's', &$min = null, &$max = null, ?string &$filter = null, ?int &$digit = 0): void
     {
         if (!$rule) {
             $type = 's';
