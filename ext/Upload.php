@@ -26,6 +26,10 @@ class Upload
 
     private $defData = ['state' => '1', 'title' => null, 'url' => null, 'fileType' => null, 'fileSize' => null];
 
+    public function __construct()
+    {
+    }
+
     //静态方法，返回实例
     public static function getInstance()
     {

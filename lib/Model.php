@@ -327,7 +327,7 @@ class Model implements \ArrayAccess
             unset($this->_data[$this->autoIncrement], $this->fieldRule[$this->autoIncrement]);
         }
         //验证数据
-        if (!self::validate($this->_data, $this->fieldRule, true, $def, !$isUpdate)) {
+        if (!self::validate($this->_data, $this->fieldRule, true, $def === 0 ? null : $def, !$isUpdate)) {
             //throw new \RuntimeException('验证失败');
             $this->db->resetOptions();
             return false;
@@ -628,7 +628,7 @@ class Model implements \ArrayAccess
      * @return bool
      * @throws \RuntimeException
      */
-    public static function validate(array &$data, array $rules, bool $exclude = false, bool $setDef = false, bool $all = true): bool
+    public static function validate(array &$data, array $rules, bool $exclude = false, ?bool $setDef = false, bool $all = true): bool
     {
         try {
             foreach ($data as $name => $v) { //数据验证及是否多余数据处理

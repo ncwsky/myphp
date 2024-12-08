@@ -27,7 +27,6 @@ class DecConvert
         'O' => 50,'P' => 51,'Q' => 52,'R' => 53,'S' => 54,'T' => 55,'U' => 56,'V' => 57,'W' => 58,'X' => 59,
         'Y' => 60,'Z' => 61
     ];
-    private $custom = false;
     private static $instance = null;
     #自定义映射表
     public function setDict($dict): void
@@ -45,7 +44,6 @@ class DecConvert
         }
         $this->dict = $dict;
         $this->deDict = $deDict;
-        $this->custom = true;
     }
     /** 十进制数转换成其它(2-62)进制
      * @param int|string $number
@@ -55,13 +53,6 @@ class DecConvert
      */
     public function to($number, $toBase)
     {
-        /*if ($toBase > 62 || $toBase < 2) {
-            throw new \Exception('Invalid to base('.$toBase.')');
-        }elseif($toBase==10){
-            return $number;
-        }elseif(!$this->custom && $toBase<=36 && $number<=0xa7c5ac471b5f){
-            return base_convert($number, 10, $toBase);
-        }*/
         $ret = '';
         do {
             #$ret = $this->dict[$number%$toBase] . $ret;
@@ -73,20 +64,13 @@ class DecConvert
     }
 
     /** 其它(2-62)进制数转换成十进制数
-     * @param string $number
+     * @param string|int $number
      * @param int $fromBase
      * @return int|string
      * @throws \Exception
      */
     public function from($number, $fromBase)
     {
-        /*if ($fromBase > 62 || $fromBase < 2) {
-            throw new \Exception('Invalid from base('.$fromBase.')');
-        }elseif($fromBase==10){
-            return $number;
-        }elseif(!$this->custom && $fromBase<=36 && $number<=0xa7c5ac471b5f){
-            return base_convert($number, $fromBase, 10); #最大支持 184467440737119
-        }*/
         $number = (string)$number;
         $len = strlen($number);
         $dec = 0;

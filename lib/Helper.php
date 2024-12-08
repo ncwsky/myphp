@@ -104,7 +104,7 @@ class Helper
     public static function initPage($tb, $where = '', $cPage = 1, $num = 10, $id = '', $parm = '', $pName = 'page')
     {
         $initPageNum = 5;
-        if (strpos($num, ',')) {
+        if (is_string($num) && strpos($num, ',')) {
             list($num, $initPageNum) = explode(',', $num);
         }
         $total = is_numeric($tb) ? (int)$tb : ($id != '' ? $tb->where($where)->count($id) : $tb->where($where)->count()); //获取总行数
