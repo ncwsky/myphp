@@ -13,7 +13,7 @@ class MyLoader
     public static $classOldSupport = false; //是否兼容xxx.class.php
 
     //读取或设置类加载路径
-    public static function class_dir($dir)
+    public static function class_dir($dir): void
     {
         //单独设置类加载路径需要写全地址
         if (is_array($dir)) {
@@ -24,7 +24,7 @@ class MyLoader
     }
 
     //自动加载对象
-    public static function autoload($class_name)
+    public static function autoload($class_name): void
     {
         if (isset(self::$classMap[$class_name])) { //优先加载类映射
             include self::$classMap[$class_name];

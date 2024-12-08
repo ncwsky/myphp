@@ -135,7 +135,7 @@ function GetC(string $name, $defVal = null)
  * @param string|array $name
  * @param mixed $val
  */
-function SetC($name, $val)
+function SetC($name, $val): void
 {
     myphp::set($name, $val);
 }

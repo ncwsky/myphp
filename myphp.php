@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 use myphp\Cache;
@@ -57,7 +58,7 @@ final class myphp
         return self::$cfg[$name1][$name2] ?? $defVal;
     }
     //动态设置配置值
-    public static function set($name, $val = null)
+    public static function set($name, $val = null): void
     {
         if (is_array($name)) {
             self::$cfg = array_merge(self::$cfg, $name);
@@ -73,7 +74,7 @@ final class myphp
         self::$cfg[$name1][$name2] = $val;
     }
     //删除配置
-    public static function del($name)
+    public static function del($name): void
     {
         if (false === ($pos = strpos($name, '.'))) {
             unset(self::$cfg[$name]);
@@ -88,7 +89,7 @@ final class myphp
 
     //自动载入 start
     //读取或设置类加载路径
-    public static function class_dir($dir)
+    public static function class_dir($dir): void
     {
         //单独设置类加载路径需要写全地址
         if (is_array($dir)) {
@@ -98,7 +99,7 @@ final class myphp
         }
     }
     //自动加载对象
-    public static function autoload($class_name)
+    public static function autoload($class_name): void
     {
         if (isset(self::$classMap[$class_name])) { //优先加载类映射
             include self::$classMap[$class_name];
@@ -158,7 +159,7 @@ final class myphp
         }
         return $def;
     }
-    public static function setEnv($name, $val = null)
+    public static function setEnv($name, $val = null): void
     {
         if (is_array($name)) {
             self::$env = self::$env ? array_merge(self::$env, $name) : $name;
@@ -204,7 +205,7 @@ final class myphp
         return $res;
     }
     //初始框架
-    public static function init($cfg = null)
+    public static function init($cfg = null): void
     {
         //引入默认配置文件
         self::$cfg = require(__DIR__ . '/def_config.php');
@@ -314,7 +315,7 @@ final class myphp
      * @param bool $isCli
      * @throws \Exception
      */
-    public static function Run($sendFun = null, bool $isCli = IS_CLI)
+    public static function Run($sendFun = null, bool $isCli = IS_CLI): void
     {
         self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法及初始化
         self::$sendFun = $sendFun;
@@ -348,7 +349,7 @@ final class myphp
      * @param int $expire //请求缓存时间
      * @throws \Exception
      */
-    public static function send($res, int $code = 200, int $expire = 0)
+    public static function send($res, int $code = 200, int $expire = 0): void
     {
         //非response处理
         if (! $res instanceof Response) {
@@ -429,7 +430,7 @@ final class myphp
         return null;
     }
     //输出头设置
-    public static function setHeader($name, $val = null, $append = false)
+    public static function setHeader($name, $val = null, $append = false): void
     {
         self::res()->setHeader($name, $val, $append);
     }
@@ -437,12 +438,12 @@ final class myphp
     {
         return self::req()->rawBody();
     }
-    public static function setRawBody($rawBody)
+    public static function setRawBody($rawBody): void
     {
         self::req()->setRawBody($rawBody);
     }
     //输出类型设置
-    public static function conType($conType, $charset = '')
+    public static function conType($conType, $charset = ''): void
     {
         self::res()->setContentType($conType, $charset);
     }
@@ -454,7 +455,7 @@ final class myphp
      * 2、http://localhost/index.php/[模块/]控制器/方法?其他参数
      * @param bool $isCLI cli命令脚本模式处理
      */
-    public static function Analysis(bool $isCLI = IS_CLI)
+    public static function Analysis(bool $isCLI = IS_CLI): void
     {
         $app_path = self::$cfg['_app_path'];
         self::$env['app_namespace'] = basename(APP_PATH);
@@ -589,7 +590,7 @@ final class myphp
      * @param string $path
      * @param bool $mod 是否为初始模块配置
      */
-    public static function loadConfig(string $path, bool $mod = false)
+    public static function loadConfig(string $path, bool $mod = false): void
     {
         //缓存处理 主要针对cli
         if (isset(self::$_cli_cache[$path])) {
@@ -701,7 +702,7 @@ final class myphp
         return $auth->$auth_action(); //启动验证方法
     }
     // app项目初始化
-    private static function _initApp($path, $isCLI = IS_CLI)
+    private static function _initApp($path, $isCLI = IS_CLI): void
     {
         if (!$isCLI && self::$env['m'] != '') {
             return;
@@ -780,7 +781,7 @@ final class myphp
      * 载入模块配置及生成命名空间前缀
      * @param $app_path
      */
-    private static function _initModule(&$app_path)
+    private static function _initModule(&$app_path): void
     {
         //指定项目模块
         if (isset(self::$cfg['module_maps'][self::$env['m']])) {
@@ -819,7 +820,7 @@ final class myphp
         return self::load($path);
     }
     //语言
-    public static function loadLang($file)
+    public static function loadLang($file): void
     {
         self::$lang = array_merge(self::$lang, is_array($file) ? $file : include $file);
     }
@@ -932,7 +933,7 @@ final class myphp
      * 释放容器资源
      * @param string $name
      */
-    public static function free(string $name)
+    public static function free(string $name): void
     {
         unset(self::$container[$name]);
     }
@@ -1075,7 +1076,7 @@ final class myphp
         return true;
     }
     //分解m c a
-    private static function deMCA(string &$mca)
+    private static function deMCA(string &$mca): void
     {
         $mca = trim($mca, '/');
         if ($mca === '') {
@@ -1248,12 +1249,20 @@ final class myphp
             }
 
             $para = '';
-            if ($m) $para .= '&m=' . $m;
-            if ($c) $para .= '&c=' . $c;
-            if ($a) $para .= '&a=' . $a;
+            if ($m) {
+                $para .= '&m=' . $m;
+            }
+            if ($c) {
+                $para .= '&c=' . $c;
+            }
+            if ($a) {
+                $para .= '&a=' . $a;
+            }
 
             $url = $url == '' ? self::env('URI') : ROOT_DIR . $url;
-            if ($query) $para .= '&' . $query;
+            if ($query) {
+                $para .= '&' . $query;
+            }
             return $url . '?' . substr($para, 1);
         }
 
@@ -1329,7 +1338,7 @@ trait MyBaseObj
      * @param $name
      * @param $value
      */
-    public function __set($name, $value)
+    public function __set($name, $value): void
     {
         $this->_behavior[$name] = $value;
     }
@@ -1352,7 +1361,7 @@ trait MyBaseObj
     /**
      * @param $name
      */
-    public function __unset($name)
+    public function __unset($name): void
     {
         unset($this->_behavior[$name]);
     }

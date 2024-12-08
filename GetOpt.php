@@ -38,7 +38,9 @@ class GetOpt
     public static function parse(string $short, array $long = []): array
     {
         self::$options = getopt($short, $long);
-        if (self::$options === false) self::$options = [];
+        if (self::$options === false) {
+            self::$options = [];
+        }
         return self::$options;
     }
 
