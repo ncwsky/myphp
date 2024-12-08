@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp;
 
 //控制器基类，所有的控制器需要继承此类
@@ -21,34 +24,34 @@ class Control
      */
     public $request = null;
 
-    const CODE_OK = 0; //成功
-    const CODE_FAIL = 1; //失败
-    const DATA_INVALID = 1000; //无效的请求数据
+    public const CODE_OK = 0; //成功
+    public const CODE_FAIL = 1; //失败
+    public const DATA_INVALID = 1000; //无效的请求数据
 
-    public static $tpl = array(
+    public static $tpl = [
         self::CODE_OK => '操作成功',
         self::CODE_FAIL => '操作失败',
-        self::DATA_INVALID => '无效的数据'
-    );
-    public static function tpl($code)
+        self::DATA_INVALID => '无效的数据',
+    ];
+    public static function tpl($code): string
     {
-        return isset(self::$tpl[$code]) ? self::$tpl[$code] : 'null';
+        return self::$tpl[$code] ?? 'null';
     }
-    public static function out($code = self::CODE_OK, $data = array(), $info = null, $ext=null)
-    {
-        $out = ['code' => $code, 'msg' => ($info === null ? self::tpl($code) : $info)];
-        $out['data'] = $data;
-        $out['ext'] = $ext;
-        return $out;
-    }
-    public static function ok($data = null, $info = null, $ext=null, $code = self::CODE_OK)
+    public static function out($code = self::CODE_OK, $data = [], $info = null, $ext = null): array
     {
         $out = ['code' => $code, 'msg' => ($info === null ? self::tpl($code) : $info)];
         $out['data'] = $data;
         $out['ext'] = $ext;
         return $out;
     }
-    public static function fail($info = null, $code = self::CODE_FAIL, $data = null)
+    public static function ok($data = null, $info = null, $ext = null, $code = self::CODE_OK): array
+    {
+        $out = ['code' => $code, 'msg' => ($info === null ? self::tpl($code) : $info)];
+        $out['data'] = $data;
+        $out['ext'] = $ext;
+        return $out;
+    }
+    public static function fail($info = null, $code = self::CODE_FAIL, $data = null): array
     {
         $out = ['code' => $code, 'msg' => ($info === null ? self::tpl($code) : $info)];
         $out['data'] = $data;
@@ -64,7 +67,7 @@ class Control
         $this->_init();
     }
 
-    protected function _init()
+    protected function _init(): void
     {
         //todo
     }
@@ -73,7 +76,8 @@ class Control
      * @return bool
      * @throws \Exception
      */
-    protected function _before(){
+    protected function _before(): bool
+    {
         if ($this->enableCsrf) {
             if ($this->request::method() == 'GET') {
                 //$this->view->vars['csrfToken'] = $this->request->csrfToken();
@@ -90,7 +94,8 @@ class Control
      * @param $result
      * @return Response|mixed|null
      */
-    protected function _after($result){
+    protected function _after($result)
+    {
         if (!empty(myphp::$cfg['gzip'])) {
             if ($result instanceof Response) {
                 $body = $result->getBody();
@@ -118,32 +123,39 @@ class Control
      * @return mixed|Response|null
      * @throws \Exception
      */
-    final function _run($action)
+    final public function _run(string $action)
     {
         //判断实例中是否存在action方法，不存在则提示错误
-        if (!method_exists($this, $action)) return $this->response->e404('method not exists ' . $action);
+        if (!method_exists($this, $action)) {
+            return $this->response->e404('method not exists ' . $action);
+        }
         //throw new \Exception('method not exists ' . $action, 404);
         //前后置操作处理
         return $this->_before() ? $this->_after($this->$action()) : null;
     }
 
     //设置模板变量
-    final function assign($var, $value)
+    final public function assign(string $var, $value): void
     {
         $this->view->assign($var, $value);
     }
     //启用输出缓存
-    final function cache($expire=0){
-        $this->request->expire = (int)$expire; //0使用默认配置req_cache_expire
+    final public function cache(int $expire = 0)
+    {
+        $this->request->expire = $expire; //0使用默认配置req_cache_expire
         return $this;
     }
     //在子类控制器及方法中调用 显示模板 非cli模式下使用
-    final function display($file = '', $var = null, $htmlEncode=null)
+    final public function display(string $file = '', array $var = null, bool $htmlEncode = null)
     {
         $this->response->setContentType(Response::CONTENT_TYPE_HTML);
-        if ($htmlEncode === null) $htmlEncode = $this->htmlEncode;
+        if ($htmlEncode === null) {
+            $htmlEncode = $this->htmlEncode;
+        }
         $content = $this->view->fetch($file, $var, $htmlEncode);
-        if (IS_CLI) return $content;
+        if (IS_CLI) {
+            return $content;
+        }
         ob_start();
         echo $content;
         ob_end_flush();
@@ -153,17 +165,20 @@ class Control
     /**
      * 在子类控制器及方法中调用 取得页面内容
      * @param string $file
-     * @param null $var
+     * @param array|null $var
      * @param bool $htmlEncode
      * @return Response
      */
-    final function fetch($file = '', $var=null, $htmlEncode=null)
+    final public function fetch(string $file = '', array $var = null, bool $htmlEncode = null): Response
     {
-        if ($htmlEncode === null) $htmlEncode = $this->htmlEncode;
+        if ($htmlEncode === null) {
+            $htmlEncode = $this->htmlEncode;
+        }
         $this->response->body = $this->view->fetch($file, $var, $htmlEncode);
         return $this->response->setContentType(Response::CONTENT_TYPE_HTML);
     }
-    final static function redirect($url, $code=302){
+    final public static function redirect($url, $code = 302): Response
+    {
         return myphp::res()->redirect($url, $code);
     }
 
@@ -172,7 +187,7 @@ class Control
      * @param $data
      * @return Response
      */
-    final static function html($data)
+    final public static function html($data): Response
     {
         myphp::res()->body = $data;
         return myphp::res()->setContentType(Response::CONTENT_TYPE_HTML);
@@ -184,7 +199,8 @@ class Control
      * @param bool $encode
      * @return Response
      */
-    final static function json($data, $encode=true){
+    final public static function json($data, bool $encode = true): Response
+    {
         myphp::res()->body = $encode ? Helper::toJson($data) : $data;
         return myphp::res()->setContentType(Response::CONTENT_TYPE_JSON);
     }
@@ -196,8 +212,9 @@ class Control
      * @return Response
      * @throws \Exception
      */
-    final static function jsonp($data, $encode=true){
-        $jsonp_call = isset($_GET[myphp::$cfg['jsonp_call']])?$_GET[myphp::$cfg['jsonp_call']]: myphp::$cfg['jsonp_call'];
+    final public static function jsonp($data, bool $encode = true): Response
+    {
+        $jsonp_call = $_GET[myphp::$cfg['jsonp_call']] ?? myphp::$cfg['jsonp_call'];
         $data = $encode ? Helper::toJson($data) : $data;
         if ($data === false) {
             throw new \Exception('Invalid JSONP');
@@ -212,7 +229,8 @@ class Control
      * @param bool $encode
      * @return Response
      */
-    final static function xml($data, $encode=true){
+    final public static function xml($data, bool $encode = true): Response
+    {
         myphp::res()->body = $encode ? Helper::toXml($data) : $data;
         return myphp::res()->setContentType(Response::CONTENT_TYPE_XML);
     }

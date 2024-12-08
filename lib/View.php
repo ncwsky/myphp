@@ -1,8 +1,12 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp;
 
 use Exception;
 use myphp;
+
 //视图类
 class View
 {
@@ -17,41 +21,51 @@ class View
     private static $instance = null;
 
     //构造方法，实例化视图
-    public function __construct($path='', $cachePath='')
+    public function __construct(string $path = '', string $cachePath = '')
     {
-        if ($path=='') $path = APP_PATH.'/view';
-        if ($cachePath=='') $cachePath = APP_PATH.'/cache';
+        if ($path == '') {
+            $path = APP_PATH.'/view';
+        }
+        if ($cachePath == '') {
+            $cachePath = APP_PATH.'/cache';
+        }
 
         $this->template = new Template($path, $cachePath);
         $this->template->cache = !myphp::$cfg['debug'];    //设置是否开启缓存
-        $this->template->suffix = isset(myphp::$cfg['tmp_suffix']) ? myphp::$cfg['tmp_suffix'] : '.html';    //模板后缀名
-        $this->template->leftTag = isset(myphp::$cfg['tmp_left_tag']) ? myphp::$cfg['tmp_left_tag'] : '{';    //模板左侧符号
-        $this->template->rightTag = isset(myphp::$cfg['tmp_right_tag']) ? myphp::$cfg['tmp_right_tag'] : '}';    //模板右侧符号
+        $this->template->suffix = myphp::$cfg['tmp_suffix'] ?? '.html';    //模板后缀名
+        $this->template->leftTag = myphp::$cfg['tmp_left_tag'] ?? '{';    //模板左侧符号
+        $this->template->rightTag = myphp::$cfg['tmp_right_tag'] ?? '}';    //模板右侧符号
     }
 
     //单例模式
-    public static function getInstance($path, $cachePath='')
+    public static function getInstance(string $path, string $cachePath = ''): View
     {
         if (!self::$instance) {
             self::$instance = new self($path, $cachePath);
         } else {
-            if ($path) self::$instance->template->viewPath = $path;
-            if ($cachePath) self::$instance->template->cachePath = $cachePath;
+            if ($path) {
+                self::$instance->template->viewPath = $path;
+            }
+            if ($cachePath) {
+                self::$instance->template->cachePath = $cachePath;
+            }
             self::$instance->vars = [];
         }
         return self::$instance;
     }
 
     //取得页面内容
-    public function fetch($file = '', &$var = null, $htmlEncode=false)
+    public function fetch(string $file = '', array &$var = null, bool $htmlEncode = false)
     {
-        if ($file == '') $file = myphp::env('a') . $this->template->suffix;
+        if ($file == '') {
+            $file = myphp::env('a') . $this->template->suffix;
+        }
         if (is_array($var)) {    //如果是数组，那么将它合并到属性$vars中
             $this->vars = array_merge($this->vars, $var);
         }
 
         if ($htmlEncode) { //对模板变量数据html实体处理
-            array_walk_recursive($this->vars, function(&$v, $k){
+            array_walk_recursive($this->vars, function (&$v, $k): void {
                 if (is_string($v) && !is_numeric($v)) {
                     $v = htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
                 }
@@ -69,7 +83,7 @@ class View
     }
 
     //设置模板变量
-    public function assign($var, $value = null)
+    public function assign($var, $value = null): void
     {
         if (is_array($var)) {    //如果是数组，那么将它合并到属性$vars中
             $this->vars = array_merge($this->vars, $var);
@@ -84,12 +98,14 @@ class View
      * @return string
      * @throws Exception
      */
-    public static function doTemp($file = '')
+    public static function doTemp(string $file = ''): string
     {
-        if(!self::$instance){
+        if (!self::$instance) {
             self::$instance = new self(myphp::env('VIEW_PATH'), myphp::env('CACHE_PATH'));
         }
-        if ($file == '') $file = myphp::env('a') . self::$instance->template->suffix;
+        if ($file == '') {
+            $file = myphp::env('a') . self::$instance->template->suffix;
+        }
 
         return self::$instance->template->cacheFile($file);
     }

@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp;
 
 class Pipeline
@@ -25,7 +28,7 @@ class Pipeline
      * @param mixed $passable
      * @return $this
      */
-    public function send($passable)
+    public function send($passable): Pipeline
     {
         $this->passable = $passable;
         return $this;
@@ -36,7 +39,7 @@ class Pipeline
      * @param mixed $pipes
      * @return $this
      */
-    public function through($pipes)
+    public function through($pipes): Pipeline
     {
         $this->pipes = is_array($pipes) ? $pipes : func_get_args();
         return $this;
@@ -47,7 +50,7 @@ class Pipeline
      * @param string $method
      * @return $this
      */
-    public function via($method)
+    public function via(string $method): Pipeline
     {
         $this->method = $method;
         return $this;
@@ -58,7 +61,7 @@ class Pipeline
      * @param callable $handler
      * @return $this
      */
-    public function whenException($handler)
+    public function whenException(callable $handler): Pipeline
     {
         $this->exceptionHandler = $handler;
         return $this;
@@ -68,6 +71,7 @@ class Pipeline
      * 执行管道
      * @param \Closure $destination 处理最终管道结果
      * @return mixed
+     * @throws \Throwable
      */
     public function then(\Closure $destination)
     {
@@ -105,6 +109,7 @@ class Pipeline
     /**
      * 执行管道返回结果
      * @return mixed
+     * @throws \Throwable
      */
     public function thenReturn()
     {
@@ -116,7 +121,7 @@ class Pipeline
     /**
      * 异常处理
      * @param $passable
-     * @param $e
+     * @param \Throwable $e
      * @return mixed
      * @throws \Throwable
      */

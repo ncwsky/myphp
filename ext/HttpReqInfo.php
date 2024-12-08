@@ -26,39 +26,39 @@ class HttpReqInfo
      */
     public static function method()
     {
-        return isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) ? strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) : (isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET');
+        return isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) ? strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']) : ($_SERVER['REQUEST_METHOD'] ?? 'GET');
     }
 
     /**
      * @return bool
      */
-    public static function isPost()
+    public static function isPost(): bool
     {
-        return self::method() == 'POST';
+        return self::method() === 'POST';
     }
 
     /**
      * @return bool
      */
-    public static function isGet()
+    public static function isGet(): bool
     {
-        return self::method() == 'GET';
+        return self::method() === 'GET';
     }
 
     /**
      * 当前是否Ajax请求
      * @return bool
      */
-    public static function isAjax()
+    public static function isAjax(): bool
     {
-        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     }
 
     /**
      * 获取当前站点地址
      * @return string
      */
-    public static function siteUrl()
+    public static function siteUrl(): string
     {
         $scheme = 'http';
         if (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] == 'https') {
@@ -73,68 +73,68 @@ class HttpReqInfo
      * 获取当前页面完整URL地址 如 http://xxx/a.php?b=1
      * @return string
      */
-    public static function url()
+    public static function url(): string
     {
         return self::siteUrl() . self::uri();
     }
 
     /**
      * 获取主机地址
-     * @return mixed|string
+     * @return string
      */
-    public static function host()
+    public static function host(): string
     {
-        return isset($_SERVER['HTTP_X_FORWARDED_HOST']) ? $_SERVER['HTTP_X_FORWARDED_HOST'] : (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : '') . (!isset($_SERVER['SERVER_PORT']) || $_SERVER['SERVER_PORT'] == '80' || $_SERVER['SERVER_PORT'] == '443' ? '' : ':' . $_SERVER['SERVER_PORT']));
+        return $_SERVER['HTTP_X_FORWARDED_HOST'] ?? ($_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? '') . (!isset($_SERVER['SERVER_PORT']) || $_SERVER['SERVER_PORT'] == '80' || $_SERVER['SERVER_PORT'] == '443' ? '' : ':' . $_SERVER['SERVER_PORT']));
     }
 
     /**
      * 获取当前请求路径 如 /ab.php
-     * @return false|mixed|string
+     * @return string
      */
-    public static function pathInfo()
+    public static function pathInfo(): string
     {
         if (isset($_SERVER['REQUEST_URI'])) {
             $pos = strpos($_SERVER['REQUEST_URI'], '?');
             return $pos ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI'];
         }
-        return isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '');
+        return $_SERVER['PHP_SELF'] ?? ($_SERVER['SCRIPT_NAME'] ?? '');
     }
 
     /**
      * 获得当前请求地址  如 /ab.php?b=1
-     * @return mixed|string
+     * @return string
      */
-    public static function uri()
+    public static function uri(): string
     {
-        return isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : (isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : (isset($_SERVER['SCRIPT_NAME']) ? $_SERVER['SCRIPT_NAME'] : '')) . (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
+        return $_SERVER['REQUEST_URI'] ?? ($_SERVER['PHP_SELF'] ?? ($_SERVER['SCRIPT_NAME'] ?? '')) . (isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . $_SERVER['QUERY_STRING'] : '');
     }
 
     /**
      * 来源获取
-     * @return mixed|string
+     * @return string
      */
-    public static function referer()
+    public static function referer(): string
     {
-        return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+        return $_SERVER['HTTP_REFERER'] ?? '';
     }
 
 
     /**
-     * @return mixed|string
+     * @return string
      */
-    public static function remoteIP()
+    public static function remoteIP(): string
     {
         //重置ipv6
         //if(isset($_SERVER['REMOTE_ADDR']) && filter_var($_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)){
         //  $_SERVER['REMOTE_ADDR']='127.0.0.1';
         //}
-        return isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
+        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     }
 
     /**
-     * @return mixed|string
+     * @return string
      */
-    public static function userIP()
+    public static function userIP(): string
     {
         //HTTP_X_REAL_IP HTTP_X_FORWARDED_FOR 可能被伪装
         foreach (self::$ipHeaders as $name) {
@@ -155,9 +155,9 @@ class HttpReqInfo
     /**
      * 获取ip
      * @param bool $number 返回IP地址 true返回IPV4地址数字
-     * @return mixed|string
+     * @return string
      */
-    public static function ip($number = false)
+    public static function ip(bool $number = false): string
     {
         $realIP = self::$isProxy ? self::userIP() : self::remoteIP();
         return $number ? sprintf("%u", ip2long($realIP)) : $realIP;
@@ -182,17 +182,17 @@ class HttpReqInfo
 
     /**
      * @param null|string $rawBody
-     * @return $this
+     * @return static
      */
-    public function setRawBody($rawBody)
+    public function setRawBody(string $rawBody)
     {
         $this->_rawBody = $rawBody;
         return $this;
     }
 
     /**
-     * @param null|string $header_name
-     * @param null|string $default
+     * @param null|string|array $header_name
+     * @param null|string|string[] $default
      * @return array|false|mixed|null
      */
     public function header($header_name = null, $default = null)
@@ -203,11 +203,11 @@ class HttpReqInfo
             //首字母大写
             foreach ($_SERVER as $name => $value) {
                 if (strncmp($name, 'HTTP_', 5) === 0) {
-                    $_name = strtr(ucwords(strtr(substr($name, 5), $upper, $lower)),' ', '-');
+                    $_name = strtr(ucwords(strtr(substr($name, 5), $upper, $lower)), ' ', '-');
                     $this->headers[$_name] = $value;
                 } elseif (strncmp($name, 'CONTENT_', 8) === 0) {
                     if ($value === '') continue;
-                    $_name = strtr(ucwords(strtr($name, $upper, $lower)),' ', '-');
+                    $_name = strtr(ucwords(strtr($name, $upper, $lower)), ' ', '-');
                     $this->headers[$_name] = $value;
                 }
             }
@@ -226,11 +226,11 @@ class HttpReqInfo
         if (is_array($header_name)) {
             $values = [];
             foreach ($header_name as $item) {
-                $values[$item] = isset($this->headers[$item]) ? $this->headers[$item] : $default;
+                $values[$item] = $this->headers[$item] ?? $default;
             }
             return $values;
         }
-        return isset($this->headers[$header_name]) ? $this->headers[$header_name] : $default;
+        return $this->headers[$header_name] ?? $default;
     }
 
     public function getHeaders()
@@ -280,11 +280,11 @@ class HttpReqInfo
     }
 
     /**
-     * @param null|string $name
+     * @param string|null $name
      * @param null|mixed $default
      * @return array|mixed|null
      */
-    public function post($name=null, $default = null)
+    public function post(string $name=null, $default = null)
     {
         if ($name === null) return $_POST ?? [];
         return $_POST[$name] ?? $default;
@@ -295,18 +295,18 @@ class HttpReqInfo
      * @param mixed $val
      * @return $this
      */
-    public function setPost($name, $val)
+    public function setPost(string $name, $val)
     {
         $_POST[$name] = $val;
         return $this;
     }
 
     /**
-     * @param null|string $name
+     * @param string|null $name
      * @param null|mixed $default
      * @return array|mixed|null
      */
-    public function get($name=null, $default = null)
+    public function get(string $name=null, $default = null)
     {
         if ($name === null) return $_GET ?? [];
         return $_GET[$name] ?? $default;
@@ -317,7 +317,7 @@ class HttpReqInfo
      * @param mixed $val
      * @return $this
      */
-    public function setGet($name, $val)
+    public function setGet(string $name, $val)
     {
         $_GET[$name] = $val;
         return $this;

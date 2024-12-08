@@ -16,7 +16,7 @@ class Tool
      * @param string $dbName
      * @return bool
      */
-    public static function initModel(string $tbName, string $namespace='common\model', string $baseClass='\myphp\Model', string $dbName='db'): bool
+    public static function initModel(string $tbName, string $namespace = 'common\model', string $baseClass = '\myphp\Model', string $dbName = 'db'): bool
     {
         $className = str_replace(' ', '', ucwords(str_replace(['-','_'], ' ', $tbName), ' '));
 
@@ -25,14 +25,14 @@ class Tool
         try {
             $content = is_file($classFile) ? file_get_contents($classFile) : file_get_contents(__DIR__ . '/../tpl/TableModel.php');
 
-            if(!$content){
+            if (!$content) {
                 throw new \Exception('model文件读取失败');
             }
 
             db($dbName)->getFields($tbName, $prikey, $fields, $fieldRule, $autoIncrement);
 
             $classDir = dirname($classFile);
-            if(!is_dir($classDir)){
+            if (!is_dir($classDir)) {
                 mkdir($classDir, 0755, true);
             }
         } catch (\Throwable $e) {
@@ -47,11 +47,11 @@ class Tool
 
         // 注释 /**  property  */
         $notes = "/**\n* Class $className\n* @package $namespace\n*";
-        foreach ($fieldRule as $k=>$v){
+        foreach ($fieldRule as $k => $v) {
             $type = 'string';
-            if(strpos($v['rule'], 'date')===false){
+            if (strpos($v['rule'], 'date') === false) {
                 $rule = substr($v['rule'], 1, 1);
-                if ($rule == 'd') { 
+                if ($rule == 'd') {
                     $type = 'int';
                 } elseif ($rule == 'b') {
                     $type = 'bool';
@@ -59,29 +59,34 @@ class Tool
                     $type = 'float';
                 }
             }
-            $notes .="\n* @property $type \$$k";
+            $notes .= "\n* @property $type \$$k";
             //解析规则
-            $type = 's'; $min = $max = null;
+            $type = 's';
+            $min = $max = null;
             Value::parseType($v['rule'], $type, $min, $max);
             unset($fieldRule[$k]['null']);
             //$fieldRule[$k]['rule'] = [$type, 'min' => $min, 'max' => $max];
             $fieldRule[$k]['rule'] = [$type];
-            if($min!==null) $fieldRule[$k]['rule']['min'] = $min;
-            if($max!==null) $fieldRule[$k]['rule']['max'] = $max;
-            if(isset($fieldRule[$k]['def'])){
-                if($fieldRule[$k]['type']=='int'){
+            if ($min !== null) {
+                $fieldRule[$k]['rule']['min'] = $min;
+            }
+            if ($max !== null) {
+                $fieldRule[$k]['rule']['max'] = $max;
+            }
+            if (isset($fieldRule[$k]['def'])) {
+                if ($fieldRule[$k]['type'] == 'int') {
                     $fieldRule[$k]['def'] = (int)$fieldRule[$k]['def'];
-                }elseif($fieldRule[$k]['type']=='double'){
+                } elseif ($fieldRule[$k]['type'] == 'double') {
                     $fieldRule[$k]['def'] = (float)$fieldRule[$k]['def'];
                 }
             }
         }
-        $notes .="\n*/";
+        $notes .= "\n*/";
         $noteFlag = substr_cut($content, "/**", "*/\nclass", 0, false);
         $classHead = "class " . substr_cut($content, "class ", "{", 0, false) . "{";
-        if($noteFlag){
+        if ($noteFlag) {
             $content = str_replace("/**".$noteFlag."*/", $notes, $content);
-        }else{
+        } else {
             $content = str_replace($classHead, $notes."\n".$classHead, $content);
         }
 
@@ -105,7 +110,7 @@ class Tool
         $content = str_replace('protected $fields '.substr_cut($content, 'protected $fields ', ';', 0, false).';', "protected \$fields = '$fields';", $content);
 
         $fieldRule = var_export($fieldRule, true);
-        $fieldRule = strtr($fieldRule, ["=> \n  " => "=> ", "array (" => "[", "  )" => "        ]", "  '" => "        '", ")" => "    ]","NULL"=>"null","\n      0 => "=>"","\n      'min'"=>" 'min'","\n      'max'"=>" 'max'",",\n    )"=>"]"]);
+        $fieldRule = strtr($fieldRule, ["=> \n  " => "=> ", "array (" => "[", "  )" => "        ]", "  '" => "        '", ")" => "    ]","NULL" => "null","\n      0 => " => "","\n      'min'" => " 'min'","\n      'max'" => " 'max'",",\n    )" => "]"]);
         $fieldRule = str_replace("'rule' =>   ", "'rule' => ", $fieldRule);
         $fieldRule = str_replace(",\n        ],\n", "\n        ],\n", $fieldRule); //每字段多余的,
         $fieldRule = str_replace("\n          '", " '", $fieldRule); //每字段子项开头,

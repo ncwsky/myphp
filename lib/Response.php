@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace myphp;
 
 class Response
@@ -119,10 +121,10 @@ class Response
      */
     public $file = [];
 
-    const CONTENT_TYPE_JSON = 'application/json';
-    const CONTENT_TYPE_JSONP = 'application/javascript';
-    const CONTENT_TYPE_XML = 'application/xml';
-    const CONTENT_TYPE_HTML = 'text/html';
+    public const CONTENT_TYPE_JSON = 'application/json';
+    public const CONTENT_TYPE_JSONP = 'application/javascript';
+    public const CONTENT_TYPE_XML = 'application/xml';
+    public const CONTENT_TYPE_HTML = 'text/html';
 
     /**
      * Response constructor.
@@ -130,7 +132,7 @@ class Response
      * @param array $headers
      * @param mixed|string $body
      */
-    public function __construct($code=200, $headers=[], $body='')
+    public function __construct(int $code = 200, array $headers = [], $body = '')
     {
         $this->setStatusCode($code);
         $this->withHeaders($headers);
@@ -143,12 +145,15 @@ class Response
     }
 
     //输出头设置
-    public function setHeader($name, $val=null, $append=false){
+    public function setHeader($name, $val = null, $append = false): Response
+    {
         if (is_array($name)) {
             $this->header = array_merge($this->header, $name);
         } else {
             //首字母大写
-            if (strpos($name, '-')) $name = strtr(ucwords(strtr($name, '-', ' ')), ' ', '-');
+            if (strpos($name, '-')) {
+                $name = strtr(ucwords(strtr($name, '-', ' ')), ' ', '-');
+            }
             if ($val === null) {
                 unset($this->header[$name]);
             } else {
@@ -172,7 +177,7 @@ class Response
      * @param array $headers
      * @return $this
      */
-    public function withHeaders($headers)
+    public function withHeaders(array $headers): Response
     {
         foreach ($headers as $name => $value) {
             $this->setHeader($name, $value);
@@ -183,10 +188,10 @@ class Response
     /**
      * 添加头
      * @param string $name
-     * @param string $value
+     * @param string|string[]|null $value
      * @return static
      */
-    public function withHeader($name, $value=null)
+    public function withHeader(string $name, $value = null): Response
     {
         return $this->setHeader($name, $value);
     }
@@ -194,10 +199,10 @@ class Response
     /**
      * 指定头追加
      * @param string $name
-     * @param string $value
+     * @param string|string[] $value
      * @return $this
      */
-    public function withAddedHeader($name, $value)
+    public function withAddedHeader(string $name, $value): Response
     {
         return $this->setHeader($name, $value, true);
     }
@@ -206,7 +211,7 @@ class Response
      * @param string $name
      * @return static
      */
-    public function withoutHeader($name)
+    public function withoutHeader(string $name): Response
     {
         return $this->setHeader($name, null);
     }
@@ -216,9 +221,11 @@ class Response
      * @param bool $first
      * @return array
      */
-    public function getHeader($name, $first = true)
+    public function getHeader(string $name, bool $first = true): array
     {
-        if (!isset($this->header[$name])) return [];
+        if (!isset($this->header[$name])) {
+            return [];
+        }
         if (is_array($this->header[$name]) && $first) {
             return reset($this->header[$name]);
         }
@@ -229,7 +236,7 @@ class Response
      * @param string $name
      * @return string
      */
-    public function getHeaderLine($name)
+    public function getHeaderLine(string $name): string
     {
         return implode(',', $this->getHeader($name));
     }
@@ -237,7 +244,7 @@ class Response
     /**
      * @return array
      */
-    public function getHeaders()
+    public function getHeaders(): array
     {
         return $this->header;
     }
@@ -246,7 +253,7 @@ class Response
      * @param int $code
      * @return $this
      */
-    public function setStatusCode($code)
+    public function setStatusCode(int $code): Response
     {
         $this->statusCode = (int)$code;
         return $this;
@@ -257,7 +264,8 @@ class Response
      * @param string $reasonPhrase
      * @return $this
      */
-    public function withStatus(int $code, string $reasonPhrase='') {
+    public function withStatus(int $code, string $reasonPhrase = ''): Response
+    {
         $this->statusCode = (int)$code;
         $this->reasonPhrase = $reasonPhrase;
         return $this;
@@ -266,7 +274,7 @@ class Response
     /**
      * @return int
      */
-    public function getStatusCode()
+    public function getStatusCode(): int
     {
         return $this->statusCode;
     }
@@ -274,7 +282,7 @@ class Response
     /**
      * @return string
      */
-    public function getReasonPhrase()
+    public function getReasonPhrase(): string
     {
         return $this->reasonPhrase ?: (self::$phrases[$this->statusCode] ?? '');
     }
@@ -283,7 +291,7 @@ class Response
      * @param mixed $body
      * @return $this
      */
-    public function withBody($body)
+    public function withBody($body): Response
     {
         $this->body = $body;
         return $this;
@@ -302,7 +310,7 @@ class Response
      * @param string $charset
      * @return $this
      */
-    public function setContentType($contentType, $charset = '')
+    public function setContentType(string $contentType, string $charset = ''): Response
     {
         $this->header['Content-Type'] = $contentType . '; charset=' . ($charset ?: \myphp::$cfg['charset']);
         return $this;
@@ -313,11 +321,12 @@ class Response
      * @param int $offset
      * @param int $size
      * @param bool $inline
-     * @param null $attachmentName
+     * @param string|null $attachmentName
+     * @param string $mimeType
      * @return $this
      * @throws \Exception
      */
-    public function sendFile($file, $offset=0, $size=0, $inline=false, $attachmentName=null, $mimeType='')
+    public function sendFile($file, int $offset = 0, int $size = 0, bool $inline = false, string $attachmentName = null, string $mimeType = ''): Response
     {
         if (is_resource($file)) {
             $meta = stream_get_meta_data($file); //取文件的实际路径
@@ -330,9 +339,15 @@ class Response
         $this->file = [$file, $offset, $size];
         $this->outFile = $file;
         if ($inline !== null) { //文件下载 可能分片传输  null时文件直接全部输出
-            if ($size == 0) $size = filesize($file);
-            if ($mimeType === '') $mimeType = Helper::minMimeType($file);
-            if ($attachmentName === null) $attachmentName = basename($file);
+            if ($size == 0) {
+                $size = filesize($file);
+            }
+            if ($mimeType === '') {
+                $mimeType = Helper::minMimeType($file);
+            }
+            if ($attachmentName === null) {
+                $attachmentName = basename($file);
+            }
 
             //取分片信息
             if (isset($_SERVER['HTTP_RANGE'])) {
@@ -342,7 +357,7 @@ class Response
                     throw new \Exception(416);
                 }
 
-                list($begin, $end) = $this->_range;
+                [$begin, $end] = $this->_range;
                 if ($begin != 0 || $end != $size - 1) {
                     $this->setStatusCode(206)->withHeader('Content-Range', "bytes $begin-$end/$size");
                 } else {
@@ -361,17 +376,17 @@ class Response
 
     /**
      * @param string $filename
-     * @param null|string $mimeType
+     * @param string|null $mimeType
      * @param bool $inline 表示在浏览器中直接显示数据
-     * @param null|int $contentLength
+     * @param int|null $contentLength
      * @return $this
      */
-    public function setDownloadHeaders($filename, $mimeType = null, $inline = false, $contentLength = null)
+    public function setDownloadHeaders(string $filename, string $mimeType = null, bool $inline = false, int $contentLength = null): Response
     {
         $this->withHeader('Accept-Ranges', 'bytes')
             ->withHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . ';filename="' . $filename . '"')
             ->withHeader('X-Accel-Buffering', 'no')
-            ->withHeader('Content-Type', $mimeType === null ?'application/octet-stream':$mimeType);
+            ->withHeader('Content-Type', $mimeType === null ? 'application/octet-stream' : $mimeType);
 
         if (\myphp::req()->header('Connection') == 'close') {
             #$this->withHeader('Connection', 'close');
@@ -399,7 +414,7 @@ class Response
      * @param array $headers
      * @return $this
      */
-    public function redirect($url, $code = 302, $headers = [])
+    public function redirect(string $url, int $code = 302, array $headers = [])
     {
         if ($url === '') {
             $url = Request::siteUrl();
@@ -410,15 +425,15 @@ class Response
         }
 
         //if (IS_CLI || !headers_sent()) { // 如果报头未发送，则发送
-            $headers['Location'] = $url;
-            $this->setStatusCode($code)->withHeaders($headers);
+        $headers['Location'] = $url;
+        $this->setStatusCode($code)->withHeaders($headers);
         /*} else {
             $this->withBody("<meta http-equiv='Refresh' content='0;URL={$url}'>");
         }*/
         return $this;
     }
 
-    public function e404($msg = '')
+    public function e404($msg = ''): Response
     {
         $this->setStatusCode(404)->withBody($msg);
         return $this;
@@ -426,16 +441,16 @@ class Response
 
     /**
      * @param string $name
-     * @param string $value
+     * @param mixed $value
      * @return $this
      */
-    public function setCookie($name, $value)
+    public function setCookie(string $name, $value): Response
     {
         cookie($name, $value);
         return $this;
     }
 
-    public function clear()
+    public function clear(): void
     {
         $this->outFile = null;
         $this->body = null;
@@ -445,7 +460,7 @@ class Response
         $this->_range = [];
     }
 
-    public function send()
+    public function send(): void
     {
         if ($this->isSent) {
             return;
@@ -461,16 +476,18 @@ class Response
     }
 
     //发送状态码
-    public function sendCode()
+    public function sendCode(): void
     {
-        $protocol = (isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.1');
+        $protocol = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1';
         header($protocol . ' ' . $this->statusCode . ' ' . $this->getReasonPhrase());
     }
 
     //发送头部信息
-    public function sendHeader()
+    public function sendHeader(): void
     {
-        if (!$this->header) return;
+        if (!$this->header) {
+            return;
+        }
         foreach ($this->header as $name => $val) {
             if (is_array($val)) {
                 $replace = true;
@@ -485,7 +502,7 @@ class Response
         $this->header = [];
     }
     //输出内容
-    protected function sendBody()
+    protected function sendBody(): void
     {
         if ($this->outFile === null) {
             echo is_array($this->body) ? Helper::toJson($this->body) : $this->body;
@@ -498,7 +515,7 @@ class Response
 
         $handle = fopen($this->outFile, 'rb');
         if ($this->_range) {
-            list($begin, $end) = $this->_range;
+            [$begin, $end] = $this->_range;
             fseek($handle, $begin);
 
             #Log::write($begin, 'start '.$_SERVER['REMOTE_PORT']);
@@ -530,16 +547,24 @@ class Response
      * @param int $fileSize
      * @return bool|int[] [start,end]
      */
-    public static function getRange($fileSize)
+    public static function getRange(int $fileSize)
     {
-        if (!isset($_SERVER['HTTP_RANGE'])) return [0, $fileSize - 1];
+        if (!isset($_SERVER['HTTP_RANGE'])) {
+            return [0, $fileSize - 1];
+        }
         //bytes=0-5读取开头6字节  bytes=-100读取文件尾100字节  bytes=500-读取500字节以后的; 不支持 bytes=500-600,601-999 多个
-        if (strpos($_SERVER['HTTP_RANGE'], 'bytes=') !== 0) return false;
+        if (strpos($_SERVER['HTTP_RANGE'], 'bytes=') !== 0) {
+            return false;
+        }
         $range = substr($_SERVER['HTTP_RANGE'], 6);
 
-        if (strpos($range, '-') === false) return false;
+        if (strpos($range, '-') === false) {
+            return false;
+        }
         $ranges = explode('-', $range);
-        if ($ranges[0] === '' && $ranges[1] === '') return [0, $fileSize - 1];
+        if ($ranges[0] === '' && $ranges[1] === '') {
+            return [0, $fileSize - 1];
+        }
 
         $start = (int)$ranges[0];
         $end = (int)$ranges[1];
@@ -559,12 +584,12 @@ class Response
         return [$start, $end];
     }
 
-    public function getProtocolVersion()
+    public function getProtocolVersion(): string
     {
         return $this->protocol;
     }
 
-    public function withProtocolVersion(string $version)
+    public function withProtocolVersion(string $version): Response
     {
         if ($version === $this->protocol) {
             return $this;
@@ -573,7 +598,7 @@ class Response
         return $this;
     }
 
-    public function hasHeader(string $name)
+    public function hasHeader(string $name): bool
     {
         return isset($this->header[$name]);
     }

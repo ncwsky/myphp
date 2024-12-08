@@ -1,5 +1,11 @@
 <?php
+
+declare(strict_types=1);
+
 namespace myphp;
+
+use myphp;
+use myphp\session\Redis;
 
 /**
  * Session设置处理
@@ -13,7 +19,8 @@ namespace myphp;
  * @method destroy() static 销毁
  * @method flush() static 销毁 兼容处理
  */
-class Session {
+class Session
+{
     /**
      * @var null|EnvSessionInterface
      */
@@ -28,7 +35,7 @@ class Session {
      * 注入指定的session处理方式
      * @param callable|string $sess
      */
-    public static function on($sess)
+    public static function on($sess): void
     {
         self::$callable = $sess;
         self::$instance = null;
@@ -62,8 +69,12 @@ class Session {
         if (!static::$instance) {
             throw new \Exception('Session No Instance');
         }
-        if ($method == 'del') $method = 'delete'; //兼容处理
-        elseif ($method == 'flush') $method = 'destroy'; //兼容处理
+        if ($method == 'del') {  //兼容处理
+            $method = 'delete';
+        }
+        elseif ($method == 'flush') {  //兼容处理
+            $method = 'destroy';
+        }
 
         if (method_exists(static::$instance, $method)) {
             return call_user_func_array([static::$instance, $method], $args);
@@ -87,7 +98,7 @@ interface EnvSessionInterface
 
 class EnvSession implements EnvSessionInterface
 {
-    private $options = ['name'=>'sid'];
+    private $options = ['name' => 'sid'];
 
     public function __construct($opts)
     {
@@ -96,24 +107,29 @@ class EnvSession implements EnvSessionInterface
     }
 
     //初始会话
-    public function open($opts=null){
-        if ($this->isActive()) return;
+    public function open($opts = null): void
+    {
+        if ($this->isActive()) {
+            return;
+        }
 
-        if ($opts) $this->options = $opts;
+        if ($opts) {
+            $this->options = $opts;
+        }
         isset($this->options['name']) && session_name($this->options['name']);
         session_set_cookie_params(
             isset($this->options['expire']) ? (int)$this->options['expire'] : 0,
-            isset(\myphp::$cfg['cookie_path']) ? \myphp::$cfg['cookie_path'] : '/',
-            isset(\myphp::$cfg['cookie_domain']) ? \myphp::$cfg['cookie_domain'] : '',
-            isset(\myphp::$cfg['cookie_secure']) ? \myphp::$cfg['cookie_secure'] : false,
+            myphp::$cfg['cookie_path'] ?? '/',
+            myphp::$cfg['cookie_domain'] ?? '',
+            myphp::$cfg['cookie_secure'] ?? false,
             true // HttpOnly; Yes, this is intentional and not configurable for security reasons
         );
         isset($this->options['expire']) && ini_set('session.gc_maxlifetime', $this->options['expire']);
 
         //默认php文件ses
-        $type = isset($this->options['type']) ? $this->options['type'] : '';
+        $type = $this->options['type'] ?? '';
         if ($type == 'redis') {
-            $sess = new \myphp\session\Redis($this->options);
+            $sess = new Redis($this->options);
             session_set_save_handler($sess, true);
         } else {
             isset($this->options['path']) && session_save_path($this->options['path']);
@@ -124,41 +140,43 @@ class EnvSession implements EnvSessionInterface
     /**
      * @return bool whether the session has started
      */
-    public function isActive()
+    public function isActive(): bool
     {
         return session_status() === PHP_SESSION_ACTIVE;
     }
 
-    public function getId()
+    public function getId(): string
     {
         return session_id();
     }
 
-    public function setId($id)
+    public function setId($id): void
     {
         session_id($id);
     }
 
-    public function getName()
+    public function getName(): string
     {
         return session_name();
     }
 
     // todo test
-    public function setName($name)
+    public function setName($name): void
     {
         $this->close();
         session_name($name);
         $this->open();
     }
 
-    public function close()
+    public function close(): void
     {
-        if ($this->isActive()) @session_write_close();
+        if ($this->isActive()) {
+            @session_write_close();
+        }
     }
 
     //销毁 todo test
-    public function destroy()
+    public function destroy(): void
     {
         if ($this->isActive()) {
             $sessionId = $this->getId();
@@ -171,28 +189,28 @@ class EnvSession implements EnvSessionInterface
         $_SESSION = [];
     }
 
-    public function all()
+    public function all(): array
     {
         $this->open();
-        return isset($_SESSION) ? $_SESSION : [];
+        return $_SESSION ?? [];
     }
 
     //设置 session
-    public function set($name, $val)
+    public function set($name, $val): void
     {
         $this->open();
         $_SESSION[$name] = $val;
     }
 
     //获取 session
-    public function get($name, $def = null)
+    public function get($name, $default = null)
     {
         $this->open();
-        return isset($_SESSION[$name]) ? $_SESSION[$name] : $def;
+        return $_SESSION[$name] ?? $default;
     }
 
     //删除 session
-    public function delete($name)
+    public function delete($name): void
     {
         $this->open();
         unset($_SESSION[$name]);
