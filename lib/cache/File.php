@@ -76,7 +76,7 @@ class File extends \myphp\CacheAbstract
      * @param int|null $expire 缓存生命 默认为0无限生命
      * @return bool
      */
-    public function set(string $name, $data, int $expire = null): bool
+    public function set(string $name, $data, ?int $expire = null): bool
     {
         if ($expire === null) {
             $expire = $this->options['expire'];

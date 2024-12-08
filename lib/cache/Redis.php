@@ -58,11 +58,11 @@ class Redis extends \myphp\CacheAbstract
      * 写入缓存
      * @access public
      * @param string $name 缓存变量名
-     * @param mixed $data  存储数据
-     * @param integer $expire  有效时间（秒）
+     * @param mixed $data 存储数据
+     * @param int|null $expire 有效时间（秒）
      * @return mixed
      */
-    public function set(string $name, $data, $expire = null)
+    public function set(string $name, $data, ?int $expire = null)
     {
         if ($expire === null) {
             $expire = $this->options['expire'];

@@ -180,10 +180,10 @@ class Log
     }
 
     /** 自定义异常记录 用于 set_exception_handler
-     * @param \Exception $e
+     * @param \Throwable $e
      * @param bool $out
      */
-    public static function Exception(\Exception $e, bool $out = true): void
+    public static function Exception(\Throwable $e, bool $out = true): void
     {
         $err = $e->getMessage().PHP_EOL.'line:'.$e->getLine().', file:'.$e->getFile().PHP_EOL.$e->getTraceAsString();
         if (IS_CLI || !$out) {

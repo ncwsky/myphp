@@ -598,7 +598,7 @@ class Redis
             $this->unixSocket ? 'unix://' . $this->unixSocket : 'tcp://' . ($this->_connId ?: $this->host . ':' . $this->port),
             $errorNumber,
             $errorDescription,
-            $this->timeout ? $this->timeout : ini_get('default_socket_timeout'),
+            $this->timeout ? $this->timeout : (int)ini_get('default_socket_timeout'),
             $this->socketClientFlags
         );
         restore_error_handler();
@@ -743,12 +743,12 @@ class Redis
             if (is_array($arg)) { //兼容数组参数
                 $count += count($arg) - 1;
                 foreach ($arg as $item) {
-                    $command .= '$' . strlen($item) . "\r\n" . $item . "\r\n";
+                    $command .= '$' . strlen((string)$item) . "\r\n" . $item . "\r\n";
                     $srcCommand .= $item . ' ';
                 }
                 continue;
             }
-            $command .= '$' . strlen($arg) . "\r\n" . $arg . "\r\n";
+            $command .= '$' . strlen((string)$arg) . "\r\n" . $arg . "\r\n";
             $srcCommand .= $arg . ' ';
         }
         $command = '*' . $count . "\r\n" . $command;

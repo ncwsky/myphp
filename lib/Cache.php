@@ -73,7 +73,7 @@ abstract class CacheAbstract
     //设置参数 可数组方式 或 键值方式  $option:array/string
     //abstract public function setOption($option, $val = null);
     //设置缓存
-    abstract public function set(string $name, $data, $expire = null);
+    abstract public function set(string $name, $data, ?int $expire = null);
     //获取缓存
     abstract public function get(string $name);
     //判断缓存

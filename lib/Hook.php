@@ -32,10 +32,10 @@ class Hook
     /**
      * 监听行为并处理
      * @param string $name 行为名称
-     * @param array|null $params 传入参数
+     * @param mixed $params 传入参数
      * @return void
      */
-    public static function listen(string $name, array &$params = null): void
+    public static function listen(string $name, &$params = null): void
     {
         if (isset(self::$_hooks[$name])) {
             //日志记录
@@ -49,10 +49,10 @@ class Hook
      * 直接执行
      * @param mixed $hook 行为名称
      * @param string $method 方法
-     * @param array|null $params 传入参数
+     * @param mixed $params 传入参数
      * @return mixed
      */
-    public static function run($hook, string $method = '', array &$params = null)
+    public static function run($hook, string $method = '', &$params = null)
     {
         //记录构子执行前时间
         /*

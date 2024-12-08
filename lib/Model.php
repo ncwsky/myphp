@@ -235,7 +235,7 @@ class Model implements \ArrayAccess
      * @param bool $insert
      * @return bool
      */
-    public function beforeSave(bool $insert): bool
+    protected function beforeSave(bool $insert)
     {
         return true;
     }
@@ -243,18 +243,18 @@ class Model implements \ArrayAccess
      * @param bool $insert
      * @param array $changed 变动的数据
      */
-    public function afterSave(bool $insert, array $changed = []): void
+    protected function afterSave(bool $insert, array $changed = [])
     {
     }
 
     /**
      * @return bool
      */
-    public function beforeDel(): bool
+    protected function beforeDel()
     {
         return true;
     }
-    public function afterDel(): void
+    protected function afterDel()
     {
     }
 
