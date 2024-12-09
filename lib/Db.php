@@ -147,7 +147,7 @@ class Db
             }*/
             $slave = false;
         }
-        $key = empty($config['dsn']) ? $config['server'] . $config['name'] . $config['user'] . $config['port'] : $config['dsn'];
+        $key = empty($config['dsn']) ? ($config['dbms'] == 'sqlite' ? $config['name'] : $config['server'] . $config['name'] . $config['user'] . $config['port']) : $config['dsn'];
 
         if ($slave) {
             $this->initCache();

@@ -74,7 +74,9 @@ class db_pdo extends \myphp\DbBase
                     }
                     break;
                 case 'sqlite':// PDO_SQLITE DSN @sqlite:/opt/databases/mydb.sq3
-                    $dsn = 'sqlite:'.$cfg_db['name'];
+                    $dsn = 'sqlite:' . $cfg_db['name'];
+                    $cfg_db['user'] = '';
+                    $cfg_db['pwd'] = '';
                     break;
                 default:// PDO_DBLIB DSN
                     $dsn = $cfg_db['dbms'].':host='.$cfg_db['server'].';dbname='.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);

@@ -123,7 +123,7 @@ class EnvSession implements EnvSessionInterface
             myphp::$cfg['cookie_secure'] ?? false,
             true // HttpOnly; Yes, this is intentional and not configurable for security reasons
         );
-        isset($this->options['expire']) && ini_set('session.gc_maxlifetime', $this->options['expire']);
+        isset($this->options['expire']) && ini_set('session.gc_maxlifetime', (string)$this->options['expire']);
 
         //默认php文件ses
         $type = $this->options['type'] ?? '';

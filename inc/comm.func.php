@@ -519,9 +519,9 @@ function getMd5($val, $encode = '')
  * @param string $operation ENCODE为加密，DECODE为解密，可选参数，默认为ENCODE，
  * @param string $key  密钥：数字、字母、下划线
  * @param int $expiry  过期时间
- * @return string|null
+ * @return string
  */
-function sys_auth($string, $operation = 'ENCODE', $key = '', $expiry = 0)
+function sys_auth(string $string, string $operation = 'ENCODE', string $key = '', int $expiry = 0): string
 {
     $key_length = 4;
     $key = md5($key != '' ? $key : myphp::$cfg['encode_key']);
@@ -543,7 +543,7 @@ function sys_auth($string, $operation = 'ENCODE', $key = '', $expiry = 0)
         if (($time == 0 || $time - time() > 0) && substr($result, 10, 16) == substr(md5(substr($result, 26).$egiskeys), 0, 16)) {
             return substr($result, 26);
         } else {
-            return null;
+            return '';
         }
     }
 }
