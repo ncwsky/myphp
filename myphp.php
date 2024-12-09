@@ -574,7 +574,7 @@ final class myphp
             'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰  lcfirst首字母转小写
             'MODULE_PATH' => $app_path,
             //路径 自动生成
-            'CACHE_PATH' => RUNTIME . DS . '.' . (self::$env['m'] ? self::$env['m'] . '.' : '') . self::$env['app_namespace'] . '.view', // $app_path . DS . 'cache',
+            'CACHE_PATH' => RUNTIME . DS . '.' . str_replace('\\', '.', self::$env['app_namespace']) . '.view', // $app_path . DS . 'cache',
             'CONTROL_PATH' => $app_path . DS . 'control',
             'MODEL_PATH' => $app_path . DS . 'model',
             'LANG_PATH' => $app_path . DS . 'lang',
