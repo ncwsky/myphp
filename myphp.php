@@ -399,7 +399,8 @@ final class myphp{
      */
     public static function Analysis($isCLI = IS_CLI){
         $app_path = self::$cfg['_app_path'];
-        self::$env['app_namespace'] = basename(APP_PATH);
+        $app_name = basename(APP_PATH);
+        self::$env['app_namespace'] = $app_name;
         //自动指定app顶层命名空间目录
         if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
             self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
@@ -508,7 +509,7 @@ final class myphp{
             'ACTION' => strpos(self::$env['a'], '-') ? str_replace(' ', '', ucwords(str_replace('-', ' ', self::$env['a']), ' ')) : self::$env['a'], //转驼峰  lcfirst首字母转小写
             'MODULE_PATH' => $app_path,
             //路径 自动生成
-            'CACHE_PATH' => RUNTIME . DS . '.' . (self::$env['m'] ? self::$env['m'] . '.' : '') . self::$env['app_namespace'] . '.view', // $app_path . DS . 'cache',
+            'CACHE_PATH' => RUNTIME . DS . '.' . (self::$env['m'] ? 'mod.' . self::$env['m'] : $app_name) . '.view', // $app_path . DS . 'cache',
             'CONTROL_PATH' => $app_path . DS . 'control',
             'MODEL_PATH' => $app_path . DS . 'model',
             'LANG_PATH' => $app_path . DS . 'lang',
