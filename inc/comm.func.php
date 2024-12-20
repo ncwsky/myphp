@@ -1079,6 +1079,7 @@ function num2ch($num, $mode = true, $sim = true)
     }
     //整数部分
     $str = strrev($num);
+    $out = [];
     for ($i = 0,$c = strlen($str);$i < $c;$i++) {
         $out[$i] = $char[$str[$i]];
         if ($mode) {

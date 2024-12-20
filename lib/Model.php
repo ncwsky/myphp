@@ -259,7 +259,7 @@ class Model implements \ArrayAccess
     }
 
     /**
-     * @return int
+     * @return int|false
      * @throws \Throwable
      */
     public function del()

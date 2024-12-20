@@ -277,7 +277,7 @@ class AES
         for ($j = 0; $j < $this->Nk; $j++) {
             for ($i = 0; $i < 4; $i++) {
                 // 转换成ASCII码值
-                $tk[$i][$j] = ord($hash[$j * 4 + $i]) > 256 ? ord($hash[$j * 4 + $i]) % 256 : ord($hash[$j * 4 + $i]);
+                $tk[$i][$j] = ord($hash[$j * 4 + $i]);// > 256 ? ord($hash[$j * 4 + $i]) % 256 : ord($hash[$j * 4 + $i])
             }
         }
         $t = 0;

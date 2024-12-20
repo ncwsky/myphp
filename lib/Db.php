@@ -25,6 +25,7 @@ use myphp\db\db_pdo;
  * @property string lock
  * @property string order
  * @property string table
+ * @property string where
  */
 class Db
 {
@@ -1284,17 +1285,11 @@ abstract class TbBase
 
     /** 按字段类型生成规则
      * @param string $type 数据库取得的类型
-     * @param string $vType 返回给php的类型
-     * @return mixed
+     * @param string|null $vType 返回给php的类型
+     * @return string
      */
-    abstract public function fieldToRule(string $type, ?string &$vType = '');
-
-    /**
-     * 取得数据表的字段信息
-     * @param db_pdo $db
-     * @param string $tableName
-     * @return mixed array('fields'=>string,'prikey'=>string,'rule'=>array)
-     */
+    abstract public function fieldToRule(string $type, ?string &$vType = ''): string;
+    //取得数据表的字段信息 return:['fields'=>string,'prikey'=>string,'rule'=>[...]]
     abstract public function getFields($db, string $tableName): array;
     //取得数据库的表信息
     abstract public function getTables($db, string $dbName): array;

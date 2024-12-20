@@ -333,7 +333,7 @@ class lib_redis
      * @access public
      * @param string $name 缓存变量名
      * @param mixed $data 存储数据
-     * @param int|string $expire 有效时间（秒） 0表示永久缓存
+     * @param int $expire 有效时间（秒） 0表示永久缓存
      * @return boolean
      */
     public function set(string $name, $data, int $expire = 0)
@@ -346,7 +346,7 @@ class lib_redis
             $option = defined('JSON_UNESCAPED_UNICODE') ? JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES : 0;
             $data = json_encode($data, $option);
         }
-        if (is_int($expire) && $expire) {
+        if ($expire > 0) {
             $result = $this->handler->setex($name, $expire, $data);
         } else {
             $result = $this->handler->set($name, $data);
@@ -429,10 +429,12 @@ class lib_redis
         if ($lockTimeout == 0) { //释放锁
             return $this->handler->del($lockKey);
         }
-        $result = $this->handler->setnx($lockKey, 1);
-        if ($result === 1 && $lockTimeout) {
+        $result = (int)$this->handler->setnx($lockKey, 1);
+        if ($result === 1) {
             $this->handler->expire($lockKey, $lockTimeout);
+            return true;
+        } else {
+            return false;
         }
-        return $result === 1;
     }
 }

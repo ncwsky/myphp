@@ -70,13 +70,13 @@ class BitMap
     public function sort()
     {
         $out = '';
-        for ($i = 0;$i < $this->bitSize;$i++) {
+        for ($i = 0; $i < $this->bitSize; $i++) {
             $byte = $this->bitData[$i];
-            for ($j = 0;$j < 8;$j++) {
+            for ($j = 0; $j < 8; $j++) {
                 $bit = $byte & self::$posMap[$j];
                 if ($bit !== self::NULL_BYTE) {
                     $num = $i * 8 + $j;
-                    $out .= ' '.$num;
+                    $out .= ' ' . $num;
                 }
             }
         }

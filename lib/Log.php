@@ -130,7 +130,7 @@ class Log
         }
     }
     //自定义错误记录 用于 set_error_handler
-    public static function UserErr($errno, $err, $eFile, $eLine): void
+    public static function UserErr($errno, $err, $eFile, $eLine): bool
     {
         $level = 'info';
         $debug = true;
@@ -160,23 +160,24 @@ class Log
             $debugInfo = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
             if (count($debugInfo) > 1) {
                 array_pop($debugInfo); // 删除最后一个跟踪: Log::UserErr
-                $stack = PHP_EOL."[".PHP_EOL;
+                $stack = PHP_EOL . '[' . PHP_EOL;
                 foreach ($debugInfo as $key => $val) {
-                    if (array_key_exists("file", $val)) {
-                        $stack .= ",file:" . $val["file"];
+                    if (isset($val['file'])) {
+                        $stack .= ',file:' . $val['file'];
                     }
-                    if (array_key_exists("line", $val)) {
-                        $stack .= ",line:" . $val["line"];
+                    if (isset($val['line'])) {
+                        $stack .= ',line:' . $val['line'];
                     }
-                    if (array_key_exists("function", $val)) {
-                        $stack .= "function:" . $val["function"];
+                    if (isset($val['function'])) {
+                        $stack .= 'function:' . $val['function'];
                     }
                     $stack .= PHP_EOL;
                 }
-                $stack .= "]";
+                $stack .= ']';
             }
         }
         self::write('errno:'.$errno.', line:'.$eLine.', file:'.$eFile.', message:'.$err.$stack.PHP_EOL.self::miniREQ(), $level);
+        return true;
     }
 
     /** 自定义异常记录 用于 set_exception_handler

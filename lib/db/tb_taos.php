@@ -17,11 +17,11 @@ class tb_taos extends \myphp\TbBase
 
     /**
      * @param string $type 数据库取得的类型
-     * @param string $vType 返回给php的类型
+     * @param string|null $vType 返回给php的类型
      * @param int $len
-     * @return mixed|string
+     * @return string
      */
-    public function fieldToRule(string $type, ?string &$vType = '', int $len = 0)
+    public function fieldToRule(string $type, ?string &$vType = '', int $len = 0): string
     {
         $rule = '%s';
         if (strpos($type, 'unsigned')) { //无符号型

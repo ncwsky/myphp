@@ -9,10 +9,10 @@ class tb_mysql extends \myphp\TbBase
 {
     /**
      * @param string $type 数据库取得的类型
-     * @param string $vType 返回给php的类型
-     * @return mixed|string
+     * @param string|null $vType 返回给php的类型
+     * @return string
      */
-    public function fieldToRule(string $type, ?string &$vType = '')
+    public function fieldToRule(string $type, ?string &$vType = ''): string
     {
         $rule = '%s';
         $len = 0;

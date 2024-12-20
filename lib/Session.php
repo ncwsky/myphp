@@ -42,10 +42,10 @@ class Session
     }
 
     /**
-     * @param null $opts
+     * @param array|null $opts
      * @return mixed|EnvSessionInterface
      */
-    public static function init($opts = null)
+    public static function init(array $opts = null)
     {
         if (!self::$instance) {
             if (self::$callable) {
@@ -105,8 +105,12 @@ class EnvSession implements EnvSessionInterface
         register_shutdown_function([$this,'close']);
     }
 
-    //初始会话
-    public function open($opts = null): void
+    /**
+     * 初始会话
+     * @param array|null $opts
+     * @return void
+     */
+    public function open(array $opts = null): void
     {
         if ($this->isActive()) {
             return;

@@ -51,7 +51,7 @@ class DesSecurity
      * @param string $output
      *      base64、hex
      */
-    public function __construct($key, $method = 'DES-ECB', $iv = '', $options = OPENSSL_NO_PADDING, $output = self::OUTPUT_BASE64)
+    public function __construct(string $key, string $method = 'DES-ECB', string $iv = '', int $options = OPENSSL_NO_PADDING, string $output = self::OUTPUT_BASE64)
     {
         $this->key = $key;
         $this->method = $method;
@@ -63,10 +63,10 @@ class DesSecurity
     /**
      * 加密
      *
-     * @param $str
+     * @param string $str
      * @return string
      */
-    public function encrypt($str)
+    public function encrypt(string $str): string
     {
         $str = $this->pkcsPadding($str, 8);
         $sign = openssl_encrypt($str, $this->method, $this->key, $this->options, $this->iv);
@@ -85,7 +85,7 @@ class DesSecurity
      * @param $encrypted
      * @return string
      */
-    public function decrypt($encrypted)
+    public function decrypt($encrypted): string
     {
         if ($this->output == self::OUTPUT_BASE64) {
             $encrypted = base64_decode($encrypted);
@@ -95,8 +95,7 @@ class DesSecurity
 
         $sign = openssl_decrypt($encrypted, $this->method, $this->key, $this->options, $this->iv);
         $sign = $this->unPkcsPadding($sign);
-        $sign = rtrim($sign);
-        return $sign;
+        return rtrim($sign);
     }
 
     /**
@@ -106,7 +105,7 @@ class DesSecurity
      * @param $blocksize
      * @return string
      */
-    private function pkcsPadding($str, $blocksize)
+    private function pkcsPadding($str, $blocksize): string
     {
         $pad = $blocksize - (strlen($str) % $blocksize);
         return $str . str_repeat(chr($pad), $pad);

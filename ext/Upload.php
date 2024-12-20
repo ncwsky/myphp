@@ -288,7 +288,7 @@ class Upload
                     $result = $cli ? rename($clientFile["tmp_name"], $realFile) : move_uploaded_file($clientFile["tmp_name"], $realFile);
                 }
             }
-            if (!$result) {
+            if (empty($result)) {
                 $data['state'] = "文件保存失败";
             }
         } else {

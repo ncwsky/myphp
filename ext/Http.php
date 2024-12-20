@@ -169,13 +169,13 @@ class Http
      * 通过curl 自定义发送请求
      * @param string $url
      * @param string $type
-     * @param null|array $data
+     * @param null|string|array $data
      * @param int $timeout
      * @param string|array $header
      * @param array $opt
      * @return array|bool|string
      */
-    public static function curlSend($url, $type = 'GET', $data = null, $timeout = 30, $header = '', $opt = [])
+    public static function curlSend(string $url, string $type = 'GET', $data = null, int $timeout = 30, $header = '', array $opt = [])
     {
         if (!$opt) {
             $opt = self::$curlOpt;
@@ -764,7 +764,7 @@ class Http
             $length = filesize($filename);
         } else {
             return false;
-            throw new \Exception('下载文件不存在');
+            //throw new \Exception('下载文件不存在');
         }
 
         $type = mime_content_type($filename);

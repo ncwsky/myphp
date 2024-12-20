@@ -49,7 +49,7 @@ class BitmapFile
         }
         if ($this->max < $num) {
             fseek($this->handler, 0, SEEK_END);
-            fwrite($this->handler, str_repeat("\x00", ceil(($num - $this->max) / 8))); // fill with 0
+            fwrite($this->handler, str_repeat("\x00", (int)ceil(($num - $this->max) / 8))); // fill with 0
             $this->max = ceil($num / 8) * 8 - 1;
         }
     }
@@ -65,7 +65,7 @@ class BitmapFile
         ftell — 返回文件指针读/写的位置   在附加模式（加参数 "a" 打开文件）中 ftell() 会返回未定义错误。
         fflush — 将缓冲内容输出到文件
          */
-        fseek($this->handler, floor($num / 8), SEEK_SET);
+        fseek($this->handler, (int)floor($num / 8), SEEK_SET);
         $bin = fread($this->handler, 1) | pack('C', 0x100 >> fmod($num, 8) + 1); // mark with 1
 
         fseek($this->handler, ftell($this->handler) - 1, SEEK_SET); // write a new byte
@@ -76,7 +76,7 @@ class BitmapFile
     public function del($num): void
     {
         $this->num_check($num);
-        fseek($this->handler, floor($num / 8), SEEK_SET);
+        fseek($this->handler, (int)floor($num / 8), SEEK_SET);
         $bin = fread($this->handler, 1) & ~pack('C', 0x100 >> fmod($num, 8) + 1); // mark with 0
 
         fseek($this->handler, ftell($this->handler) - 1, SEEK_SET); // write a new byte
@@ -86,7 +86,7 @@ class BitmapFile
 
     public function find($num)
     {
-        if (fseek($this->handler, floor($num / 8), SEEK_SET) == -1) {
+        if (fseek($this->handler, (int)floor($num / 8), SEEK_SET) == -1) {
             return false;
         }
         $bin = fread($this->handler, 1);

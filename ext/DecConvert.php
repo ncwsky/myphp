@@ -51,7 +51,7 @@ class DecConvert
      * @return string
      * @throws \Exception
      */
-    public function to($number, $toBase)
+    public function to($number, int $toBase): string
     {
         $ret = '';
         do {
