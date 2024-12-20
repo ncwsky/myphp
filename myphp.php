@@ -429,6 +429,16 @@ final class myphp
         }
         return null;
     }
+    //http状态输出
+    public static function httpCode(int $code = 200)
+    {
+        self::res()->withStatus($code)->sendCode();
+    }
+    //http头输出
+    public static function sendHeader()
+    {
+        self::res()->sendHeader();
+    }
     //输出头设置
     public static function setHeader($name, $val = null, $append = false): void
     {
