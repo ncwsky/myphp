@@ -219,7 +219,9 @@ class Http
             $options[CURLOPT_SSL_VERIFYPEER] = false; //取消验证证书
 
             if (isset($opt['cert']) && isset($opt['key'])) {
-                $opt['type'] = isset($opt['type']) ? $opt['type'] : 'PEM';
+                if (!isset($opt['type'])) {
+                    $opt['type'] = 'PEM';
+                }
                 $options[CURLOPT_SSLCERTTYPE] = $opt['type'];
                 $options[CURLOPT_SSLKEYTYPE] = $opt['type'];
                 $options[CURLOPT_SSLCERT] = $opt['cert'];
@@ -615,9 +617,12 @@ class Http
         }
 
         $url2 = parse_url($url);
-        $url2["path"] = isset($url2["path"]) ? $url2["path"] : "/" ;
-        $url2["port"] = isset($url2["port"]) ? $url2["port"] : $def_port;
-
+        if (!isset($url2['path'])) {
+            $url2['path'] = '/';
+        }
+        if (!isset($url2['port'])) {
+            $url2['port'] = $def_port;
+        }
         if (!($fsock = fsockopen($scheme.$url2["host"], $url2['port'], $errno, $errstr, $timeout))) {
             return false;
         }

@@ -29,8 +29,7 @@ class db_pdo extends \myphp\DbBase
         if (!empty($cfg_db['options'])) {
             $options = array_merge($options, $cfg_db['options']);
         }
-        $cfg_db['pconnect'] = isset($cfg_db['pconnect']) ? $cfg_db['pconnect'] : false;
-        if ($cfg_db['pconnect']) { //持久连接开启
+        if (!empty($cfg_db['pconnect'])) { //持久连接开启
             $options[PDO::ATTR_PERSISTENT] = true;
         }
         //PDO::ATTR_TIMEOUT:30 设置连接数据库的超时秒数。
