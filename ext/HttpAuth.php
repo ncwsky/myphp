@@ -25,7 +25,7 @@ class HttpAuth
             if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
                 $authInfo = base64_decode(substr($_SERVER['HTTP_AUTHORIZATION'], 6)); //Basic
                 if (strpos($authInfo, ':')) {
-                    list($user, $password) = explode(':', $authInfo);
+                    [$user, $password] = explode(':', $authInfo);
                     $_SERVER['PHP_AUTH_USER'] = $user;
                     $_SERVER['PHP_AUTH_PW'] = $password;
                 }
@@ -84,7 +84,7 @@ class HttpAuth
     {
         $auth = self::auth($redirect ? true : false);
         if ($auth !== true) {
-            $protocol = isset($_SERVER['SERVER_PROTOCOL']) ? $_SERVER['SERVER_PROTOCOL'] : 'HTTP/1.0';
+            $protocol = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0';
             header($protocol . ' 401 Unauthorized');
             if ($auth === false) { //logout
                 echo "<meta http-equiv='Refresh' content='1;URL={$redirect}'>";

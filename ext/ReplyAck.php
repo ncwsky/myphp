@@ -100,7 +100,7 @@ class ReplyAck
                             break 2;
                         }
                         $msg = $redis->hget(self::$prefix . self::MSG_QUEUE_HASH, $message_id);
-                        list($nextIdx, $data) = explode('>', $msg, 2);
+                        [$nextIdx, $data] = explode('>', $msg, 2);
                         self::puback($message_id, true); #清除
                         #echo $nextIdx,'====>', $data,PHP_EOL;
                         $redis->rPush(self::$prefix . self::RETRY_QUEUE.$nextIdx, $data); #加入下一重试队列
@@ -195,7 +195,7 @@ class ReplyAckQueue
                     $data = json_decode($res[1], true);
                     if (isset($data['uid'])) {
                         $this->data = $data;
-                        $this->uid = isset($data['_uid']) ? $data['_uid'] : $data['uid'];
+                        $this->uid = $data['_uid'] ?? $data['uid'];
                         $this->send(); //发送
 
                         $messageId = $data['_id'] ?? 0;

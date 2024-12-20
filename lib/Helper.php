@@ -88,7 +88,7 @@ class Helper
     public static function createSN($prefix = '')
     {
         //$chars = substr(microtime(),2,6); substr(str_shuffle($chars.$chars),0,6);
-        $sn = date('YmdHis').substr(microtime(), 2, 4).str_pad(random_int(0, 99), 2, '0', STR_PAD_LEFT); //20位
+        $sn = date('YmdHis').substr(microtime(), 2, 4).str_pad((string)random_int(0, 99), 2, '0', STR_PAD_LEFT); //20位
         return $prefix.$sn;
     }
     /**
@@ -105,7 +105,7 @@ class Helper
     {
         $initPageNum = 5;
         if (is_string($num) && strpos($num, ',')) {
-            list($num, $initPageNum) = explode(',', $num);
+            [$num, $initPageNum] = explode(',', $num);
         }
         $total = is_numeric($tb) ? (int)$tb : ($id != '' ? $tb->where($where)->count($id) : $tb->where($where)->count()); //获取总行数
         $pCount = $total ? ceil($total / $num) : 1;
@@ -482,7 +482,7 @@ class Helper
             $attr_val = '';
             foreach ($attrs as $aVal) {
                 if (strpos($aVal, '=')) {
-                    list($attr, $val) = explode('=', $aVal);
+                    [$attr, $val] = explode('=', $aVal);
                     if ($attr == '') {
                         continue;
                     }
@@ -491,7 +491,7 @@ class Helper
                 }
             }
         } else {
-            list($attr, $val) = explode('=', $attr_val);
+            [$attr, $val] = explode('=', $attr_val);
             if ($attr == '') {
                 return $str;
             }

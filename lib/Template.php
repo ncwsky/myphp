@@ -359,7 +359,7 @@ class Template
                     $param[] = $v;
                 }
             }
-            $str = join(' ', $param);
+            $str = implode(' ', $param);
             $tag = substr($label, 0, 2) == 'if' ? 'if' : 'elseif';
             return '<?php '.$tag.'('.$str.') : ?>';
         }

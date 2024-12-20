@@ -1009,7 +1009,7 @@ function remove_xss($val)
     $found = true; // keep replacing as long as the previous round replaced something
     while ($found == true) {
         $val_before = $val;
-        for ($i = 0; $i < sizeof($ra); $i++) {
+        for ($i = 0; $i < count($ra); $i++) {
             $pattern = '/';
             for ($j = 0; $j < strlen($ra[$i]); $j++) {
                 if ($j > 0) {
@@ -1091,7 +1091,7 @@ function num2ch($num, $mode = true, $sim = true)
             }
         }
     }
-    $cnVal = join('', array_reverse($out)) . $cnVal;
+    $cnVal = implode('', array_reverse($out)) . $cnVal;
     if (strpos($cnVal, '一十') === 0) {
         $cnVal = substr($cnVal, 3);
     }

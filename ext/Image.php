@@ -255,8 +255,8 @@ class Image
         $isText = false;
         //水印
         if (is_array($water)) {
-            $text = isset($water['text']) ? $water['text'] : '';
-            $font = isset($water['font']) ? $water['font'] : '';
+            $text = $water['text'] ?? '';
+            $font = $water['font'] ?? '';
             if ($text === '' || !$font) {
                 return false;
             }

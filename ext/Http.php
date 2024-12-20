@@ -18,19 +18,15 @@ class Http
     public static $multiErr = [];
     private static $isMulti = false;
     /**
-     * @param $proxy `proxy://user:pass@hostname:port`
+     * @param string|null $proxy `proxy://user:pass@hostname:port`
      */
-    public static function setCurlProxy($proxy): void
+    public static function setCurlProxy(string $proxy = null): void
     {
         if ($proxy === null) { //清除代理设置
             self::$curlProxy = [];
             return;
         }
-        $proxy = parse_url($proxy);
-        $proxy['user'] = isset($proxy['user']) ? $proxy['user'] : null;
-        $proxy['pass'] = isset($proxy['pass']) ? $proxy['pass'] : null;
-        $proxy['port'] = isset($proxy['port']) ? $proxy['port'] : null;
-        self::$curlProxy = $proxy;
+        self::$curlProxy = parse_url($proxy);
     }
 
     public static function getSupport()
@@ -152,7 +148,7 @@ class Http
                 if (!isset($file[0]) || !isset($file[1])) {
                     continue;
                 }
-                $type = isset($file[2]) ? $file[2] : 'application/octet-stream';
+                $type = $file[2] ?? 'application/octet-stream';
 
                 //是否远程下载获取内容
                 $check = substr($file[1], 0, 8);
@@ -202,7 +198,7 @@ class Http
         DELETE（DELETE）：从服务器删除资源。
         HEAD：获取资源的元数据。
         */
-        $connect_timeout = isset($opt['connect_timeout']) ? $opt['connect_timeout'] : $timeout;
+        $connect_timeout = $opt['connect_timeout'] ?? $timeout;
         $options = [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
@@ -549,7 +545,7 @@ class Http
                 }
                 $body .= "--" . $delimiter . "\r\n";
                 if (is_array($file)) {
-                    $type = isset($file[2]) ? $file[2] : 'application/octet-stream';
+                    $type = $file[2] ?? 'application/octet-stream';
 
                     //是否远程下载获取内容
                     $check = substr($file[1], 0, 8);
@@ -690,7 +686,7 @@ class Http
             $opt_http => [
                 'protocol_version' => '1.1',
                 'method' => $type,//获取方式
-                'timeout' => $timeout ,//超时时间
+                'timeout' => $timeout,//超时时间
                 'header' => $header
             ]
         ];
