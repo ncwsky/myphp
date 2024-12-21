@@ -29,7 +29,7 @@ class DesSecurity
     protected $iv;
 
     /**
-     * @var string $options
+     * @var int $options
      */
     protected $options;
 
@@ -115,7 +115,7 @@ class DesSecurity
      * 去填充
      *
      * @param $str
-     * @return string
+     * @return string|false
      */
     private function unPkcsPadding($str)
     {

@@ -91,17 +91,19 @@ class Helper
         $sn = date('YmdHis').substr(microtime(), 2, 4).str_pad((string)random_int(0, 99), 2, '0', STR_PAD_LEFT); //20位
         return $prefix.$sn;
     }
+
     /**
      * 分页初始
-     * @param [int|obj] $tb [需分页的模型/或数据行数]
-     * @param [array] $where [查询条件]
+     * @param int|object $tb [需分页的模型/或数据行数]
+     * @param string|array $where [查询条件]
+     * @param int $cPage
      * @param int|string $num [每页数量|每页数,显示页码数]
      * @param string $id [count字段]
-     * @param string $parm [附加参数]
+     * @param string $param [附加参数]
      * @param string $pName
      * @return array
      */
-    public static function initPage($tb, $where = '', $cPage = 1, $num = 10, $id = '', $parm = '', $pName = 'page')
+    public static function initPage($tb, $where = '', int $cPage = 1, $num = 10, string $id = '', string $param = '', string $pName = 'page'): array
     {
         $initPageNum = 5;
         if (is_string($num) && strpos($num, ',')) {
@@ -132,10 +134,10 @@ class Helper
         } elseif ($cPage <= $initPageNum) {
             $TmpPageNo = 1;
             $TmpPageNum = $initPageNum + $cPage - 1;
-        } elseif ($cPage > $initPageNum && $cPage < $pCount) {
+        } elseif ($cPage < $pCount) {
             $TmpPageNo = $cPage - $initPageNum;
             $TmpPageNum = $initPageNum + $cPage - 1;
-        } elseif ($cPage >= $pCount) {
+        } else {
             $TmpPageNo = $cPage - $initPageNum;
             $TmpPageNum = $pCount;
         }
@@ -144,14 +146,14 @@ class Helper
             $TmpPageNum = $pCount;
         }
         for ($PageNo = $TmpPageNo; $PageNo <= $TmpPageNum; $PageNo++) {
-            $pages['pNum'][$PageNo] = $cPage == $PageNo ? 'javascript:' : "$path?$pName=$PageNo" . ($qstr != '' ? '&' . $qstr : '') . ($parm != '' ? '&' . $parm : '');
+            $pages['pNum'][$PageNo] = $cPage == $PageNo ? 'javascript:' : "$path?$pName=$PageNo" . ($qstr != '' ? '&' . $qstr : '') . ($param != '' ? '&' . $param : '');
         }
-        $pages['first'] = $prev == '' ? 'javascript:' : "$path?$pName=1" . ($qstr != '' ? '&' . $qstr : '') . ($parm != '' ? '&' . $parm : '');
-        $pages['prev'] = $prev == '' ? 'javascript:' : "$path?$pName=$prev" . ($qstr != '' ? '&' . $qstr : '') . ($parm != '' ? '&' . $parm : '');
-        $pages['nopage'] = "$path?" . ($qstr != '' ? $qstr . '&' : '') . ($parm != '' ? $parm . '&' : '') . "$pName="; //可自行在尾部补加页数
-        $pages['curr'] = "$path?$pName=$cPage" . ($qstr != '' ? '&' . $qstr : '') . ($parm != '' ? '&' . $parm : '');
-        $pages['next'] = $next == '' ? 'javascript:' : "$path?$pName=$next" . ($qstr != '' ? '&' . $qstr : '') . ($parm != '' ? '&' . $parm : '');
-        $pages['last'] = $next == '' ? 'javascript:' : "$path?$pName=$pCount" . ($qstr != '' ? '&' . $qstr : '') . ($parm != '' ? '&' . $parm : '');
+        $pages['first'] = $prev == '' ? 'javascript:' : "$path?$pName=1" . ($qstr != '' ? '&' . $qstr : '') . ($param != '' ? '&' . $param : '');
+        $pages['prev'] = $prev == '' ? 'javascript:' : "$path?$pName=$prev" . ($qstr != '' ? '&' . $qstr : '') . ($param != '' ? '&' . $param : '');
+        $pages['nopage'] = "$path?" . ($qstr != '' ? $qstr . '&' : '') . ($param != '' ? $param . '&' : '') . "$pName="; //可自行在尾部补加页数
+        $pages['curr'] = "$path?$pName=$cPage" . ($qstr != '' ? '&' . $qstr : '') . ($param != '' ? '&' . $param : '');
+        $pages['next'] = $next == '' ? 'javascript:' : "$path?$pName=$next" . ($qstr != '' ? '&' . $qstr : '') . ($param != '' ? '&' . $param : '');
+        $pages['last'] = $next == '' ? 'javascript:' : "$path?$pName=$pCount" . ($qstr != '' ? '&' . $qstr : '') . ($param != '' ? '&' . $param : '');
         return $pages; //当前页码 总页码 总数 上一页链接 下一页链接
     }
     //获取分页偏移值
@@ -578,9 +580,9 @@ class Helper
         }
         return $cipher;
     }
-    public static function authCode($string, $operation = 'DECODE', $key = '', $expiry = 0)
+
+    public static function authCode($string, $operation = 'DECODE', $key = '', $expiry = 0, $ckey_length = 4)
     {
-        $ckey_length = 4;
         $key = md5($key != '' ? $key : GetC('encode_key'));
         $keya = md5(substr($key, 0, 16));
         $keyb = md5(substr($key, 16, 16));
@@ -613,13 +615,16 @@ class Helper
         }
 
         if ($operation == 'DECODE') {
-            if ((substr($result, 0, 10) == 0 || substr($result, 0, 10) - time() > 0) && substr($result, 10, 16) == substr(md5(substr($result, 26).$keyb), 0, 16)) {
-                return substr($result, 26);
-            } else {
-                return '';
+            $t = (int)substr($result, 0, 10);
+            if ($t == 0 || ($t - time()) > 0) {
+                $str = substr($result, 26);
+                if (substr($result, 10, 16) == substr(md5($str . $keyb), 0, 16)) {
+                    return $str;
+                }
             }
+            return '';
         } else {
-            return $keyc.str_replace('=', '', base64_encode($result));
+            return $keyc . str_replace('=', '', base64_encode($result));
         }
     }
 
@@ -630,37 +635,9 @@ class Helper
      * @param string $method cbc|cfb|ecb|nofb|ofb|stream
      * @return string
      */
-    public static function aesEncrypt($str, $key, $method = 'cbc')
+    public static function aesEncrypt(string $str, string $key, string $method = 'cbc')
     {
         $keyLen = strlen($key);
-        if (!function_exists('openssl_encrypt')) { //mcrypt_encrypt
-            if ($keyLen <= 16) {
-                $cipher = 'rijndael-128';
-                if ($keyLen < 16) {
-                    $key = str_pad($key, 16, "\0");
-                }
-            } elseif ($keyLen <= 24) {
-                $cipher = 'rijndael-192';
-                if ($keyLen < 24) {
-                    $key = str_pad($key, 24, "\0");
-                }
-            } else { //超出32位截断
-                $cipher = 'rijndael-256';
-                if ($keyLen > 32) {
-                    $key = substr($key, 0, 32);
-                } elseif ($keyLen < 32) {
-                    $key = str_pad($key, 32, "\0");
-                }
-            }
-            $ivlen = mcrypt_get_iv_size($cipher, $method);
-            $iv = strlen($key) < $ivlen ? str_pad($key, $ivlen, "\0") : substr($key, 0, $ivlen);
-            //echo $ivlen,$cipher,'===',$key,'===',$iv,'<br>';
-            $block = mcrypt_get_block_size($cipher, $method);
-            $pad = $block - (strlen($str) % $block);
-            $str .= str_repeat(chr($pad), $pad);
-            return base64_encode(mcrypt_encrypt($cipher, $key, $str, $method, $iv));
-        }
-
         if ($keyLen <= 16) {
             $method = 'aes-128-'.$method;
             if ($keyLen < 16) {
@@ -680,9 +657,9 @@ class Helper
             $method = 'aes-256-'.$method;
         }
 
-        $ivlen = openssl_cipher_iv_length($method);
-        $iv = strlen($key) < $ivlen ? str_pad($key, $ivlen, "\0") : substr($key, 0, $ivlen);
-        //echo $ivlen,$method,'===',$key,'===',$iv,'<br>';
+        $iv_len  = openssl_cipher_iv_length($method);
+        $iv = strlen($key) < $iv_len ? str_pad($key, $iv_len, "\0") : substr($key, 0, $iv_len);
+        //echo $iv_len,$method,'===',$key,'===',$iv,'<br>';
         return base64_encode(openssl_encrypt($str, $method, $key, OPENSSL_RAW_DATA, $iv)); //OPENSSL_RAW_DATA  OPENSSL_ZERO_PADDING
     }
 
@@ -693,40 +670,9 @@ class Helper
      * @param string $method cbc|cfb|ecb|nofb|ofb|stream
      * @return false|string
      */
-    public static function aesDecrypt($str, $key, $method = 'cbc')
+    public static function aesDecrypt(string $str, string $key, string $method = 'cbc')
     {
         $keyLen = strlen($key);
-        if (!function_exists('openssl_encrypt')) { //mcrypt_decrypt
-            if ($keyLen <= 16) {
-                $cipher = 'rijndael-128';
-                if ($keyLen < 16) {
-                    $key = str_pad($key, 16, "\0");
-                }
-            } elseif ($keyLen <= 24) {
-                $cipher = 'rijndael-192';
-                if ($keyLen < 24) {
-                    $key = str_pad($key, 24, "\0");
-                }
-            } else { //超出32位截断
-                $cipher = 'rijndael-256';
-                if ($keyLen > 32) {
-                    $key = substr($key, 0, 32);
-                } elseif ($keyLen < 32) {
-                    $key = str_pad($key, 32, "\0");
-                }
-            }
-
-            $ivlen = mcrypt_get_iv_size($cipher, $method);
-            $iv = strlen($key) < $ivlen ? str_pad($key, $ivlen, "\0") : substr($key, 0, $ivlen);
-
-            $encryptedData = mcrypt_decrypt($cipher, $key, base64_decode($str, true), $method, $iv);
-            $e = ord($encryptedData[strlen($encryptedData) - 1]);
-            if ($e <= $ivlen) {
-                $encryptedData = substr($encryptedData, 0, strlen($encryptedData) - $e);
-            }
-            return $encryptedData;
-        }
-
         if ($keyLen <= 16) {
             $method = 'aes-128-'.$method;
             if ($keyLen < 16) {
@@ -745,8 +691,8 @@ class Helper
             }
             $method = 'aes-256-'.$method;
         }
-        $ivlen = openssl_cipher_iv_length($method);
-        $iv = strlen($key) < $ivlen ? str_pad($key, $ivlen, "\0") : substr($key, 0, $ivlen);
+        $iv_len = openssl_cipher_iv_length($method);
+        $iv = strlen($key) < $iv_len ? str_pad($key, $iv_len, "\0") : substr($key, 0, $iv_len);
         return openssl_decrypt(base64_decode($str, true), $method, $key, OPENSSL_RAW_DATA, $iv);
     }
     //uuid生成
@@ -778,7 +724,7 @@ class Helper
      *     return $user->firstName . ' ' . $user->lastName;
      * });
      *
-     * @param array $array array or object to extract value from
+     * @param array|null $array array or object to extract value from
      * @param string|\Closure|array $key
      * @param mixed $default
      * @return mixed
@@ -804,7 +750,7 @@ class Helper
             }
             return $array;
         }
-        return is_array($array) && (isset($array[$key]) || array_key_exists($key, $array)) ? $array[$key] : $default;
+        return isset($array[$key]) || array_key_exists($key, $array) ? $array[$key] : $default;
     }
     /**
      * 返回多维数组或对象数组指定的列

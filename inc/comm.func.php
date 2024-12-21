@@ -16,7 +16,7 @@ function e404(): void
  * @param string $url 重定向的URL地址
  * @param integer $time 重定向的等待时间（秒）
  * @param string $msg 重定向前的提示信息
- * @return string|void
+ * @return string
  */
 function redirect(string $url, int $time = 0, string $msg = '')
 {
@@ -527,7 +527,7 @@ function sys_auth(string $string, string $operation = 'ENCODE', string $key = ''
     $key = md5($key != '' ? $key : myphp::$cfg['encode_key']);
     $fixedkey = md5($key);
     $egiskeys = md5(substr($fixedkey, 16, 16));
-    $runtokey = $key_length ? ($operation == 'ENCODE' ? substr(md5((string)microtime(true)), -$key_length) : substr($string, 0, $key_length)) : '';
+    $runtokey = $operation == 'ENCODE' ? substr(md5((string)microtime(true)), -$key_length) : substr($string, 0, $key_length);
     $keys = md5(substr($runtokey, 0, 16) . substr($fixedkey, 0, 16) . substr($runtokey, 16) . substr($fixedkey, 16));
     $string = $operation == 'ENCODE' ? sprintf('%010d', $expiry ? $expiry + time() : 0).substr(md5($string.$egiskeys), 0, 16) . $string : base64_decode(substr($string, $key_length));
 
@@ -656,7 +656,7 @@ function make_thumb($image)
         $thumbname =  $base.$thumb_wh.$ext;
         $wh = explode('_', $thumb_wh);
         //生成图片缩略图
-        if (Image::thumb($image, $thumbname, $wh[0], $wh[1])) {
+        if (Image::thumb($image, $thumbname, (int)$wh[0], (int)$wh[1])) {
             $thumb[$thumb_wh] = $thumbname;
         }
     }
@@ -1034,12 +1034,12 @@ function remove_xss($val)
 }
 /**
  * 数字转换为中文
- * @param  string|integer|float  $num  目标数字
- * @param  boolean $mode 模式[true:金额（默认）,false:普通数字表示]
- * @param  boolean $sim 使用小写（默认）
+ * @param string|integer|float  $num  目标数字
+ * @param bool|string $mode 模式[true:金额（默认）,false:普通数字表示]
+ * @param bool $sim 使用小写（默认）
  * @return string
  */
-function num2ch($num, $mode = true, $sim = true)
+function num2ch($num, $mode = true, bool $sim = true): string
 {
     if (!is_numeric($num) || floatval($num) == 0) {
         return '零'.($mode === 'rmb' ? '元' : '').($sim ? '' : '整');
@@ -1048,6 +1048,7 @@ function num2ch($num, $mode = true, $sim = true)
     $char = $sim ? ['零','一','二','三','四','五','六','七','八','九'] : ['零','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
     $unit = $sim ? ['','十','百','千','','万','亿','兆'] : ['','拾','佰','仟','','萬','億','兆'];
     $cnVal = '';
+    $num = (string)$num;
     //小数部分
     if (strpos($num, '.')) {
         [$num, $dec] = explode('.', $num);
@@ -1070,7 +1071,7 @@ function num2ch($num, $mode = true, $sim = true)
             }
         }
     }
-    if ($cnVal == '' && $mode) {
+    if ($cnVal === '' && $mode) {
         $cnVal = '元'.($sim ? '' : '整');
     }
 
@@ -1083,12 +1084,12 @@ function num2ch($num, $mode = true, $sim = true)
     for ($i = 0,$c = strlen($str);$i < $c;$i++) {
         $out[$i] = $char[$str[$i]];
         if ($mode) {
-            $out[$i] .= $str[$i] != '0' ? $unit[$i % 4] : '';
-            if (($i > 1) && ($str[$i] + $str[$i - 1] == 0)) {
+            $out[$i] .= ($str[$i] !== '0' ? $unit[$i % 4] : '');
+            if (($i > 1) && ((int)$str[$i] + (int)$str[$i - 1] == 0)) {
                 $out[$i] = '';
             }
             if ($i % 4 == 0) {
-                $out[$i] .= $unit[4 + floor($i / 4)];
+                $out[$i] .= $unit[4 + (int)floor($i / 4)];
             }
         }
     }
@@ -1209,30 +1210,31 @@ function num_to_rmb($num): string
         return $c . "整";
     }
 }
-/*
+/**
  * 经典的概率算法 算法简单且效率非常高
- *
  * @param array $data array('a'=>5000,'b'=>1,'c'=>4999)
  * @param int $max 概率总值 默认10000,数据总值小此值时可能会轮空,可设置为0取消轮空
- * @return string $data的key | null为轮空
+ * @return null|string $data的key | null为轮空
  */
-function luck_rand($data, $max = 10000)
+function luck_rand(array $data, int $max = 10000)
 {
-    $result = null;
     if (!$data) {
-        return $result;
+        return null;
     }
     $sum = array_sum($data); //数组的总概率值
-    $max = intval(($sum > $max ? $sum : $max) * 2); //获取概率总值
+    $max = intval(max($sum, $max) * 2); //获取概率总值
     if ($max <= 0) {
-        return $result;
+        return null;
     }
-    for ($i = 0;$i < random_int(1, 3);$i++) {
+    for ($i = 0; $i < random_int(1, 3); $i++) {
         random_int(1, $max);
     }
     asort($data);
     $rnd = random_int(1, $max);
     $arr = [];
+    $key = null;
+    $val = null;
+    $result = null;
     //概率筛选
     foreach ($data as $key => $val) {
         if ($result === null) {
@@ -1334,6 +1336,7 @@ function PageList3(int $TotalResult, int $Page_Size, int $currentPage, string $p
     if ($currentPage > $InitPageNum) {
         $out .= '<a href="'. str_replace('{'.$pageName.'}', '1', $paraUrl) .'">首页</a>';// <a href="'. str_replace('{'.$pageName.'}',(string)($currentPage-1),$paraUrl) .'">上一页</a>
     }
+
     //获取页码范围
     if ($currentPage <= 1) {
         $TmpPageNo = 1;
@@ -1341,10 +1344,10 @@ function PageList3(int $TotalResult, int $Page_Size, int $currentPage, string $p
     } elseif ($currentPage <= $InitPageNum) {
         $TmpPageNo = 1;
         $TmpPageNum = $InitPageNum + $currentPage - 1;
-    } elseif ($currentPage > $InitPageNum && $currentPage < $Page_Count) {
+    } elseif ($currentPage < $Page_Count) {
         $TmpPageNo = $currentPage - $InitPageNum;
         $TmpPageNum = $InitPageNum + $currentPage - 1;
-    } elseif ($currentPage >= $Page_Count) {
+    } else {
         $TmpPageNo = $currentPage - $InitPageNum;
         $TmpPageNum = $Page_Count;
     }
@@ -1387,10 +1390,10 @@ function PageList4(int $TotalResult, int $Page_Size, int $currentPage, string $p
     } elseif ($currentPage <= $InitPageNum) {
         $TmpPageNo = 1;
         $TmpPageNum = $InitPageNum + $currentPage - 1;
-    } elseif ($currentPage > $InitPageNum && $currentPage < $Page_Count) {
+    } elseif ($currentPage < $Page_Count) {
         $TmpPageNo = $currentPage - $InitPageNum;
         $TmpPageNum = $InitPageNum + $currentPage - 1;
-    } elseif ($currentPage >= $Page_Count) {
+    } else {
         $TmpPageNo = $currentPage - $InitPageNum;
         $TmpPageNum = $Page_Count;
     }

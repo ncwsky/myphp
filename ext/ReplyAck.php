@@ -30,12 +30,11 @@ class ReplyAck
         return lib_redis::getInstance(myphp::get(self::$redisName));
     }
     /** 初始并生成定时器
-     * @param string $redisName
+     * @param string|null $redisName
      * @param string $prefix 前缀
      * @param int $timeout
-     * @param null $queueTimes
      */
-    public static function init($redisName = null, $prefix = 'RA', $timeout = 5): void
+    public static function init(string $redisName = null, string $prefix = 'RA', int $timeout = 5): void
     {
         self::$redisName = $redisName ?: 'redis';
         self::$prefix = $prefix;
@@ -194,9 +193,11 @@ class ReplyAckQueue
                     //echo $res[3].PHP_EOL;
                     $data = json_decode($res[1], true);
                     if (isset($data['uid'])) {
-                        $this->data = $data;
-                        $this->uid = $data['_uid'] ?? $data['uid'];
-                        $this->send(); //发送
+                        /* //todo 实现发送 及应答处理
+                       $this->data = $data;
+                       $this->uid = isset($data['_uid']) ? $data['_uid'] : $data['uid'];
+                       $this->send(); //发送
+                       */
 
                         $messageId = $data['_id'] ?? 0;
                         if ($messageId) {

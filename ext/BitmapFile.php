@@ -29,7 +29,7 @@ class BitmapFile
         @fclose($this->handler);
     }
 
-    private function binary_dump($binary_data)
+    public function binary_dump($binary_data)
     {
         return sprintf('%08d', decbin(hexdec(bin2hex($binary_data))));
     }
@@ -65,10 +65,14 @@ class BitmapFile
         ftell — 返回文件指针读/写的位置   在附加模式（加参数 "a" 打开文件）中 ftell() 会返回未定义错误。
         fflush — 将缓冲内容输出到文件
          */
-        fseek($this->handler, (int)floor($num / 8), SEEK_SET);
-        $bin = fread($this->handler, 1) | pack('C', 0x100 >> fmod($num, 8) + 1); // mark with 1
+        fseek($this->handler, (int)floor($num / 8)); //, SEEK_SET
+        $bin = fread($this->handler, 1);
+        if (false === $bin) {
+            throw new \Exception('read fail');
+        }
+        $bin = $bin | pack('C', 0x100 >> fmod($num, 8) + 1); // mark with 1
 
-        fseek($this->handler, ftell($this->handler) - 1, SEEK_SET); // write a new byte
+        fseek($this->handler, ftell($this->handler) - 1); //, SEEK_SET  write a new byte
         fwrite($this->handler, $bin);
         fflush($this->handler);
     }
@@ -76,10 +80,14 @@ class BitmapFile
     public function del($num): void
     {
         $this->num_check($num);
-        fseek($this->handler, (int)floor($num / 8), SEEK_SET);
-        $bin = fread($this->handler, 1) & ~pack('C', 0x100 >> fmod($num, 8) + 1); // mark with 0
+        fseek($this->handler, (int)floor($num / 8)); //, SEEK_SET
+        $bin = fread($this->handler, 1);
+        if (false === $bin) {
+            throw new \Exception('read fail');
+        }
+        $bin = $bin & ~pack('C', 0x100 >> fmod($num, 8) + 1); // mark with 0
 
-        fseek($this->handler, ftell($this->handler) - 1, SEEK_SET); // write a new byte
+        fseek($this->handler, ftell($this->handler) - 1); //, SEEK_SET write a new byte
         fwrite($this->handler, $bin);
         fflush($this->handler);
     }

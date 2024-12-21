@@ -115,7 +115,7 @@ class Model implements \ArrayAccess
      * @param string|Db $dbName
      * @throws \Exception
      */
-    public function __construct(string $tbName = null, $dbName = null)
+    final public function __construct(string $tbName = null, $dbName = null)
     {
         if ($dbName === null) {
             $this->db = static::getDb();
@@ -689,7 +689,7 @@ class Model implements \ArrayAccess
     /**
      * @param Model $self
      * @param array $data
-     * @return static
+     * @return static|Model
      */
     public static function clone(Model $self, array $data = [])
     {

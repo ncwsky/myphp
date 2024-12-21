@@ -49,7 +49,6 @@ class DecConvert
      * @param int|string $number
      * @param int $toBase
      * @return string
-     * @throws \Exception
      */
     public function to($number, int $toBase): string
     {

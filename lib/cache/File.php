@@ -403,7 +403,7 @@ class File extends \myphp\CacheAbstract
                             Log::WARN("Unable to remove directory '{$fullPath}': {$error['message']}");
                         }
                     }
-                } elseif (!$expiredOnly || $expiredOnly && (($mTime = @filemtime($fullPath)) && $mTime < $time)) {
+                } elseif (!$expiredOnly || (($mTime = @filemtime($fullPath)) && $mTime < $time)) {
                     if (!@unlink($fullPath)) {
                         $error = error_get_last();
                         Log::WARN("Unable to remove file '{$fullPath}': {$error['message']}");
@@ -426,7 +426,8 @@ class File extends \myphp\CacheAbstract
         $base = DIRECTORY_SEPARATOR;
         if ($this->options['dir_level'] > 0) {
             for ($i = 0; $i < $this->options['dir_level']; ++$i) {
-                if (($prefix = substr($name, $i + $i, 2)) !== false) {
+                $prefix = (string)substr($name, $i + $i, 2);
+                if ($prefix !== '') {
                     $base .= $prefix . DIRECTORY_SEPARATOR;
                 }
             }

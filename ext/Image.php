@@ -194,7 +194,7 @@ class Image
             imagesavealpha($thumbImg, true); //保持完整的 alpha 通道信息
         } elseif ($type == 'gif') {
             $trnprt_indx = imagecolortransparent($srcImg); //透明色的标识符
-            if ($trnprt_indx !== false && $trnprt_indx >= 0) {
+            if ($trnprt_indx >= 0) {
                 if ($trnprt_indx > 0) {
                     $trnprt_indx--;
                 }
@@ -450,7 +450,9 @@ class Image
 
         //imagecreate($w, $h) 返回一个白色图像的标识符
         $img = imagecreatetruecolor($w, $h);//创建指定wh的黑色图像并返回一个图像标识符
-
+        if (!$img) {
+            return false;
+        }
         $r = [225,255,223];
         $g = [225,236,255];
         $b = [225,236,125];
@@ -497,12 +499,12 @@ class Image
     public static $outputString = false;
 
     /**
-     * @param resource $im
+     * @param resource|GdImage $im
      * @param string $type
      * @param string $filename
      * @return false|string|null
      */
-    public static function output($im, $type = 'png', $filename = '')
+    public static function output($im, string $type = 'png', string $filename = '')
     {
         $imageFun = 'image' . $type;
         $result = null;

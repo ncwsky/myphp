@@ -99,7 +99,7 @@ class Db
     /**
      * @var array 链操作方法信息
      */
-    private $options;
+    private $options = [];
     public $resetOption = true;
     //链操作方法列表
     private $methods = ',group,having,idx,limit,order,table,';
@@ -364,7 +364,7 @@ class Db
     }
     public function resetOptions(): void
     {
-        $this->options = null;
+        $this->options = [];
     }
     public function conn()
     {
@@ -381,10 +381,10 @@ class Db
                 $pos = strpos($topArr[2], ',');
                 $limit = 0;
                 if ($pos !== false) {
-                    $offset = substr($topArr[2], 0, $pos);
-                    $limit = substr($topArr[2], $pos + 1);
+                    $offset = (int)substr($topArr[2], 0, $pos);
+                    $limit = (int)substr($topArr[2], $pos + 1);
                 } else {
-                    $offset = $topArr[2];
+                    $offset = (int)$topArr[2];
                 }
                 if ($limit == 0) {
                     $max = $offset;
@@ -627,7 +627,7 @@ class Db
         $this->chkSql($sql, $curd);
         self::$sql = $this->_sql = $sql = $this->get_real_sql($sql, $bind); //解析绑定参数
         if ($this->resetOption) { //重置
-            $this->options = null;
+            $this->options = [];
         }
         if (self::$log_type == 2 || (self::$log_type == 1 && $curd)) {
             Log::write($sql, 'SQL'. ($this->_slaveLog ? '.SLAVE.'.$this->_slaveIdx : ''));

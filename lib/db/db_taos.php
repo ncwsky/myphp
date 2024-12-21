@@ -125,7 +125,7 @@ class db_taos extends \myphp\DbBase
     /**
      * 取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
      * @param string $sequenceName
-     * @return string
+     * @return int
      */
     public function insert_id($sequenceName = null)
     {

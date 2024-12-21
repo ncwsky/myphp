@@ -101,7 +101,7 @@ class Value
      * %s,%b,%d,%f,%a,%date [2014-01-11 13:23:32 | 2014-01-11]
      * filter:fun1,fun2,/regx/i正则过滤
      */
-    public static function parseType(string &$rule, ?string &$type = 's', &$min = null, &$max = null, ?string &$filter = null, ?int &$digit = 0): void
+    public static function parseType(string &$rule, ?string &$type = '', &$min = null, &$max = null, ?string &$filter = null, ?int &$digit = 0): void
     {
         if (!$rule) {
             $type = 's';
@@ -120,16 +120,12 @@ class Value
             #非64位的max min将会是数字字符串
             if (PHP_INT_SIZE === 8) {
                 if (strpos($rule, 'f') !== false) {
-                    if ($max !== null) {
-                        $max = $max === '' ? null : (float)$max;
-                    }
+                    $max = $max === '' ? null : (float)$max;
                     if ($min !== null) {
                         $min = $min === '' ? null : (float)$min;
                     }
                 } else {
-                    if ($max !== null) {
-                        $max = $max === '' ? null : (int)$max;
-                    }
+                    $max = $max === '' ? null : (int)$max;
                     if ($min !== null) {
                         $min = $min === '' ? null : (int)$min;
                     }
@@ -158,7 +154,7 @@ class Value
      * 指定类型取值处理
      * @param mixed $val
      * @param string|array $rule string:%s{10,20},%s{20}|array:['s','min'=>10,'max'=>20, filter, digit, err, err2],['s','max'=>20]  取值规则
-     * @param null $default 默认值
+     * @param mixed $default 默认值
      * @param bool $strict 强验证 失败抛出异常
      * @param string $name 提示名称
      * @param string $err1 未输入提示内容

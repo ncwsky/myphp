@@ -400,9 +400,9 @@ class Template
         if (count($varArray) > 0) {//如果有使用函数
             //传入变量名，和函数参数继续解析，这里的变量名是上面的判断设置的值
             $name = $this->parseFunction($name, $varArray); //多分函数支持 = 分隔 从左到右
-            $code = !empty($name) ? '<?php '. $name .' ?>' : '';
+            $code = '<?php '. $name .' ?>';
         } else {
-            $code = !empty($name) ? '<?php echo '. $name .'; ?>' : '';
+            $code = '<?php echo '. $name .'; ?>';
         }
         $tVars[$varStr] = $code;//记录模板变量
         return $code;

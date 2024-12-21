@@ -1,0 +1,63 @@
+parameters:
+    level: 5
+    treatPhpDocTypesAsCertain: false
+    paths:
+        - ext
+        - inc
+        - lib
+        - tpl
+    bootstrapFiles:
+        - base.php
+        - myphp.php
+    excludePaths:
+        - lib/Tool.php
+    ignoreErrors:
+        - '#Value::parseType\(\) never assigns null#'
+        - '#Parameter &\$[a-zA-Z0-9_]+ by-ref type#'
+        #- '#(Left|Right) side of && is always true.#'
+        - '#TDEngine\\TaosRestApi#'
+        - '#Access to an undefined property myphp\\Db::#'
+        - '#Call to an undefined method lib_redis::#'
+        #- '#Constant (IS_CLI|ROOT|APP_PATH) not found#'
+        - '#PHPDoc tag @property has invalid value#'
+        - '#PHPDoc tag @param for parameter#'
+        - '#fieldToRule\(\) never assigns null to &#'
+        -
+            path: ext/BitMap.php
+            messages:
+                - '#Strict comparison using !== between int and "\\000"#'
+        #-
+        #    path: lib/Control.php
+        #    messages:
+        #        - '#code above always terminates#'
+        #        - '#is always (true|false).#'
+        -
+            path: lib/File.php
+            messages:
+                - '#Method myphp\\File::readPath\(\)#'
+        #-
+        #    path: lib/Log.php
+        #    messages:
+        #        - '#code above always terminates#'
+        #        - '#is always (true|false).#'
+        -
+            path: lib/Response.php
+            messages:
+                - '#will always evaluate to true#'
+        #        - '#is always (true|false).#'
+        #-
+        #    path: lib/Helper.php
+        #    messages:
+        #        - '#is always (true|false).#'
+        #        - '#code above always terminates.#'
+        -
+            path: ext/ReplyAck.php
+            messages:
+                - '#Access to static property \$#'
+        -
+            path:  inc/comm.func.php
+            messages:
+                - '#Unreachable statement - code above always terminates#'
+                - '#If condition is always true#'
+                - '#Static call to instance method#'
+                - '#Left side of \|\| is always true#'

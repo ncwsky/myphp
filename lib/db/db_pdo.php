@@ -232,7 +232,7 @@ class db_pdo extends \myphp\DbBase
     /**
      * 取得上一步 INSERT 操作产生的AUTO_INCREMENT的ID
      * @param string $sequenceName
-     * @return string
+     * @return string|int|false
      */
     public function insert_id($sequenceName = null)
     {

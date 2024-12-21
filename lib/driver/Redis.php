@@ -511,7 +511,7 @@ class Redis
     /**
      * @var resource redis socket connection
      */
-    private $_socket = false;
+    private $_socket;
     private $_is_mb = false;
     private $_lastCmd = null;
     private $_lastArgs = null;
@@ -568,7 +568,7 @@ class Redis
      */
     public function getIsActive(): bool
     {
-        return $this->_socket !== false;
+        return is_resource($this->_socket);
     }
 
     public function getSocket()
@@ -588,12 +588,14 @@ class Redis
             if (!$this->_connId) {
                 $this->_connId = $this->host . ':' . $this->port;
             }
-            $this->_socket = $this->_pool[$this->_connId] ?? false;
+            $this->_socket = $this->_pool[$this->_connId] ?? null;
         }
-        if ($this->_socket !== false) {
+        if ($this->getIsActive()) {
             return;
         }
-        set_error_handler(function (): void {});
+        set_error_handler(function (int $code, string $msg, string $file, int $line): bool {
+            return true;
+        });
         $this->_socket = @stream_socket_client(
             $this->unixSocket ? 'unix://' . $this->unixSocket : 'tcp://' . ($this->_connId ?: $this->host . ':' . $this->port),
             $errorNumber,
@@ -629,7 +631,7 @@ class Redis
     public function close(): void
     {
         //Log::trace('close:'.$this->_connId.'-'.$this->cluster);
-        if ($this->_socket !== false) {
+        if ($this->getIsActive()) {
             $connection = ($this->unixSocket ?: $this->host . ':' . $this->port) . ', database=' . $this->database;
             Log::trace('Closing DB connection: ' . $connection, __METHOD__);
             try {
@@ -638,7 +640,6 @@ class Redis
                 // ignore errors when quitting a closed connection
             }
             fclose($this->_socket);
-            $this->_socket = false;
 
             if ($this->cluster) {
                 unset($this->_pool[$this->_connId]);

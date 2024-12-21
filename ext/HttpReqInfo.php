@@ -185,7 +185,7 @@ class HttpReqInfo
      * @param null|string $rawBody
      * @return static
      */
-    public function setRawBody(string $rawBody)
+    public function setRawBody(?string $rawBody)
     {
         $this->_rawBody = $rawBody;
         return $this;
@@ -292,7 +292,7 @@ class HttpReqInfo
     public function post(string $name = null, $default = null)
     {
         if ($name === null) {
-            return $_POST ?? [];
+            return $_POST;
         }
         return $_POST[$name] ?? $default;
     }
@@ -316,7 +316,7 @@ class HttpReqInfo
     public function get(string $name = null, $default = null)
     {
         if ($name === null) {
-            return $_GET ?? [];
+            return $_GET;
         }
         return $_GET[$name] ?? $default;
     }

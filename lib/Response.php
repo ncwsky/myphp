@@ -100,7 +100,7 @@ class Response
     private $protocol = '1.1';
 
     /**
-     * @var string 输出文件
+     * @var string|null 输出文件
      */
     public $outFile;
     /**
@@ -144,8 +144,14 @@ class Response
         return $this->body;
     }
 
-    //输出头设置
-    public function setHeader($name, $val = null, $append = false): Response
+    /**
+     * 输出头设置
+     * @param string|array $name
+     * @param string|string[]|null $val
+     * @param bool $append
+     * @return $this
+     */
+    public function setHeader($name, $val = null, bool $append = false): Response
     {
         if (is_array($name)) {
             $this->header = array_merge($this->header, $name);
@@ -189,7 +195,7 @@ class Response
      * 添加头
      * @param string $name
      * @param string|string[]|null $value
-     * @return static
+     * @return $this
      */
     public function withHeader(string $name, $value = null): Response
     {
@@ -209,7 +215,7 @@ class Response
 
     /**
      * @param string $name
-     * @return static
+     * @return $this
      */
     public function withoutHeader(string $name): Response
     {
@@ -320,7 +326,7 @@ class Response
      * @param string|resource $file
      * @param int $offset
      * @param int $size
-     * @param bool $inline
+     * @param bool|null $inline
      * @param string|null $attachmentName
      * @param string $mimeType
      * @return $this
@@ -354,7 +360,7 @@ class Response
                 $this->_range = self::getRange($size);
                 if ($this->_range === false) {
                     $this->withHeader('Content-Range', 'bytes */' . $size);
-                    throw new \Exception(416);
+                    throw new \Exception('Requested range unsatisfiable', 416);
                 }
 
                 [$begin, $end] = $this->_range;
@@ -401,7 +407,7 @@ class Response
         }
 
         if ($contentLength !== null) {
-            $this->withHeader('Content-Length', $contentLength);
+            $this->withHeader('Content-Length', (string)$contentLength);
         }
 
         return $this;

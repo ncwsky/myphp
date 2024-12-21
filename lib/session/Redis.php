@@ -22,11 +22,9 @@ class Redis implements \SessionHandlerInterface
 
     /**
      * Redis constructor.
-     * @param null $options = [
-     *
-     * ]
+     * @param array|null $options
      */
-    public function __construct($options = null)
+    public function __construct(array $options = null)
     {
         if (is_array($options)) {
             $this->options = array_merge($this->options, $options);
@@ -63,10 +61,11 @@ class Redis implements \SessionHandlerInterface
     {
         return true;
     }
+
     /**
      * {@inheritdoc}
      */
-    public function read($id)
+    public function read($id): string
     {
         return (string)$this->handler->get($this->options['prefix'] . $id);
     }
@@ -84,7 +83,6 @@ class Redis implements \SessionHandlerInterface
             $result = $this->handler->set($name, $data);
         }
         return (bool)$result;
-
     }
     /**
      * {@inheritdoc}
@@ -94,12 +92,13 @@ class Redis implements \SessionHandlerInterface
         //\myphp\Log::trace('destroy:'.$id);
         return (bool)$this->handler->del($this->options['prefix'].$id) > 0;
     }
+
     /**
      * {@inheritdoc}
      */
-    public function gc($max_lifetime): bool
+    public function gc($max_lifetime): int
     {
-        return true;
+        return 1;
     }
 
     /**

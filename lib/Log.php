@@ -161,17 +161,8 @@ class Log
             if (count($debugInfo) > 1) {
                 array_pop($debugInfo); // 删除最后一个跟踪: Log::UserErr
                 $stack = PHP_EOL . '[' . PHP_EOL;
-                foreach ($debugInfo as $key => $val) {
-                    if (isset($val['file'])) {
-                        $stack .= ',file:' . $val['file'];
-                    }
-                    if (isset($val['line'])) {
-                        $stack .= ',line:' . $val['line'];
-                    }
-                    if (isset($val['function'])) {
-                        $stack .= 'function:' . $val['function'];
-                    }
-                    $stack .= PHP_EOL;
+                foreach ($debugInfo as $val) {
+                    $stack .= ',file:' . $val['file'] . ',line:' . $val['line'] . ',function:' . $val['function'] . PHP_EOL;
                 }
                 $stack .= ']';
             }
@@ -205,7 +196,7 @@ class Log
         $postStr = \myphp::rawBody();
         $_srv = $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'] . (strpos($_SERVER['REQUEST_URI'], '?') === false && isset($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '' ? '?' . urldecode($_SERVER['QUERY_STRING']) : '') . (isset($_SERVER['SERVER_PROTOCOL']) ? ' ' . $_SERVER['SERVER_PROTOCOL'] : '') . PHP_EOL . (isset($_SERVER['HTTP_HOST']) ? 'HOST:' . $_SERVER['HTTP_HOST'] . PHP_EOL : ''). 'Remote: ' . $_SERVER['REMOTE_ADDR'] . ':' . $_SERVER['REMOTE_PORT'] . (empty($_SERVER['HTTP_X_REAL_IP']) ? '' : '(' . $_SERVER['HTTP_X_REAL_IP'] . ')');
 
-        return $_srv.(isset($_POST) ? PHP_EOL."Form-Data: ".rawurldecode(http_build_query($_POST, "", "&", PHP_QUERY_RFC3986)) : '').($postStr ? PHP_EOL."Raw: ".($raw_full ? $postStr : substr($postStr, 0, 255)) : '');
+        return $_srv.(empty($_POST) ? '' : PHP_EOL."Form-Data: ".rawurldecode(http_build_query($_POST, "", "&", PHP_QUERY_RFC3986))).($postStr ? PHP_EOL."Raw: ".($raw_full ? $postStr : substr($postStr, 0, 255)) : '');
     }
     //返回请求信息
     public static function REQ(bool $raw_full = false): string
@@ -357,30 +348,5 @@ class Log
             error_log(date('Y-m-d H:i:s') . ' truncate, ' . $file . ' lock fail' . PHP_EOL);
         }
         fclose($lockFp);
-    }
-    /*
-
-    DROP DATABASE IF EXISTS `log`;
-    CREATE DATABASE `log`;
-    -- 日志表 sys_log
-    DROP TABLE IF EXISTS `sys_log`;
-    CREATE TABLE `sys_log` (
-      `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-      `ctime` int(10) unsigned DEFAULT '0',
-      `log` varchar(30) NOT NULL,
-      `url` varchar(255) DEFAULT '',
-      `ip` varchar(20) DEFAULT '',
-      `des` text,
-      PRIMARY KEY (`id`),
-      KEY `ctime` (`ctime`)
-    ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-    */
-    //以数据库方式记录 2
-    public static function sys_log(string $log, string $des): void
-    {
-        $referer = $_SERVER['HTTP_REFERER'] ?? '-';
-        $url = Request::url();
-        $post = ['ctime' => time(),'log' => $log,'des' => $des,'url' => substr("referer: $referer\nurl: $url", 0, 250),'ip' => GetIP()];
-        db()->add($post, 'sys_log');
     }
 }
