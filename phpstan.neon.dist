@@ -35,11 +35,11 @@ parameters:
             path: lib/File.php
             messages:
                 - '#Method myphp\\File::readPath\(\)#'
-        #-
-        #    path: lib/Log.php
-        #    messages:
-        #        - '#code above always terminates#'
-        #        - '#is always (true|false).#'
+        -
+            path: lib/Log.php
+            messages:
+                - '#code above always terminates#'
+                - '#is always (true|false).#'
         -
             path: lib/Response.php
             messages:

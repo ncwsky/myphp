@@ -111,10 +111,10 @@ class Log
         $stack = '';
         if ($e = error_get_last()) {
             self::$errFlag = true;
-            self::$errs[] = $stack = date('[Y-m-d H:i:s]').'[error] type:'.$e['type'].', line:'.$e['line'].', file:'.$e['file'].', message:'.$e['message'];
+            self::$errs[] = $stack = date('[Y-m-d H:i:s]').'[error] line:'.$e['line'].', file:'.$e['file'].', err:'.$e['message'];
         }
         if (self::$errFlag) {
-            !IS_CLI && self::$errs[] = Log::REQ();
+            !IS_CLI && array_unshift(self::$errs, Log::REQ()); //在开头记录请求信息
             $logs = implode(PHP_EOL, self::$errs);
             self::write($logs, '_def'); //错误信息记录到主日志
             self::$errs = null;
@@ -126,7 +126,7 @@ class Log
         }
         if (!IS_CLI && GetC('debug') && $e) {
             ob_end_clean();
-            exit('<pre style="color:#c10;">'.$stack.'</pre>');
+            echo '<pre style="color:#c10;">'.$stack.'</pre>';
         }
     }
     //自定义错误记录 用于 set_error_handler
@@ -159,15 +159,14 @@ class Log
         if ($debug) {
             $debugInfo = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
             if (count($debugInfo) > 1) {
-                array_pop($debugInfo); // 删除最后一个跟踪: Log::UserErr
-                $stack = PHP_EOL . '[' . PHP_EOL;
+                array_shift($debugInfo); // 删除最前一个跟踪: Log::UserErr
+                $stack = PHP_EOL;
                 foreach ($debugInfo as $val) {
-                    $stack .= ',file:' . $val['file'] . ',line:' . $val['line'] . ',function:' . $val['function'] . PHP_EOL;
+                    $stack .= 'line:' . $val['line'] . ', file:' . $val['file'] . ', func:' . $val['function'] . PHP_EOL;
                 }
-                $stack .= ']';
             }
         }
-        self::write('errno:'.$errno.', line:'.$eLine.', file:'.$eFile.', message:'.$err.$stack.PHP_EOL.self::miniREQ(), $level);
+        self::write(self::miniREQ() . PHP_EOL . 'line:' . $eLine . ', file:' . $eFile . ', err:' . $err . $stack, $level);
         return true;
     }
 
@@ -177,16 +176,15 @@ class Log
      */
     public static function Exception(\Throwable $e, bool $out = true): void
     {
-        $err = $e->getMessage().PHP_EOL.'line:'.$e->getLine().', file:'.$e->getFile().PHP_EOL.$e->getTraceAsString();
+        $err = 'line:' . $e->getLine() . ', file:' . $e->getFile() . ', err:' . $e->getMessage() . PHP_EOL . $e->getTraceAsString();
         if (IS_CLI || !$out) {
-            self::WARN($err.PHP_EOL.self::miniREQ());
+            self::WARN(self::miniREQ() . PHP_EOL . $err);
             return;
+        } elseif (GetC('debug')) {
+            echo '<pre>' . $err . '</pre>';
         }
         self::$errFlag = true;
         self::$errs[] = date('[Y-m-d H:i:s]').'[error] '.$err;
-        if (GetC('debug')) {
-            echo '<pre>'.$err.'</pre>';
-        }
     }
     public static function miniREQ(bool $raw_full = false): string
     {
