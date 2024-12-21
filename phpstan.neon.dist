@@ -45,11 +45,11 @@ parameters:
             messages:
                 - '#will always evaluate to true#'
         #        - '#is always (true|false).#'
-        -
-            path: lib/Helper.php
-            messages:
-                - '#is always (true|false).#'
-                - '#code above always terminates.#'
+        #-
+        #    path: lib/Helper.php
+        #    messages:
+        #        - '#is always (true|false).#'
+        #        - '#code above always terminates.#'
         -
             path: ext/ReplyAck.php
             messages:
@@ -57,7 +57,7 @@ parameters:
         -
             path:  inc/comm.func.php
             messages:
-                - '#Unreachable statement - code above always terminates#'
-                - '#If condition is always true#'
+        #        - '#Unreachable statement - code above always terminates#'
+        #        - '#If condition is always true#'
                 - '#Static call to instance method#'
-                - '#Left side of \|\| is always true#'
+        #        - '#Left side of \|\| is always true#'
