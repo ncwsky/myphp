@@ -162,6 +162,21 @@ class Log
                 array_shift($debugInfo); // 删除最前一个跟踪: Log::UserErr
                 $stack = PHP_EOL;
                 foreach ($debugInfo as $val) {
+                    if (isset($val['type'])) {
+                        $val['function'] = $val['class'] . $val['type'] . $val['function'];
+                        if (!isset($val['line'])) {
+                            $val['line'] = '';
+                        }
+                        if (!isset($val['file'])) {
+                            $val['file'] = '';
+                        }
+                    }
+                    /*foreach ($val as $k => $v) {
+                        if (in_array($k, ['line', 'file', 'function'])) {
+                            $stack .= $k . ':' . $v . ' ';
+                        }
+                    }*/
+                    //$stack .= PHP_EOL;
                     $stack .= 'line:' . $val['line'] . ', file:' . $val['file'] . ', func:' . $val['function'] . PHP_EOL;
                 }
             }
