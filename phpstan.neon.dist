@@ -45,11 +45,11 @@ parameters:
             messages:
                 - '#will always evaluate to true#'
         #        - '#is always (true|false).#'
-        #-
-        #    path: lib/Helper.php
-        #    messages:
-        #        - '#is always (true|false).#'
-        #        - '#code above always terminates.#'
+        -
+            path: lib/Helper.php
+            messages:
+                - '#is always (true|false).#'
+                - '#code above always terminates.#'
         -
             path: ext/ReplyAck.php
             messages:

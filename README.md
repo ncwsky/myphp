@@ -54,3 +54,8 @@ $ => var    $name -> echo $name;
     ?$name=trim:$defval -> echo isset($name)?trim($name):$defval;
  
 ```
+
+```
+php-cs-fixer fix --config=./.php-cs-fixer.dist.php   
+vendor/bin/phpstan analyse -c ./phpstan.neon.dist --memory-limit 1G
+```

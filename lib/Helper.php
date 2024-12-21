@@ -45,8 +45,10 @@ class Helper
     // Returns true if $string is valid UTF-8 and false otherwise.
     public static function is_utf8($word)
     {
-        $regx = '(['.chr(228).'-'.chr(233).']{1}['.chr(128).'-'.chr(191).']{1}['.chr(128).'-'.chr(191).']{1})';
-        if (preg_match('/^'.$regx.'{1}/', $word) == true || preg_match('/'.$regx.'{1}$/', $word) == true || preg_match('/'.$regx.'{2,}/', $word) == true) {
+        $s = '([';
+        $c = ']{1}[';
+        $regx = $s . chr(228) . '-' . chr(233) . $c . chr(128) . '-' . chr(191) . $c . chr(128) . '-' . chr(191) . ']{1})';
+        if (preg_match('/^' . $regx . '{1}/', $word) || preg_match('/' . $regx . '{1}$/', $word) || preg_match('/' . $regx . '{2,}/', $word)) {
             return true;
         } else {
             return false;
