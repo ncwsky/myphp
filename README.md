@@ -56,6 +56,10 @@ $ => var    $name -> echo $name;
 ```
 
 ```
+composer require --dev phpstan/phpstan
+composer require --dev friendsofphp/php-cs-fixer
+composer global require friendsofphp/php-cs-fixer
+
 php-cs-fixer fix --config=./.php-cs-fixer.dist.php   
 vendor/bin/phpstan analyse -c ./phpstan.neon.dist --memory-limit 1G
 ```

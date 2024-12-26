@@ -311,7 +311,7 @@ final class myphp
     }
     /**
      * 运行程序 $isCli 可设置CLI模式下false用于解析数据的参数
-     * @param null $sendFun
+     * @param null|callable $sendFun
      * @param bool $isCli
      * @throws \Exception
      */

@@ -122,7 +122,7 @@ function run_mem(): string
 /**
  * 获取配置值 支持二维数组
  * @param string $name
- * @param null $defVal
+ * @param mixed $defVal
  * @return mixed|null
  */
 function GetC(string $name, $defVal = null)

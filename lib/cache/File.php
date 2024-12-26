@@ -150,12 +150,13 @@ class File extends \myphp\CacheAbstract
 
     /** 设置过期时间
      * @param string $name
-     * @param int $time  过期秒数 0不过期
+     * @param int $time 过期秒数 0不过期
+     * @param bool $is_file
      * @return bool
      */
-    public function expire($name, int $time = 0): bool
+    public function expire(string $name, int $time = 0, bool $is_file = false): bool
     {
-        $file = $this->_file($name);
+        $file = $is_file ? $name : $this->_file($name);
         $data = $this->_fileGetContent($file);
         if (!$data) {
             return false;
@@ -176,22 +177,7 @@ class File extends \myphp\CacheAbstract
     public function hExpire($name, $key, int $time = 0): bool
     {
         $file = $this->_hFile($name, $key);
-        $data = $this->_fileGetContent($file);
-        if (!$data) {
-            return false;
-        }
-
-        if ($time) {
-            $time = $time + time();
-        }
-        $data['expire'] = $time;
-
-        if (false !== $this->_filePutContent($file, $data)) {
-            return @touch($file, $data['expire']);
-        }
-        $error = error_get_last();
-        Log::WARN("Unable to write expire file '{$file}': {$error['message']}");
-        return false;
+        return $this->expire($file, $time, true);
     }
     //多个键值设置 不支持过期时间
     public function hSet($name, $key, $val): bool
