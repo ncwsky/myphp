@@ -333,10 +333,10 @@ class lib_redis
      * @access public
      * @param string $name 缓存变量名
      * @param mixed $data 存储数据
-     * @param int $expire 有效时间（秒） 0表示永久缓存
+     * @param int|string $expire 有效时间（秒） 0表示永久缓存
      * @return boolean
      */
-    public function set(string $name, $data, int $expire = 0)
+    public function set(string $name, $data, $expire = 0)
     {
         if (func_num_args() > 3) { //直接走原生操作
             return call_user_func_array([$this->handler, 'set'], func_get_args());
