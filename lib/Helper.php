@@ -96,7 +96,7 @@ class Helper
 
     /**
      * 分页初始
-     * @param int|object $tb [需分页的模型/或数据行数]
+     * @param int|Model|Db $tb [需分页的模型/或数据行数]
      * @param string|array $where [查询条件]
      * @param int $cPage
      * @param int|string $num [每页数量|每页数,显示页码数]
@@ -111,7 +111,7 @@ class Helper
         if (is_string($num) && strpos($num, ',')) {
             [$num, $initPageNum] = explode(',', $num);
         }
-        $total = is_numeric($tb) ? (int)$tb : ($id != '' ? $tb->where($where)->count($id) : $tb->where($where)->count()); //获取总行数
+        $total = is_object($tb) ? ($id != '' ? $tb->where($where)->count($id) : $tb->where($where)->count()) : (int)$tb; //获取总行数
         $pCount = $total ? ceil($total / $num) : 1;
         if ($cPage < 1) {
             $cPage = 1;
@@ -121,7 +121,7 @@ class Helper
         }
         $prev = $cPage > 1 ? $cPage - 1 : ''; //上一页
         $next = $cPage < $pCount ? $cPage + 1 : ''; //下一页
-        $path = \myphp::$env['BASE_URL'];
+        $path = \myphp::env('BASE_URL');
         $path = $path != '/' ? rtrim($path, '/') : $path;
         $qstr = !empty($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
         if (strpos($qstr, $pName) !== false) {
