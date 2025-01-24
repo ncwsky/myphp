@@ -110,11 +110,9 @@ class Db
     private $endSpec = '`';
 
     /**
-     *
      * @param bool $slave
      * @param bool $force
      * @return mixed
-     * @throws Exception
      */
     private function _initDb(bool $slave = false, bool $force = false)
     {
@@ -183,14 +181,13 @@ class Db
      * Db constructor.
      * @param string $conf 去掉array配置支持 改为向myphp::$cfg置入置配的方式
      * @param bool $force 是否强制生成新实例
-     * @throws Exception
      */
     public function __construct(string $conf = 'db', bool $force = false)
     {
-        if (!isset(myphp::$cfg[$conf])) {
-            throw new Exception($conf . 'DB连接配置不存在');
+        if (isset(myphp::$cfg[$conf])) {
+            $this->config = myphp::$cfg[$conf];
+            //throw new Exception($conf . 'DB连接配置不存在');
         }
-        $this->config = myphp::$cfg[$conf];
         if (!isset($this->config['type'])) {
             $this->config['type'] = 'pdo';
         }
