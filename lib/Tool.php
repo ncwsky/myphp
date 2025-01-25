@@ -91,9 +91,11 @@ class Tool
         }
 
         //class __name__ extends __parent__ {
-        $content = str_replace($classHead, "class $className extends $baseClass {", $content); //兼容处理
-        $content = str_replace($classHead, "class $className extends $baseClass\n{", $content); //php-cs-fixer
-
+        $replaceClass = "class $className extends $baseClass\n{";
+        if ($classHead != $replaceClass) {
+            $content = str_replace($classHead, "class $className extends $baseClass {", $content); //兼容处理
+            $content = str_replace($classHead, $replaceClass, $content); //php-cs-fixer
+        }
         //protected static $dbName = '__db__';
         $content = str_replace('static $dbName '.substr_cut($content, 'static $dbName ', ';', 0, false).';', "static \$dbName = '$dbName';", $content);
 
