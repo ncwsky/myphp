@@ -93,7 +93,6 @@ class Tool
         //class __name__ extends __parent__ {
         $replaceClass = "class $className extends $baseClass\n{";
         if ($classHead != $replaceClass) {
-            $content = str_replace($classHead, "class $className extends $baseClass {", $content); //兼容处理
             $content = str_replace($classHead, $replaceClass, $content); //php-cs-fixer
         }
         //protected static $dbName = '__db__';
