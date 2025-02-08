@@ -3,13 +3,13 @@
 return [
     'debug' => true, //是否开启调试模式，true开启，false关闭
     'lang' => 'zh-cn', // 默认语言
-    'charset' => 'utf-8',//编码
-    'url_mode' => 2,	//url模式，1表示普通模式，2表示PATH_INFO模式
-    'url_rewrite' => true,	//启用url伪静态 用于url_mode=2
-    'url_index' => '/index.php',	//启用url伪静态 对应的入口文件
+    'charset' => 'utf-8', //编码
+    'url_mode' => 2, //url模式，1表示普通模式，2表示PATH_INFO模式
+    'url_rewrite' => true, //启用url伪静态 用于url_mode=2
+    'url_index' => '/index.php', //启用url伪静态 对应的入口文件
     'cli_url_mode' => null, //cli模式请求处理模式 默认2 PATH_INFO模式
-    'def_control' => 'index',  //默认控制器名 c
-    'def_action' => 'index',	//默认方法名 a
+    'def_control' => 'index', //默认控制器名 c
+    'def_action' => 'index', //默认方法名 a
     'url_maps_regx' => null, //url映射正则规则
     'url_maps' => null, //url映射 array()
     'module_maps' => null, //模块映射 [模块名=>（子项目）前置命令空间名称|路径,...] 放置全局配置或app配置下 自动识别app项目下module目录的子模块
@@ -18,12 +18,12 @@ return [
     'db' => [
         'pconnect' => false,
         //'dsn' => '', //使用pdo驱动时可直接设置dsn
-        'type' => 'pdo',   //连接类型 支持继承DbBase的pdo、taos
+        'type' => 'pdo', //连接类型 支持继承DbBase的pdo、taos
         'dbms' => 'mysql', //数据库
         'server' => 'localhost', //数据库主机
-        'name' => '',     //数据库名称
+        'name' => '', //数据库名称
         'user' => 'root', //数据库用户
-        'pwd' => '',	  //数据库密码
+        'pwd' => '', //数据库密码
         'port' => 3306,   // 端口
         'char' => 'utf8', //数据库编码
         //'timezone'=>'', //数据库时区 mysql +08:00,pqsql PRC

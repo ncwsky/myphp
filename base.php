@@ -35,6 +35,7 @@ if (defined('APP_PATH')) {
     }
 } else {
     $root = IS_CLI ? dirname(realpath($_SERVER['SCRIPT_FILENAME'])) : str_replace($_SERVER['SCRIPT_NAME'], '', IS_WIN ? strtr($_SERVER['SCRIPT_FILENAME'], '\\', DS) : $_SERVER['SCRIPT_FILENAME']);
+    define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']) . '/app');
 }
 define('ROOT', IS_WIN ? strtr($root, '\\', DS) : $root);
 //临时目录
@@ -43,6 +44,8 @@ defined('RUNTIME') || define('RUNTIME', ROOT . '/runtime');
 defined('COMMON') || define('COMMON', ROOT . '/common');
 //Web目录
 defined('SITE_WEB') || define('SITE_WEB', ROOT . '/web');
+//指定默认模块
+defined('DEF_MODULE') || define('DEF_MODULE', '');
 
 require __DIR__ . '/myphp.php';
 require __DIR__ . '/inc/comm.func.php';

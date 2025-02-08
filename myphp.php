@@ -205,11 +205,11 @@ final class myphp
         return $res;
     }
     //初始框架
-    public static function init($cfg = null): void
+    public static function init(array $cfg = null): void
     {
         //引入默认配置文件
         self::$cfg = require(__DIR__ . '/def_config.php');
-        if (is_array($cfg)) { //组合参数配置
+        if ($cfg) { //组合参数配置
             self::$cfg = array_merge(self::$cfg, $cfg);
             unset($cfg);
         }
@@ -264,9 +264,6 @@ final class myphp
         Log::init(self::$cfg['log_dir'], self::$cfg['log_level'], self::$cfg['log_size']);
         is_file(COMMON . '/common.php') && require COMMON . '/common.php';	//引入公共函数
 
-        if (!defined('APP_PATH')) {
-            define('APP_PATH', dirname($_SERVER['SCRIPT_FILENAME']) . '/app');
-        }
         self::$pipe = new Pipeline();
 
         self::$cfg['_app_path'] = IS_WIN ? strtr(APP_PATH, '\\', DS) : APP_PATH;
@@ -534,10 +531,13 @@ final class myphp
         if (empty($_GET['a'])) {
             $_GET['a'] = self::$cfg['def_action'];
         }
+        if (empty($_GET['m'])) {
+            $_GET['m'] = DEF_MODULE; //入口有指定默认模块名
+        }
 
         self::$env['c'] = $_GET['c'];
         self::$env['a'] = $_GET['a'];
-        self::$env['m'] = $_GET['m'] ?? '';
+        self::$env['m'] = $_GET['m'];
 
         //针对url_maps有映射模块的再次处理
         if (self::$env['m'] && self::$env['m'] != $_m) {
@@ -790,9 +790,9 @@ final class myphp
 
     /**
      * 载入模块配置及生成命名空间前缀
-     * @param $app_path
+     * @param string $app_path
      */
-    private static function _initModule(&$app_path): void
+    private static function _initModule(string &$app_path): void
     {
         //指定项目模块
         if (isset(self::$cfg['module_maps'][self::$env['m']])) {
