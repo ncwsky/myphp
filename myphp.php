@@ -493,7 +493,7 @@ final class myphp
         }
 
         //优先全局或app配置的模块
-        if (self::$cfg['module_maps']) {
+        if (self::$cfg['module_maps'] && !DEF_MODULE) {
             $path = trim(self::_urlPath($app_root, $uri, $isCLI), '/');
             if ($path) {
                 self::$env['m'] = explode('/', $path, 2)[0];
@@ -696,7 +696,7 @@ final class myphp
                 return $res;
             }
             if (!$res) {
-                $redirect = (strpos(self::$cfg['auth_gateway'], 'http') === 0 ? '' : ROOT_DIR) . self::$cfg['auth_gateway'];
+                $redirect = (strpos(self::$cfg['auth_gateway'], 'http') === 0 ? self::$cfg['auth_gateway'] : U(self::$cfg['auth_gateway']));
                 if (!Helper::isAjax() || $c == self::$cfg['def_control']) {
                     return self::res()->redirect($redirect);
                     #\myphp::setHeader('Location', $redirect);
@@ -1099,7 +1099,7 @@ final class myphp
                 $_GET['m'] = $path[0];
                 $_GET['c'] = $path[1];
                 $_GET['a'] = $path[2];
-            } elseif (isset(self::$cfg['module_maps'][$path[0]])) {
+            } elseif (!DEF_MODULE && isset(self::$cfg['module_maps'][$path[0]])) {
                 $_GET['m'] = $path[0];
                 $_GET['c'] = $path[1];
             } else {
@@ -1108,7 +1108,7 @@ final class myphp
             }
             unset($path);
         } else {
-            if (isset(self::$cfg['module_maps'][$mca])) { //有配置模块优先
+            if (!DEF_MODULE && isset(self::$cfg['module_maps'][$mca])) { //有配置模块优先
                 $_GET['m'] = $mca;
             } else {
                 $_GET['c'] = $mca;
@@ -1164,7 +1164,7 @@ final class myphp
     }
 
     /**
-     * url解析重写： 模块/控制器/方法?参数1=值1&....[#锚点@域名], 附加参数选项（待）
+     * url解析重写： 模块/控制器/方法?参数1=值1&...., 附加参数选项（待）
      * 模块：
      * 1、设定的模块参数 如： module_maps = array(),
      * array('adm'=>'/admin');  模块名=>模块（项目）路径  ->  /index.php
@@ -1178,7 +1178,7 @@ final class myphp
      *
      * U('/index/show?b=2&c=4',$option=null)  /index.php/index-show-b-2-c-4    当前项目 index->show方法
      * U('/show?b=2&c=4',$option=null) 同上  当前项目 默认控制器/show方法
-     * url正向解析 地址 [!]admin/index/show?b=c&d=e&....[#锚点@域名（待实现）], 附加参数 数组|null, url字符串如：/pub/index.php
+     * url正向解析 地址 [!]admin/index/show?b=c&d=e&...., 附加参数 数组|null, url字符串如：/pub/index.php
      * @param string $uri
      * @param array|string $vars
      * @param string $url
@@ -1231,6 +1231,11 @@ final class myphp
         } else {
             $mca = $uri;
         }
+        if (DEF_MODULE && $mca[0] != '/' && substr_count($mca, '/') > 1) {
+            if (strpos($mca, DEF_MODULE . '/') === 0) {
+                $mca = substr($mca, strlen(DEF_MODULE) + 1);
+            }
+        }
         if (is_array($vars)) {
             $query = http_build_query($vars, "", "&", PHP_QUERY_RFC3986);
         }
@@ -1246,7 +1251,7 @@ final class myphp
                     $path = explode('/', trim($mca, '/'));
                     $a = array_pop($path);
                     $c = array_pop($path);
-                    if (!empty($path)) {
+                    if ($path) {
                         $m = array_pop($path);
                     }
                 } else {
