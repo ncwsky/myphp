@@ -18,6 +18,7 @@ use myphp\session\Redis;
  * @method del($name) static 兼容处理
  * @method destroy() static 销毁
  * @method flush() static 销毁 兼容处理
+ * @method getId()
  */
 class Session
 {

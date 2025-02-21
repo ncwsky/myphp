@@ -684,8 +684,6 @@ final class myphp
             return null;
         }
 
-        //if (!class_exists($auth_class)) throw new \Exception('class not exists ' . $auth_class, 404);
-
         $auth = new $auth_class(); //self::app('auth', ['class'=>$auth_class]); //引入权限验证类
         //if(!method_exists($auth, $auth_action)) throw new \Exception('auth method not found! ' . $auth_action, 404);
 
@@ -699,8 +697,6 @@ final class myphp
                 $redirect = (strpos(self::$cfg['auth_gateway'], 'http') === 0 ? self::$cfg['auth_gateway'] : U(self::$cfg['auth_gateway']));
                 if (!Helper::isAjax() || $c == self::$cfg['def_control']) {
                     return self::res()->redirect($redirect);
-                    #\myphp::setHeader('Location', $redirect);
-                    #throw new \Exception('', 302);
                 }
                 return self::res()->withBody(Helper::outMsg('你未登录,请先登录!', $redirect));
                 //throw new \Exception(Helper::outMsg('你未登录,请先登录!', $redirect), 200);
@@ -1008,7 +1004,7 @@ final class myphp
                     $end = strpos($k, '>', $pos);
                     $var = $__var = substr($k, $pos + 1, $end - $pos - 1);
                     $regx = '(\w+)'; //字符数字下划线
-                    if ($depr = strpos($__var, '\\')) {
+                    if ($depr = strpos($__var, '\\')) { //有指定规则
                         $type = substr($__var, -1);
                         $var = substr($__var, 0, $depr);
                         if ($type == 'd') { //仅数字
@@ -1137,7 +1133,7 @@ final class myphp
             do {
                 $end = strpos($k, '>', $pos);
                 $var = $__var = substr($k, $pos + 1, $end - $pos - 1);
-                if ($depr = strpos($__var, '\\')) {
+                if ($depr = strpos($__var, '\\')) { //参数有指定规则
                     $var = substr($__var, 0, $depr);
                 }
                 if (!isset($vars[$var])) {
@@ -1147,13 +1143,13 @@ final class myphp
                 if (substr($k, $end + 1, 1) == ']') {//可选
                     $pos = strpos($k, '[');
                     $end = strpos($k, ']');
-                    if ($vars[$var] == null) {
+                    if ($vars[$var] === null) {
                         $k = substr($k, 0, $pos).substr($k, $end + 1);
                     } else {
                         $k = substr($k, 0, $pos).substr($k, $pos + 1, $end - $pos - 1).substr($k, $end + 1);
                     }
                 }
-                $k = str_replace('<'.$__var.'>', $vars[$var], $k);
+                $k = str_replace('<'.$__var.'>', (string)$vars[$var], $k);
                 $pos = strpos($k, '<', $pos);
             } while ($pos);
             if (strpos($k, '[')) {
