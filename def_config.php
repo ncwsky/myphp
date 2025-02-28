@@ -106,10 +106,10 @@ return [
     //'roles' => [], //角色权限配置 [角色=>['name'=>'', 'purview'=>[]], ...]
     //'roles_name' => [], //角色名称 [角色=>'角色名',...]
     'auth_on' => false, //默认关闭
-    'auth_model' => '\myphp\BaseAuth',//验证类
-    'auth_login' => 'isLogin',//登陆验证 bool
-    'auth_action' => 'check',//验证动作方法 Exception
-    'auth_gateway' => '',//默认登录网关 如/index/login    ------------ 以下权限设置 优先级从上到下 ------------------------
+    'auth_model' => '',//验证类 如是静态验证类此处留空
+    'auth_login' => '\myphp\BaseAuth::isLogin',//登陆验证 bool 支持静态方法或函数
+    'auth_action' => '\myphp\BaseAuth::check',//验证动作方法 Exception 支持静态方法或函数
+    'auth_gateway' => '',//默认登录页 如/index/login    ------------ 以下权限设置 优先级从上到下 ------------------------
     'auth_model_not' => '',//无需验证的模块，多个","分隔  用前后布置，包含  ,index,
     'auth_model_action' => '',//无需验证的模块中需要验证的动作  //,index/index,index/info,
     'auth_action_not' => '',//无需验证的动作，多个","分隔 格式：控制器/方法名

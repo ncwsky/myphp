@@ -521,7 +521,7 @@ final class myphp
                 //是伪静态地址
             } else {
                 //分解m c a
-                self::deMCA($path);
+                self::deMCA($path, true);
             }
         }
         //控制器和方法是否为空，为空则使用默认
@@ -684,12 +684,14 @@ final class myphp
             return null;
         }
 
-        $auth = new $auth_class(); //self::app('auth', ['class'=>$auth_class]); //引入权限验证类
-        //if(!method_exists($auth, $auth_action)) throw new \Exception('auth method not found! ' . $auth_action, 404);
-
+        if ($auth_class) {
+            $auth = new $auth_class();
+        } else { //可能是静态类或函数验证
+            $auth = null;
+        }
         //仅登陆验证
         if (strpos(self::$cfg['auth_login_model'], ','.$c.',') !== false || strpos(self::$cfg['auth_login_action'], ','.$c.'/'.$a.',') !== false) {
-            $res = $auth->$auth_login();
+            $res = $auth ? call_user_func([$auth, $auth_login]) : call_user_func($auth_login);
             if ($res instanceof Response) {
                 return $res;
             }
@@ -706,7 +708,8 @@ final class myphp
                 return null;
             }
         }
-        return $auth->$auth_action(); //启动验证方法
+        //启动验证方法(类方法|静态方法或函数) null|res|false
+        return $auth ? call_user_func([$auth, $auth_action]) : call_user_func($auth_action);
     }
     // app项目初始化
     private static function _initApp($path, $isCLI = IS_CLI): void
@@ -1079,37 +1082,43 @@ final class myphp
             $_REQUEST = array_merge($_REQUEST, $_GET);
         }
         //分解m c a
-        self::deMCA($mca);
+        self::deMCA($mca, true);
         return true;
     }
     //分解m c a
-    private static function deMCA(string &$mca): void
+    public static function deMCA(string $mca, bool $resetGet = false): ?array
     {
         $mca = trim($mca, '/');
         if ($mca === '') {
-            return;
+            return null;
         }
+        $m = $c = $a = '';
         if (strpos($mca, '/')) {
             $path = explode('/', $mca);
             if (isset($path[2])) {
-                $_GET['m'] = $path[0];
-                $_GET['c'] = $path[1];
-                $_GET['a'] = $path[2];
+                $m = $path[0];
+                $c = $path[1];
+                $a = $path[2];
             } elseif (!DEF_MODULE && isset(self::$cfg['module_maps'][$path[0]])) {
-                $_GET['m'] = $path[0];
-                $_GET['c'] = $path[1];
+                $m = $path[0];
+                $c = $path[1];
             } else {
-                $_GET['c'] = $path[0];
-                $_GET['a'] = $path[1];
+                $c = $path[0];
+                $a = $path[1];
             }
             unset($path);
+        } elseif (!DEF_MODULE && isset(self::$cfg['module_maps'][$mca])) { //有配置模块优先
+            $m = $mca;
         } else {
-            if (!DEF_MODULE && isset(self::$cfg['module_maps'][$mca])) { //有配置模块优先
-                $_GET['m'] = $mca;
-            } else {
-                $_GET['c'] = $mca;
-            }
+            $c = $mca;
         }
+
+        if ($resetGet) {
+            $_GET['m'] = $m;
+            $_GET['c'] = $c;
+            $_GET['a'] = $a;
+        }
+        return [$m, $c, $a];
     }
     /*
         url反转时 使用静态变量存放 v 记录 如 info/lists?id=7 第二次调用时就要以array来验证
@@ -1182,10 +1191,12 @@ final class myphp
      */
     public static function toUrl(string $uri = '', $vars = null, string $url = ''): string
     {
-        $normal = false;
-        $m = $c = $a = '';
-        if (substr($uri, 0, 1) == '!') { //普通url模式
-            $normal = true;
+        if (!$uri) {
+            return $url ? ROOT_DIR . $url : rtrim(self::env('APP'), '/');
+        }
+
+        $normal = substr($uri, 0, 1) == '!';
+        if ($normal) { //普通url模式
             $uri = substr($uri, 1);
         }
 
@@ -1205,32 +1216,22 @@ final class myphp
             }
         }
         //url映射
-        if (is_array(self::$cfg['url_maps']) && !empty(self::$cfg['url_maps'])) {
-            static $url_maps;
-            if (!isset($url_maps)) {
-                foreach (self::$cfg['url_maps'] as $k => $v) {
-                    $url_maps[$v] = $k;
-                }
-            }
+        static $url_maps = null;
+        if (is_array(self::$cfg['url_maps']) && !empty(self::$cfg['url_maps']) && $url_maps === null) {
+            $url_maps = array_flip(self::$cfg['url_maps']); //交换 kv->vk
         }
-        $query = '';
         //分析mac及参数
+        $query = '';
         if ($pos !== false) {// 参数处理
             $mca = substr($uri, 0, $pos);
             $query = substr($uri, $pos + 1);
-            if (is_array($vars)) {
-                parse_str($query, $get);
-                $vars = array_merge($get, $vars);
-            } else {
-                parse_str($query, $vars);
-            }
+            parse_str($query, $get);
+            $vars = is_array($vars) ? array_merge($get, $vars) : $get;
         } else {
             $mca = $uri;
         }
-        if (DEF_MODULE && $mca[0] != '/' && substr_count($mca, '/') > 1) {
-            if (strpos($mca, DEF_MODULE . '/') === 0) {
-                $mca = substr($mca, strlen(DEF_MODULE) + 1);
-            }
+        if (DEF_MODULE && $mca[0] != '/' && substr_count($mca, '/') > 1 && strpos($mca, DEF_MODULE . '/') === 0) {
+            $mca = substr($mca, strlen(DEF_MODULE) + 1);
         }
         if (is_array($vars)) {
             $query = http_build_query($vars, "", "&", PHP_QUERY_RFC3986);
@@ -1238,6 +1239,7 @@ final class myphp
 
         //直接解析 普通模式
         if (self::$cfg['url_mode'] != 2 || $normal) {
+            $m = $c = $a = '';
             if ($mca != '') {//分解m a c
                 if ($pos = strpos($mca, '.php')) { #有指定入口php url
                     $url = substr($mca, 0, $pos + 4);
@@ -1257,7 +1259,7 @@ final class myphp
             }
 
             if ($c == '' && $a == '' && !$query) {
-                return $url == '' ? self::env('URI') : ROOT_DIR.$url;
+                return $url === '' ? self::env('URI') : ROOT_DIR.$url;
             }
 
             $para = '';
@@ -1271,18 +1273,17 @@ final class myphp
                 $para .= '&a=' . $a;
             }
 
-            $url = $url == '' ? self::env('URI') : ROOT_DIR . $url;
+            $url = $url === '' ? self::env('URI') : ROOT_DIR . $url;
             if ($query) {
                 $para .= '&' . $query;
             }
             return $url . '?' . substr($para, 1);
         }
-
-        $mca = ($mca[0] == '/' ? '' : '/') . $mca;
+        $mca = ($mca[0] === '/' ? '' : '/') . $mca;
 
         //url映射处理
         if (isset($url_maps)) {
-            $_url = $url == '' ? substr(self::env('URI'), strlen(ROOT_DIR)) : $url;
+            $_url = $url === '' ? substr(self::env('URI'), strlen(ROOT_DIR)) : $url;
             if ($query) {
                 $_url .= '?' . $query;
             }
@@ -1294,11 +1295,7 @@ final class myphp
             }
         }
 
-        if ($url != '') {
-            $url = ROOT_DIR . $url;
-        } else {
-            $url = rtrim(self::env('APP'), '/');
-        }
+        $url = $url ? ROOT_DIR . $url : rtrim(self::env('APP'), '/');
         return $url . $mca . ($query ? '?' . $query : '');
     }
 }
