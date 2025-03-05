@@ -229,10 +229,9 @@ class BaseAuth
     protected static $nextChr = ['?', ','];
 
     /**
-     * 复杂权限验证 统一小写 _all,!admin,!role/del,admin,!admin/del,post admin/save?var=1
+     * 复杂权限验证 统一小写 _all,!admin,!role/del,admin,!admin/del,post|put admin/save?var=1
      * 所有权限 $purview = _all
      * 允许所有权限但存在排除的模块、模块.方法 $purview = _all,!c1,!c2/index
-     * $purview = ['c1'=>true|1,'c2'=>['a2'=>true,'a21'=>true],'c3'=>['_all'=>true,'a3'=>false]]
      * @return bool|string
      */
     public static function chkPurview($mca = '', $method = '', $roleId = 0)
