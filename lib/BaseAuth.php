@@ -11,6 +11,8 @@ class BaseAuth
 {
     use \MyMsg;
 
+    protected static $roleRules = [];
+
     //cfg : roles[role=>purview, ...]
     public static function getPurview($roleId = 0): string
     {
@@ -28,9 +30,8 @@ class BaseAuth
      * 允许所有权限但存在排除的模块、模块.方法 $purview = _all,!c1,!c2/index
      * @return bool|string
      */
-    public static function tinyPurview($mca = '', $method = '', $roleId = 0)
+    public static function tinyPurview(string $mca = '', string $method = '', $roleId = 0)
     {
-
         if ($mca) {
             if ($pos = strpos($mca, '?')) { // index/ask?id=1
                 $mca = substr($mca, 0, $pos);
@@ -68,10 +69,18 @@ class BaseAuth
         return self::err($aErr);
     }
 
-    protected static function parsePurview(string $purview): array
+    protected static function parsePurview($roleId): array
     {
+        if (isset(static::$roleRules[$roleId]) && static::$roleRules[$roleId][0] > time()) {
+            return static::$roleRules[$roleId][1];
+        }/*
+        if ($rules = \myphp::cache()->get('roles.' . $roleId)) {
+            return $rules;
+        }*/
+
+        $purview = static::getPurview($roleId);
         $rules = ['deny' => [], 'allow' => []];
-        $items = explode(',', trim($purview));
+        $items = explode(',', $purview);
         //$httpMethods = ['get', 'post', 'patch', 'put', 'delete', 'head', 'options'];
         foreach ($items as $item) {
             $item = trim($item);
@@ -121,6 +130,8 @@ class BaseAuth
                 $rules['allow'][] = $rule;
             }
         }
+        static::$roleRules[$roleId] = [time() + 180, $rules]; //cli模式下缓存x秒
+        //\myphp::cache()->set('roles.' . $roleId, $rules);
         return $rules;
     }
 
@@ -155,10 +166,6 @@ class BaseAuth
 
     public static function matchPurview($mca = '', $method = '', $roleId = 0)
     {
-        $purview = static::getPurview($roleId);
-        if (!$purview) {
-            return self::err('用户角色没有权限配置信息');
-        }
         $get = [];
         if ($mca) {
             if ($pos = strpos($mca, '?')) { // index/ask?id=1
@@ -175,7 +182,7 @@ class BaseAuth
             $method = strtolower(Request::method());
         }
 
-        $rules = static::parsePurview($purview);
+        $rules = static::parsePurview($roleId);
         $aErr = '用户角色没有' . $c . '/' . $a . '操作的权限!';
         //优先拒绝规则
         foreach ($rules['deny'] as $rule) {
@@ -205,7 +212,6 @@ class BaseAuth
     public static function chkPurview($mca = '', $method = '', $roleId = 0)
     {
         $purview = static::getPurview($roleId);
-        Log::write(static::parsePurview($purview), 'rules');
         if (!$purview) {
             return self::err('用户角色没有权限配置信息');
         }
@@ -288,7 +294,6 @@ class BaseAuth
                 if (!$ok) {
                     continue;
                 }
-                //$item = substr($item, 0, $pos);
             }
             if ($deny) { //拒绝优先
                 return self::err($aErr);
