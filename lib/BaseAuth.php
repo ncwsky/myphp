@@ -13,7 +13,12 @@ class BaseAuth
 
     protected static $roleRules = [];
 
-    //cfg : roles[role=>purview, ...]
+    /**
+     * 获取角色权限配置
+     * cfg : roles[role=>purview, ...]
+     * @param $roleId
+     * @return string
+     */
     public static function getPurview($roleId = 0): string
     {
         if ($roleId === 0) {
@@ -69,6 +74,11 @@ class BaseAuth
         return self::err($aErr);
     }
 
+    /**
+     * 解析角色权限规则
+     * @param $roleId
+     * @return array|array[]
+     */
     protected static function parsePurview($roleId): array
     {
         if (isset(static::$roleRules[$roleId]) && static::$roleRules[$roleId][0] > time()) {
@@ -135,9 +145,18 @@ class BaseAuth
         return $rules;
     }
 
+    /**
+     * 结构化的权限规则匹配验证
+     * @param array $rule
+     * @param string $method
+     * @param string $c
+     * @param string $a
+     * @param array $params
+     * @return bool
+     */
     protected static function matchRule(array $rule, string $method, string $c, string $a, array $params): bool
     {
-        list($rMethod, $rC, $rA, $rParams) = $rule;
+        [$rMethod, $rC, $rA, $rParams] = $rule;
 
         // 方法匹配
         if ($rMethod !== '*' && strpos($rMethod, $method) === false) {
@@ -164,7 +183,14 @@ class BaseAuth
         return true;
     }
 
-    public static function matchPurview($mca = '', $method = '', $roleId = 0)
+    /**
+     * 结构化的权限验证
+     * @param string $mca
+     * @param string $method
+     * @param int $roleId
+     * @return bool|string
+     */
+    public static function matchPurview(string $mca = '', string $method = '', int $roleId = 0)
     {
         $get = [];
         if ($mca) {
@@ -332,6 +358,23 @@ class BaseAuth
             throw new \Exception(Helper::outMsg('0:你未登录,请先登录!', $redirect), 200);
         }
         if (!static::chkPurview()) {
+            //log处理
+            Log::write('[' . session('userId') . ']' . cookie('userName') . '：' . self::err(), 'auth');
+            throw new \Exception(Helper::outMsg('0:' . self::err()), 200);
+        }
+    }
+    /**
+     * 验证登录及权限方式2
+     * @return void
+     * @throws \Exception
+     */
+    public static function verify(): void
+    {
+        if (!static::isLogin()) {
+            $redirect = (strpos(\myphp::$cfg['auth_gateway'], 'http') === 0 ? '' : ROOT_DIR) . \myphp::$cfg['auth_gateway'];
+            throw new \Exception(Helper::outMsg('0:你未登录,请先登录!', $redirect), 200);
+        }
+        if (!static::matchPurview()) {
             //log处理
             Log::write('[' . session('userId') . ']' . cookie('userName') . '：' . self::err(), 'auth');
             throw new \Exception(Helper::outMsg('0:' . self::err()), 200);
