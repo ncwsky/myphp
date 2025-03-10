@@ -96,6 +96,8 @@ return [
     'cookie_secure' => false, // cookie安全传输
     'cookie_httponly' => true, // httponly设置
     'cookie_same_site' => false,
+    //文件载入
+    'files' => [],
     //中间件
     'middleware' => [
         //\myphp\middleware\Cors::class,

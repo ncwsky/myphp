@@ -591,6 +591,12 @@ final class myphp
             'LANG_PATH' => $app_path . DS . 'lang',
             'VIEW_PATH' => $view_path,
         ]);
+        //加载指定php文件
+        if (!empty(self::$cfg['files'])) {
+            foreach (self::$cfg['files'] as $file) {
+                include_once $file;
+            }
+        }
         self::_initApp($app_path, $isCLI);
         //通过命名空间加载可不需要指定目录遍历了
         //self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
@@ -630,6 +636,15 @@ final class myphp
             $classDir = is_array($config['class_dir']) ? $config['class_dir'] : explode(',', ROOT . str_replace(',', ',' . ROOT, $config['class_dir']));
             self::class_dir($classDir);
             unset($config['class_dir']);
+        }
+        //合并全局文件载入
+        if (!empty($config['files'])) {
+            if (!self::$cfg['files']) {
+                self::$cfg['files'] = (array)$config['files'];
+            } else {
+                self::$cfg['files'] = array_merge(self::$cfg['files'], (array)$config['files']);
+            }
+            unset($config['files']);
         }
         //合并全局中间件
         if (!empty($config['middleware'])) {
@@ -714,9 +729,9 @@ final class myphp
     // app项目初始化
     private static function _initApp($path, $isCLI = IS_CLI): void
     {
-        if (!$isCLI && self::$env['m'] != '') {
+        if (!$isCLI && self::$env['m'] != '') { //仅cli下自动生成项目模块
             return;
-        } //仅cli下自动生成项目模块
+        }
         if (isset(self::$_cli_cache[$path . '/index.htm'])) {
             return;
         }
