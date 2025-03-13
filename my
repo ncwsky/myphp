@@ -43,6 +43,15 @@ if ($init) { //初始化
         $_SERVER['argv'] = array_values($_SERVER['argv']);
     }
 }
+//请求是有指定入口php文件 /xxx.php/c/a?d=1
+if (!empty($_SERVER['argv'][1]) && $pos = strpos($_SERVER['argv'][1], '.php/')) {
+    $run = substr($_SERVER['argv'][1], 0, $pos);
+    $_SERVER['argv'][1] = substr($_SERVER['argv'][1], $pos + 4); //请求地址处理
+    //echo APP_RUN_DIR . '/web' . $run . '.php', PHP_EOL;
+    #print_r($_SERVER);
+    require APP_RUN_DIR . '/web' . $run . '.php';
+    exit();
+}
 //应用目录指定
 $_app = trim($_arg['run'] ?? 'app', '/\\'); //默认 app
 $_appDir = MY_RUN_DIR . '/' . $_app;
