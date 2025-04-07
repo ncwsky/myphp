@@ -46,7 +46,7 @@ class Tool
         $content = str_replace('namespace '.substr_cut($content, 'namespace ', ';', 0, false).';', "namespace $namespace;", $content);
 
         // 注释 /**  property  */
-        $notes = "/**\n* Class $className\n* @package $namespace\n*";
+        $notes = "/**\n * Class $className\n * @package $namespace\n *";
         foreach ($fieldRule as $k => $v) {
             $type = 'string';
             if (strpos($v['rule'], 'date') === false) {
@@ -59,7 +59,7 @@ class Tool
                     $type = 'float';
                 }
             }
-            $notes .= "\n* @property $type \$$k";
+            $notes .= "\n * @property $type \$$k";
             //解析规则
             $type = 's';
             $min = $max = null;
@@ -81,7 +81,7 @@ class Tool
                 }
             }
         }
-        $notes .= "\n*/";
+        $notes .= "\n */";
         $noteFlag = substr_cut($content, "/**", "*/\nclass", 0, false);
         $classHead = "class " . substr_cut($content, "class ", "{", 0, false) . "{";
         if ($noteFlag) {
