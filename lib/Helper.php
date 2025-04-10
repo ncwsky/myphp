@@ -174,6 +174,12 @@ class Helper
     // 跳转提示信息输出: ([0,1]:)信息标题, url, 辅助信息, 等待时间（秒） 用于前端自动定义信息输出模板
     public static function outMsg($msg, $url = '', $info = '', $time = 1)
     {
+        if (\myphp::res()->isSent) { //已发送数据 不重复处理
+            if (IS_CLI) {
+                return '';
+            }
+            exit();
+        }
         $is_url = false;
         if ($url == '') {
             $jumpUrl = 'javascript:window.history.back()';

@@ -381,6 +381,23 @@ class Response
     }
 
     /**
+     * 下载文件名处理
+     * @param string $name
+     * @return string
+     */
+    public static function disToName(string $name): string
+    {
+        $name = str_replace(['%','\\','/',':','*','?','"','<','>','|'], '', $name);
+        $utfName = rawurlencode($name);
+
+        $disToHeader = "; filename=\"{$utfName}\"";
+        if ($utfName !== $name) {
+            $disToHeader .= "; filename*=utf-8''{$utfName}";
+        }
+        return $disToHeader;
+    }
+
+    /**
      * @param string $filename
      * @param string|null $mimeType
      * @param bool $inline 表示在浏览器中直接显示数据
@@ -390,7 +407,7 @@ class Response
     public function setDownloadHeaders(string $filename, string $mimeType = null, bool $inline = false, int $contentLength = null): Response
     {
         $this->withHeader('Accept-Ranges', 'bytes')
-            ->withHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . ';filename="' . $filename . '"')
+            ->withHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . self::disToName($filename))
             ->withHeader('X-Accel-Buffering', 'no')
             ->withHeader('Content-Type', $mimeType === null ? 'application/octet-stream' : $mimeType);
 
