@@ -358,7 +358,7 @@ class Http
         self::$curlErr = '';
         if (curl_errno($ch)) {
             self::$curlErr = curl_error($ch);
-            \myphp\Log::write('err:'. self::$curlErr."\nurl:".$url.($data !== null ? "\ndata:".(is_string($data) ? urldecode($data) : toJson($data)) : ''), 'curl');
+            \myphp\Log::write('err:(' . curl_errno($ch) . ')' . self::$curlErr . "\nurl:" . $url . ($data !== null ? "\ndata:" . (is_string($data) ? urldecode($data) : toJson($data)) : ''), 'curl');
             //\myphp\Log::write($options, 'options');
             //\myphp\Log::write($opt, 'opt');
 
