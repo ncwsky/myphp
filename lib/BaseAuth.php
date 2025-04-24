@@ -16,13 +16,13 @@ class BaseAuth
     /**
      * 获取角色权限配置
      * cfg : roles[role=>purview, ...]
-     * @param $roleId
+     * @param int|string $roleId
      * @return string
      */
     public static function getPurview($roleId = 0): string
     {
         if ($roleId === 0) {
-            $roleId = session('role');
+            $roleId = (int)session('role');
         }
 
         $roles = \myphp::get('roles', []);
