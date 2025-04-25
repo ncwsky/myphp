@@ -325,15 +325,13 @@ class Db
             $pos = 0;
             foreach ($bind as $key => $val) {
                 $val = $this->parseValue($val);
-                $isNum = is_numeric($key);
                 // 判断占位符
-                $sql = $isNum ? substr_replace($sql, $val, $pos = strpos($sql, '?', $pos), 1) :
-                    str_replace(
-                        [':' . $key . ')', ':' . $key . ',', ':' . $key . ' '],
-                        [$val . ')', $val . ',', $val . ' '],
-                        $sql . ' '
-                    );
-                $isNum && $pos += strlen($val);
+                if (is_int($key)) { //使用数字索引方式
+                    $sql = substr_replace($sql, (string)$val, $pos = strpos($sql, '?', $pos), 1);
+                    $pos += strlen((string)$val);
+                } else { //使用键值方式
+                    $sql = str_replace([':' . $key . ')', ':' . $key . ',', ':' . $key . ' '], [$val . ')', $val . ',', $val . ' '], $sql . ' ');
+                }
             }
         }
         return $sql;

@@ -39,20 +39,20 @@ class db_taos extends \myphp\DbBase
 
     /**
      * SQL安全过滤
-     * @param $str
+     * @param string $str
      * @return string
      */
-    public function quote($str)
+    public function quote(string $str)
     {
         return $this->conn->quote($str);
     }
 
     /** 执行sql
-     * @param $sql
+     * @param string $sql
      * @return bool|int
      * @throws \Exception
      */
-    public function exec($sql)
+    public function exec(string $sql)
     {
         $result = $this->conn->exec($sql);
         if ($result === false) {
@@ -62,11 +62,11 @@ class db_taos extends \myphp\DbBase
     }
 
     /** 执行查询语句
-     * @param $sql
+     * @param string $sql
      * @return false|TaosRestApi
      * @throws \Exception
      */
-    public function query($sql)
+    public function query(string $sql)
     {
         if ($this->conn->exec($sql) === false) {
             throw new \Exception("SQL query: {$sql} | {$this->conn->errno} | {$this->conn->error}");
@@ -75,11 +75,11 @@ class db_taos extends \myphp\DbBase
     }
 
     /** 返回所有行的数组
-     * @param $sql
+     * @param string $sql
      * @param string $type
      * @return array
      */
-    public function queryAll($sql, string $type = 'assoc'): array
+    public function queryAll(string $sql, string $type = 'assoc'): array
     {
         if ($type == 'assoc') {
             $type = TaosRestApi::FETCH_ASSOC;

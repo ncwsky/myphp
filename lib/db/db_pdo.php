@@ -98,21 +98,21 @@ class db_pdo extends \myphp\DbBase
 
     /**
      * SQL安全过滤
-     * @param $str
-     * @return string
+     * @param string $str
+     * @return string|false
      */
-    public function quote($str)
+    public function quote(string $str)
     {
         return $this->conn->quote($str);
     }
 
     /**
      * 执行sql 返回影响的行数
-     * @param $sql
+     * @param string $sql
      * @param int $run
      * @return false|int
      */
-    public function exec($sql, $run = 0)
+    public function exec(string $sql, int $run = 0)
     {
         try {
             $affected = $this->conn->exec($sql);
@@ -149,12 +149,12 @@ class db_pdo extends \myphp\DbBase
     }
 
     /** 执行查询语句
-     * @param $sql
+     * @param string $sql
      * @param int $run
      * @return false|PDOStatement
      * @throws PDOException
      */
-    public function query($sql, $run = 0)
+    public function query(string $sql, int $run = 0)
     {
         try {
             $this->rs = $this->conn->query($sql); //预处理并执行没有占位符的 SQL 语句
@@ -183,12 +183,12 @@ class db_pdo extends \myphp\DbBase
     }
 
     /** 返回所有行的数组
-     * @param $sql
+     * @param string $sql
      * @param string $type
      * @return array|mixed
      * @throws PDOException
      */
-    public function queryAll($sql, $type = 'assoc')
+    public function queryAll(string $sql, string $type = 'assoc')
     {
         $mode = PDO::FETCH_BOTH;
         if ($type == 'assoc') {
@@ -208,7 +208,7 @@ class db_pdo extends \myphp\DbBase
      * @param string $type 默认MYSQL_ASSOC 关联，MYSQL_NUM 数字，MYSQL_BOTH 两者
      * @return mixed
      */
-    public function fetch(&$query, $type = 'assoc')
+    public function fetch(&$query, string $type = 'assoc')
     {
         $mode = PDO::FETCH_BOTH;
         if ($type == 'assoc') {
