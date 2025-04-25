@@ -9,31 +9,31 @@ class Helper
 {
     public static $isProxy = false;
     //日期检测函数(格式:2007-5-6[ 15:30:33])
-    public static function is_date($date)
+    public static function is_date(string $date)
     {
         return preg_match('/^(\d{4})-(0[1-9]|[1-9]|1[0-2])-(0[1-9]|[1-9]|1\d|2\d|3[0-1])(| (0[0-9]|[0-9]|1[0-9]|2[0-3]):([0-5][0-9]|0[0-9]|[0-9])(|:([0-5][0-9]|0[0-9]|[0-9])))$/', $date);
     }
     //Ymd检测函数(格式:2007-5[-6])
-    public static function is_ymd($date)
+    public static function is_ymd(string $date)
     {
         return preg_match('/^(\d{4})-(0[1-9]|[1-9]|1[0-2])(|-(0[1-9]|[1-9]|1\d|2\d|3[0-1]))$/', $date);
     }
     //His检测函数(格式:15:30[:33])
-    public static function is_his($date)
+    public static function is_his(string $date)
     {
         return preg_match('/^(0[0-9]|[0-9]|1[0-9]|2[0-3]):([0-5][0-9]|0[0-9]|[0-9])(|:([0-5][0-9]|0[0-9]|[0-9]))$/', $date);
     }
-    public static function is_json($data)
+    public static function is_json($data): bool
     {
-        return json_decode($data) === null ? false : true;
+        return is_array(json_decode($data, true));
     }
     //判断email格式是否正确
-    public static function is_email($email)
+    public static function is_email(string $email): bool
     {
         return strlen($email) > 6 && preg_match("/^[\w\-\.]+@[\w\-\.]+(\.\w+)+$/", $email);
     }
     //判断是否手机号
-    public static function is_tel($mobile)
+    public static function is_tel(string $mobile): bool
     {
         return strlen($mobile) == 11 && preg_match("/^1[3456789]\d{9}$/", $mobile);
     }
@@ -43,7 +43,7 @@ class Helper
         return preg_match("/^((?:(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d)))\.){3}(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d))))$/", $ip);
     }
     // Returns true if $string is valid UTF-8 and false otherwise.
-    public static function is_utf8($word)
+    public static function is_utf8($word): bool
     {
         $s = '([';
         $c = ']{1}[';
@@ -55,13 +55,8 @@ class Helper
         }
     }
     //检测是否手机浏览 return bool true|false
-    public static function is_mobile()
+    public static function is_mobile(): bool
     {
-        static $is_mobile;
-        if (isset($is_mobile)) {
-            return $is_mobile;
-        }
-
         if (empty($_SERVER['HTTP_USER_AGENT'])) {
             $is_mobile = false;
         } elseif (strpos($_SERVER['HTTP_USER_AGENT'], 'Mobile') !== false // many mobile devices (all iPhone, iPad, etc.)
@@ -78,7 +73,7 @@ class Helper
         return $is_mobile;
     }
     //是否微信
-    public static function is_weixin()
+    public static function is_weixin(): bool
     {
         if (isset($_SERVER['HTTP_USER_AGENT']) && strpos($_SERVER['HTTP_USER_AGENT'], 'MicroMessenger') !== false) {
             return true;
@@ -87,7 +82,7 @@ class Helper
     }
 
     //生成单号
-    public static function createSN($prefix = '')
+    public static function createSN($prefix = ''): string
     {
         //$chars = substr(microtime(),2,6); substr(str_shuffle($chars.$chars),0,6);
         $sn = date('YmdHis').substr(microtime(), 2, 4).str_pad((string)random_int(0, 99), 2, '0', STR_PAD_LEFT); //20位
@@ -159,7 +154,7 @@ class Helper
         return $pages; //当前页码 总页码 总数 上一页链接 下一页链接
     }
     //获取分页偏移值
-    public static function getOffset($init = 1, $num = 10, $step = 0)
+    public static function getOffset(int $init = 1, int $num = 10, int $step = 0): string
     {
         if ($init < 1) {
             $init = 1;
@@ -172,7 +167,7 @@ class Helper
         return $offset;
     }
     // 跳转提示信息输出: ([0,1]:)信息标题, url, 辅助信息, 等待时间（秒） 用于前端自动定义信息输出模板
-    public static function outMsg($msg, $url = '', $info = '', $time = 1)
+    public static function outMsg(string $msg, string $url = '', string $info = '', int $time = 1)
     {
         if (\myphp::res()->isSent) { //已发送数据 不重复处理
             if (IS_CLI) {
@@ -241,7 +236,7 @@ class Helper
      * @param string|array $allowIps
      * @return bool
      */
-    public static function allowIp($ip, $allowIps = '')
+    public static function allowIp(string $ip, $allowIps = ''): bool
     {
         if (is_string($allowIps)) { // "127.0.0.1 10.0.0.2"
             if (!$allowIps || $allowIps === "0.0.0.0") {
@@ -258,31 +253,31 @@ class Helper
         }
         return false;
     }
-    public static function getSiteUrl()
+    public static function getSiteUrl(): string
     {
         return Request::siteUrl();
     }
-    public static function getHost()
+    public static function getHost(): string
     {
         return Request::host();
     }
     //获得当前的脚本网址  如/ab.php?b=1
-    public static function getUri()
+    public static function getUri(): string
     {
         return Request::uri();
     }
     //获取当前页面完整URL地址 如http://xx/a.php?b=1
-    public static function getUrl()
+    public static function getUrl(): string
     {
         return Request::url();
     }
     //来源获取
-    public static function getReferer()
+    public static function getReferer(): string
     {
         return Request::referer();
     }
     //获取用户真实地址 返回用户ip  type:0 返回IP地址 1 返回IPV4地址数字
-    public static function getIp($type = 0)
+    public static function getIp($type = 0): string
     {
         return Request::ip($type ? true : false);
     }
@@ -290,20 +285,20 @@ class Helper
      * 当前的请求类型
      * @return string
      */
-    public static function getMethod()
+    public static function getMethod(): string
     {
         return Request::method();
     }
-    public static function isPost()
+    public static function isPost(): bool
     {
         return Request::isPost();
     }
-    public static function isGet()
+    public static function isGet(): bool
     {
         return Request::isGet();
     }
     // 当前是否Ajax请求
-    public static function isAjax()
+    public static function isAjax(): bool
     {
         //跨域情况  // javascript 或 JSONP 格式    //  JSON 格式
         //isset($_SERVER['HTTP_ACCEPT']) && ( $_SERVER['HTTP_ACCEPT']=='text/javascript, application/javascript, */*' || $_SERVER['HTTP_ACCEPT']=='application/json, text/javascript, */*')
@@ -314,7 +309,7 @@ class Helper
      * @param string $filename
      * @return string
      */
-    public static function minMimeType($filename)
+    public static function minMimeType(string $filename): string
     {
         if (function_exists('mime_content_type')) {
             return mime_content_type($filename);
@@ -379,9 +374,9 @@ class Helper
         return json_encode($res, $option);
     }
     //toXml 转换成xml
-    public static function toXml($res, $rec = false)
+    public static function toXml(array $res, bool $r = false): string
     {
-        $xml = $rec ? '' : '<root>';
+        $xml = $r ? '' : '<root>';
         foreach ($res as $k => $v) {
             if (is_array($v)) {
                 $xml .= '<' . $k . '>' . self::toXml($v, true) . '</' . $k . '>';
@@ -389,19 +384,19 @@ class Helper
                 $xml .= '<' . $k . '>' . (is_numeric($v) ? $v : '<![CDATA[' . $v . ']]>') . '</' . $k . '>';
             }
         }
-        $xml .= $rec ? '' : '</root>';
+        $xml .= $r ? '' : '</root>';
         unset($res);
         return $xml;
     }
     //将XML转为array
-    public static function xmlToArr($xml)
+    public static function xmlToArr(string $xml)
     {
         //禁止引用外部xml实体
         libxml_disable_entity_loader(true);
         return json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
     }
     //仅记录指定大小的日志 超出大小重置重新记录
-    public static function toFileLog($file, $content, $size = 4194304): void //日志大小 4M
+    public static function toFileLog(string $file, $content, int $size = 4194304): void //日志大小 4M
     {
         if (is_file($file) && $size <= filesize($file)) {
             file_put_contents($file, '', LOCK_EX);
@@ -415,7 +410,7 @@ class Helper
      * @param bool $toUpper 是否转大写
      * @return string
      */
-    public static function strToHex($str, $toUpper = false)
+    public static function strToHex(string $str, bool $toUpper = false): string
     {
         $hex = "";
         for ($i = 0; $i < strlen($str); $i++) {
@@ -430,7 +425,7 @@ class Helper
      * @param string $hex ='616263';
      * @return string
      */
-    public static function hexToStr($hex)
+    public static function hexToStr(string $hex): string
     {
         $str = "";
         for ($i = 0; $i < strlen($hex) - 1; $i += 2) {
@@ -439,12 +434,14 @@ class Helper
         return $str;
     }
 
-    /* ini内容 解析
-     * string str  ini配置内容
-     * string find  ini配置项  [name]
-     * string attr  查找配置项的属性
+    /**
+     * ini内容 解析
+     * @param string $str ini配置内容
+     * @param string $find ini配置项  [name]
+     * @param string $attr 查找配置项的属性
+     * @return false|string
      */
-    public static function readIni($str, $find, $attr = '')
+    public static function readIni(string $str, string $find, string $attr = '')
     {
         $str = trim($str);
         if ($str == '') {
@@ -469,13 +466,16 @@ class Helper
         }
         return $val;
     }
-    /* ini内容 设置
-     * string str  ini配置内容
-     * string find  ini配置项 [name]
-     * string attr_val  配置项属性=属性值 attr=val
-     * bool $isBat 批量直接替换写入 $attr_val\n$attr_val
+
+    /**
+     * ini内容 设置
+     * @param string $str ini配置内容
+     * @param string $find ini配置项 [name]
+     * @param string $attr_val 配置项属性=属性值 attr=val
+     * @param bool $isBat 批量直接替换写入 $attr_val\n$attr_val
+     * @return string
      */
-    public static function writeIni($str, $find, $attr_val, $isBat = false)
+    public static function writeIni(string $str, string $find, string $attr_val, bool $isBat = false): string
     {
         $str = trim($str);
         $attr_val = trim($attr_val);
@@ -539,7 +539,7 @@ class Helper
      * @param string $key 加密key
      * @return string
      */
-    public static function xorEnc($str, $key)
+    public static function xorEnc(string $str, string $key): string
     {
         $code = '';
         $keyLen = strlen($key);
@@ -554,7 +554,7 @@ class Helper
      * @param string $key 密钥
      * @return string
      */
-    public static function rc4($data, $key)//$pwd密钥　$data需加密字符串
+    public static function rc4(string $data, string $key): string
     {
         $sBox = [];
         $keys = [];
@@ -574,7 +574,7 @@ class Helper
             $sBox[$j] = $tmp;
         }
 
-        $j = $l = $k = 0;
+        $j = $l = 0;
         for ($i = 0; $i < $dataLen; $i++) {
             $j = ($j + 1) % 256;
             $l = ($l + $sBox[$j]) % 256;
@@ -589,7 +589,7 @@ class Helper
         return $cipher;
     }
 
-    public static function authCode($string, $operation = 'DECODE', $key = '', $expiry = 0, $ckey_length = 4)
+    public static function authCode(string $string, string $operation = 'DECODE', string $key = '', int $expiry = 0, int $ckey_length = 4)
     {
         $key = md5($key != '' ? $key : GetC('encode_key'));
         $keya = md5(substr($key, 0, 16));
@@ -704,7 +704,7 @@ class Helper
         return openssl_decrypt(base64_decode($str, true), $method, $key, OPENSSL_RAW_DATA, $iv);
     }
     //uuid生成
-    public static function UUID($upper = false, $prefix = '')
+    public static function UUID(bool $upper = false, string $prefix = '')
     {
         $data = uniqid($prefix, true) .
             '-' . $_SERVER['SCRIPT_FILENAME'] .
@@ -718,22 +718,86 @@ class Helper
         }
         return substr($hash, 0, 8) . '-' . substr($hash, 8, 4) . '-' . substr($hash, 12, 4) . '-' . substr($hash, 16, 4) . '-' . substr($hash, 20, 12);
     }
+
+    /**
+     * 设置[多维]数组指定键名的值 以地址引用的方式
+     * @param array $array
+     * @param string|array $path
+     * @param mixed $value
+     * @return void
+     */
+    public static function setValue(array &$array, $path, $value)
+    {
+        $keys = is_array($path) ? $path : explode('.', $path);
+
+        while (count($keys) > 1) {
+            $key = array_shift($keys);
+            if (!isset($array[$key])) {
+                $array[$key] = [];
+            }
+            if (!is_array($array[$key])) {
+                $array[$key] = [$array[$key]];
+            }
+            $array = &$array[$key];
+        }
+
+        $array[array_shift($keys)] = $value;
+    }
+
+    /**
+     * 移除[多维]数组指定键名的值 以地址引用的方式
+     * @param array $array
+     * @param string|array $path
+     * @return void
+     */
+    public static function unsetValue(array &$array, $path)
+    {
+        $keys = is_array($path) ? $path : explode('.', $path);
+
+        while (count($keys) > 1) {
+            $key = array_shift($keys);
+            if (is_array($array) && (isset($array[$key]) || array_key_exists($key, $array))) {
+                $array = &$array[$key];
+            } else {
+                return;
+            }
+        }
+        $key = array_shift($keys);
+        unset($array[$key]);
+    }
+
+    /**
+     * 检测[多维]数组指定键名的值 以地址引用的方式
+     * @param array $array
+     * @param string|array $path
+     * @return bool
+     */
+    public static function hasValue(array &$array, $path): bool
+    {
+        $keys = is_array($path) ? $path : explode('.', $path);
+
+        while (count($keys) > 1) {
+            $key = array_shift($keys);
+            if (is_array($array) && isset($array[$key])) {
+                $array = &$array[$key];
+            } else {
+                return false;
+            }
+        }
+        $key = array_shift($keys);
+        return isset($array[$key]);
+    }
     /**
      * 获取[多维]数组指定键名的值 不存在返回默认值.
      * examples
-     * // working with array
      * $username = Helper::getValue($_POST, 'username');
      * or
      * $value = Helper::getValue($users, 'x.y');
      * or
      * $value = Helper::getValue($versions, ['x', 'y']);
-     * // working with anonymous function
-     * $fullName = Helper::getValue($user, function ($user, $defaultValue) {
-     *     return $user->firstName . ' ' . $user->lastName;
-     * });
      *
-     * @param array|null $array array or object to extract value from
-     * @param string|\Closure|array $key
+     * @param array|mixed $array
+     * @param string|array $key
      * @param mixed $default
      * @return mixed
      */
@@ -741,9 +805,6 @@ class Helper
     {
         if (!is_array($array)) {
             return $default;
-        }
-        if ($key instanceof \Closure) {
-            return $key($array, $default);
         }
         if (is_string($key) && strpos($key, '.')) {
             $key = explode('.', $key);
@@ -772,18 +833,13 @@ class Helper
      * ];
      * $result = Helper::getColumn($array, 'id');
      * // the result is: ['123', '345']
-     *
-     * // using anonymous function
-     * $result = Helper::getColumn($array, function ($element) {
-     *     return $element['id'];
-     * });
      * ```
      * @param array $array
-     * @param string|\Closure $name 列名
+     * @param string|array $name 列名
      * @param bool $keepKeys 保持键名.
      * @return array 数组列
      */
-    public static function getColumn($array, $name, $keepKeys = true)
+    public static function getColumn(array $array, $name, bool $keepKeys = true): array
     {
         $result = [];
         if ($keepKeys) {
@@ -809,7 +865,7 @@ class Helper
      * for more details. When sorting by multiple keys with different sort flags, use an array of sort flags.
      * @throws \InvalidArgumentException if the $direction or $sortFlag parameters do not have
      */
-    public static function arrayMultiSort(&$array, $key, $direction = SORT_ASC, $sortFlag = SORT_REGULAR): void
+    public static function arrayMultiSort(array &$array, $key, $direction = SORT_ASC, $sortFlag = SORT_REGULAR): void
     {
         $keys = is_array($key) ? $key : [$key];
         if (empty($keys) || empty($array)) {

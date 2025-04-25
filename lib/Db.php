@@ -319,19 +319,17 @@ class Db
         return $val;
     }
     //根据绑定参数组装SQL语句 不允许子类覆盖  sql绑定编译
-    final public function get_real_sql(string $sql, array $bind = null)
+    final public function get_real_sql(string $sql, array $bind): string
     {
-        if (is_array($bind)) {
-            $pos = 0;
-            foreach ($bind as $key => $val) {
-                $val = $this->parseValue($val);
-                // 判断占位符
-                if (is_int($key)) { //使用数字索引方式
-                    $sql = substr_replace($sql, (string)$val, $pos = strpos($sql, '?', $pos), 1);
-                    $pos += strlen((string)$val);
-                } else { //使用键值方式
-                    $sql = str_replace([':' . $key . ')', ':' . $key . ',', ':' . $key . ' '], [$val . ')', $val . ',', $val . ' '], $sql . ' ');
-                }
+        $pos = 0;
+        foreach ($bind as $key => $val) {
+            $val = $this->parseValue($val);
+            // 判断占位符
+            if (is_int($key)) { //使用数字索引方式
+                $sql = substr_replace($sql, (string)$val, $pos = strpos($sql, '?', $pos), 1);
+                $pos += strlen((string)$val);
+            } else { //使用键值方式
+                $sql = str_replace([':' . $key . ')', ':' . $key . ',', ':' . $key . ' '], [$val . ')', $val . ',', $val . ' '], $sql . ' ');
             }
         }
         return $sql;
