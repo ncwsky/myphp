@@ -899,4 +899,62 @@ class Helper
         $args[] = &$array;
         call_user_func_array('array_multisort', $args);
     }
+
+    /**
+     * 文件方式加锁 解锁 主要用于判断是否重复操作
+     * @param string $lockKey
+     * @param int $lockTimeout
+     * @param string|null $dir
+     * @return bool
+     */
+    public static function fileLockOnce(string $lockKey, int $lockTimeout = 10, ?string $dir = null): bool
+    {
+        $lockKey = str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], '', $lockKey);
+        if (!$dir) {
+            $dir = RUNTIME . '/lock';
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+        }
+        $lockFile = $dir . '/' . $lockKey . '.lock';
+        if ($lockTimeout == 0) { //清除锁定
+            if (file_exists($lockFile)) {
+                touch($lockFile, 0); //这里会重置修改时间为当前时间
+                clearstatcache(true, $lockFile);
+            }
+            return true;
+        }
+        $fp = fopen($lockFile, 'c+'); // 以读写模式打开文件，不截断内容
+        if (!$fp) {
+            return false; // 文件打开失败（如权限问题）
+        }
+        $time = time();
+        if ($time < filemtime($lockFile)) {
+            fclose($fp);
+            return false;
+        }
+
+        $locked = false;
+        try {
+            if (flock($fp, LOCK_EX)) { // 获取独占锁（阻塞模式）
+                clearstatcache(true, $lockFile); //清除缓存
+                $expireTime = filemtime($lockFile);
+                //使用新文件判断方式，并发60秒能正常锁定6次，但每次递增时间会在前次加1；未使用并发会在最60秒时多锁定一次共7次，但锁定递增时间能对齐10秒
+                //$is_new = $time == $expireTime && fread($fp, 1) == ''; //可能是新文件
+                if ($time >= $expireTime) { //$is_new || $time > $expireTime
+                    /*if ($is_new) {
+                        rewind($fp);
+                        fwrite($fp, '1');
+                    }*/
+                    touch($lockFile, $time + $lockTimeout); //设定过期时间
+                    clearstatcache(true, $lockFile); //清除缓存
+                    $locked = true;
+                }
+                flock($fp, LOCK_UN); // 释放锁
+            }
+        } finally {
+            fclose($fp);
+        }
+        return $locked;
+    }
 }
