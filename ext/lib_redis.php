@@ -217,14 +217,10 @@ class lib_redis
     /**
      * @param array $options
      * @return lib_redis
-     * @throws Exception
      */
-    public static function getInstance(array $options = [])
+    public static function getInstance(array $options = []): lib_redis
     {
-        if (!isset($options['name'])) {
-            throw new \Exception('Instance Name Not Configured');
-        }
-        $name = $options['name']; //'redis';
+        $name = $options['name'] ?? 'redis';
         if (!isset(self::$instance[$name])) {
             self::$instance[$name] = new self($options);
         } else {
