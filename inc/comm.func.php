@@ -201,7 +201,7 @@ function cut_html(string $s, int $max_len = 250)
 function array_walk_merge(array &$arr1, array &$arr2, bool $strict = false): void
 {
     foreach ($arr2 as $k => $v) {
-        if (substr($k, 0, 1) == '@') {
+        if (is_string($k) && substr($k, 0, 1) == '@') {
             continue;
         }
         if ($strict) {
@@ -217,6 +217,9 @@ function array_walk_merge(array &$arr1, array &$arr2, bool $strict = false): voi
             //键不存在、有指定更新标识或存在的更新标识不相同 覆盖值
             if (!isset($arr1[$k]) || (isset($arr2[$updateK]) && (!isset($arr1[$updateK]) || $arr1[$updateK] != $arr2[$updateK]))) {
                 $arr1[$k] = $v;
+                if (isset($arr2[$updateK])) { //同步更新标记
+                    $arr1[$updateK] = $arr2[$updateK];
+                }
             } elseif (is_array($v) && is_array($arr1[$k])) {
                 array_walk_merge($arr1[$k], $v, $strict);
             }

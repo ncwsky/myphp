@@ -261,7 +261,7 @@ class Response
      */
     public function setStatusCode(int $code): Response
     {
-        $this->statusCode = (int)$code;
+        $this->statusCode = $code;
         return $this;
     }
 
@@ -272,7 +272,7 @@ class Response
      */
     public function withStatus(int $code, string $reasonPhrase = ''): Response
     {
-        $this->statusCode = (int)$code;
+        $this->statusCode = $code;
         $this->reasonPhrase = $reasonPhrase;
         return $this;
     }
