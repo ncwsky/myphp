@@ -23,7 +23,6 @@ class Cache
      * @param array|null $options
      * @param bool $new
      * @return \myphp\cache\File|\myphp\cache\Redis
-     * @throws \Exception
      */
     public static function getInstance(string $type = 'file', array $options = null, bool $new = false)
     {
@@ -32,10 +31,6 @@ class Cache
                 $options = \myphp::get('cache_option');
             }
             $cacheClass = '\myphp\cache\\' . ucfirst($type);
-            //require_once(__DIR__.'/cache/'.$cacheClass.'.php');
-            if (!class_exists($cacheClass)) {
-                throw new \Exception($cacheClass . ' not found');
-            }
             self::$instance[$type] = new $cacheClass($options);
         }
         return self::$instance[$type];

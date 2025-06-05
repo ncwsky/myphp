@@ -594,6 +594,10 @@ final class myphp
         //加载指定php文件
         if (!empty(self::$cfg['files'])) {
             foreach (self::$cfg['files'] as $file) {
+                /*if (!isset(self::$_cli_cache[$file])) {
+                    self::$_cli_cache[$file] = true;
+                    include $file;
+                }*/
                 include_once $file;
             }
         }
@@ -944,7 +948,6 @@ final class myphp
     /**
      * @param string $name
      * @return lib_redis
-     * @throws \Exception
      */
     public static function redis(string $name = 'redis'): lib_redis
     {
@@ -965,7 +968,6 @@ final class myphp
     /**
      * 默认缓存实例
      * @return \myphp\cache\File|\myphp\cache\Redis
-     * @throws \Exception
      */
     public static function cache()
     {
@@ -1122,10 +1124,13 @@ final class myphp
                 $a = $path[1];
             }
             unset($path);
-        } elseif (!DEF_MODULE && isset(self::$cfg['module_maps'][$mca])) { //有配置模块优先
-            $m = $mca;
         } else {
-            $c = $mca;
+            //未指定模块时配置模块优先
+            if (!DEF_MODULE && isset(self::$cfg['module_maps'][$mca])) {
+                $m = $mca;
+            } else {
+                $c = $mca;
+            }
         }
 
         if ($resetGet) {

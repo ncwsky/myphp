@@ -12,7 +12,7 @@ return [
     'def_action' => 'index', //默认方法名 a
     'url_maps_regx' => null, //url映射正则规则
     'url_maps' => null, //url映射 array()
-    'module_maps' => null, //模块映射 [模块名=>（子项目）前置命令空间名称|路径,...] 放置全局配置或app配置下 自动识别app项目下module目录的子模块
+    'module_maps' => null, //模块映射 配置后才能通过url地址识别模块 [模块名=>（子项目）前置命令空间名称|路径,...] 放置全局配置或app配置下
     // array('admin'=>'/system')  -> /开头相对网站目录 无/开头相对项目目录 /index.php?m=admin&c=index&a=index 路径ROOT./system
     //数据库连接信息
     'db' => [
