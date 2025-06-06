@@ -55,6 +55,35 @@ $ => var    $name -> echo $name;
  
 ```
 
+**模块**  
+> 模块目录需放置到项目app目录下或根目录下，示例如下：
+
+_项目入口文件 index.php_  
+> 模块通过app目录下的配置文件或全局配置的模块映射自动识别
+```php
+<?php
+define('APP_PATH',__DIR__.'/../app');
+define('COMMON', __DIR__.'/../common');
+require __DIR__ . "/../vendor/autoload.php";
+require __DIR__ . "/../conf.php";
+require __DIR__ . "/../vendor/myphps/myphp/base.php";
+myphp::Run();
+```
+_admin模块入口文件 admin.php_ 
+> 模块需放置在项目根目录/或/app下    
+> 在app目录下的时必需要配置文件或全局配置有模块路径映射  
+```php
+<?php
+define('APP_PATH',__DIR__.'/../app');
+define('COMMON', __DIR__.'/../common');
+define('DEF_MODULE', 'admin'); #未配置此项，则在app目录下的配置文件或全局配置的模块映射自动识别 等同项目入口文件
+require __DIR__ . "/../vendor/autoload.php";
+require __DIR__ . "/../conf.php";
+require __DIR__ . "/../vendor/myphps/myphp/base.php";
+myphp::Run();
+```
+
+**静态分析、代码格式化**
 ```
 composer require --dev phpstan/phpstan
 composer require --dev friendsofphp/php-cs-fixer
