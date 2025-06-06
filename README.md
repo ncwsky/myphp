@@ -56,10 +56,11 @@ $ => var    $name -> echo $name;
 ```
 
 **模块**  
-> 模块目录需放置到项目app目录下或根目录下，示例如下：
+> 模块目录放置到项目/app目录下或/根目录下，放置其他位置必需配置模块映射，示例如下：
 
 _项目入口文件 index.php_  
 > 模块通过app目录下的配置文件或全局配置的模块映射自动识别
+> module_maps=>['admin'=>'/admin','api'=>'module/api','user'=>'/app/module/user']
 ```php
 <?php
 define('APP_PATH',__DIR__.'/../app');
@@ -80,6 +81,18 @@ define('DEF_MODULE', 'admin'); #未配置此项，则在app目录下的配置文
 require __DIR__ . "/../vendor/autoload.php";
 require __DIR__ . "/../conf.php";
 require __DIR__ . "/../vendor/myphps/myphp/base.php";
+myphp::Run();
+
+#或
+
+define('APP_PATH', __DIR__ . '/../app/module/admin');
+define('COMMON', __DIR__ . '/../common');
+define('DEF_MODULE', 'admin');
+require __DIR__ . "/../vendor/autoload.php";
+require __DIR__ . "/../conf.php";
+require __DIR__ . "/../vendor/myphps/myphp/base.php";
+myphp::$cfg['app_namespace'] = 'app\\module\\admin'; //模块命名空间前缀
+myphp::$namespaceMap['app\\'] = __DIR__ . '/../app'; //命名空间前缀路径
 myphp::Run();
 ```
 

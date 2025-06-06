@@ -466,11 +466,26 @@ final class myphp
     {
         $app_path = self::$cfg['_app_path'];
         $app_name = basename(APP_PATH);
+        //命名空间前缀处理
+        if (empty(self::$cfg['app_namespace'])) {
+            self::$env['app_namespace'] = $app_name;
+            //自动指定app顶层命名空间目录
+            if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
+                self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
+            }
+        } else { //有指定命名空间前缀及路径
+            self::$env['app_namespace'] = self::$cfg['app_namespace'];
+            $ns_pre_name = explode('\\', self::$cfg['app_namespace'])[0];
+            if (!isset(self::$namespaceMap[$ns_pre_name . '\\'])) {
+                throw new \Exception('未配置自定义命名空间路径');
+            }
+        }
+        /*
         self::$env['app_namespace'] = $app_name;
         //自动指定app顶层命名空间目录
         if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
             self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
-        }
+        }*/
         $app_root = IS_CLI ? DS : ROOT_DIR . DS; //app_url根路径
         $basename = isset($_SERVER['SCRIPT_NAME']) ? basename($_SERVER['SCRIPT_NAME']) : 'index.php'; //当前执行文件名
         $uri = $app_root . $basename; //当前URL路径
