@@ -509,7 +509,7 @@ final class myphp
             }
             $_m = self::$env['m']; //用于判断下方有匹配的相同子模块再次处理
         } else {
-            $_m = '';
+            $_m = $app_name; //使用项目名 用于下方有指定默认模块时是否引入模块配置
         }
 
         //解析url 简单url映射 仅支持映射到普通url模式
@@ -531,7 +531,7 @@ final class myphp
         if (empty($_GET['a'])) {
             $_GET['a'] = self::$cfg['def_action'];
         }
-        if (empty($_GET['m'])) {
+        if (DEF_MODULE || empty($_GET['m'])) { //empty($_GET['m'])
             $_GET['m'] = DEF_MODULE; //入口有指定默认模块名
         }
 
@@ -539,7 +539,7 @@ final class myphp
         self::$env['a'] = $_GET['a'];
         self::$env['m'] = $_GET['m'];
 
-        //针对url_maps有映射模块的再次处理
+        //针对url_maps有映射模块或指定默认模块与项目名不匹配时再次处理
         if (self::$env['m'] && self::$env['m'] != $_m) {
             self::_initModule($app_path);
         }
@@ -808,7 +808,7 @@ final class myphp
 
     /**
      * 载入模块配置及生成命名空间前缀
-     * @param string $app_path
+     * @param string $app_path 模块路径
      */
     private static function _initModule(string &$app_path): void
     {
@@ -821,9 +821,9 @@ final class myphp
                 $app_path = APP_PATH . DS . self::$cfg['module_maps'][self::$env['m']];
                 self::$env['app_namespace'] .= '\\' . strtr(self::$cfg['module_maps'][self::$env['m']], DS, '\\');
             }
-        } else { //子模块默认 /module 目录下
-            $app_path = ROOT . DS . 'module' . DS . self::$env['m'];
-            self::$env['app_namespace'] = 'module\\' . self::$env['m'];
+        } else { //模块默认 / 目录下
+            $app_path = ROOT . DS . self::$env['m'];
+            self::$env['app_namespace'] = self::$env['m'];
         }
         //引入模块配置
         self::loadConfig($app_path . '/config.php', true);
@@ -1110,22 +1110,21 @@ final class myphp
             return null;
         }
         $m = $c = $a = '';
+        //未指定默认模块时配置模块优先
         if (strpos($mca, '/')) {
             $path = explode('/', $mca);
-            if (isset($path[2])) {
+            if (!DEF_MODULE && isset(self::$cfg['module_maps'][$path[0]])) {
                 $m = $path[0];
                 $c = $path[1];
-                $a = $path[2];
-            } elseif (!DEF_MODULE && isset(self::$cfg['module_maps'][$path[0]])) {
-                $m = $path[0];
-                $c = $path[1];
+                if (isset($path[2])) {
+                    $a = $path[2];
+                }
             } else {
                 $c = $path[0];
                 $a = $path[1];
             }
             unset($path);
         } else {
-            //未指定模块时配置模块优先
             if (!DEF_MODULE && isset(self::$cfg['module_maps'][$mca])) {
                 $m = $mca;
             } else {
@@ -1250,6 +1249,7 @@ final class myphp
         } else {
             $mca = $uri;
         }
+        //指定模块在path开头(m/c/a)匹配时  去掉
         if (DEF_MODULE && $mca[0] != '/' && substr_count($mca, '/') > 1 && strpos($mca, DEF_MODULE . '/') === 0) {
             $mca = substr($mca, strlen(DEF_MODULE) + 1);
         }

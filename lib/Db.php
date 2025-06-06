@@ -319,8 +319,11 @@ class Db
         return $val;
     }
     //根据绑定参数组装SQL语句 不允许子类覆盖  sql绑定编译
-    final public function get_real_sql(string $sql, array $bind): string
+    final public function get_real_sql(string $sql, ?array $bind): string
     {
+        if (!is_array($bind)) {
+            return $sql;
+        }
         $pos = 0;
         foreach ($bind as $key => $val) {
             $val = $this->parseValue($val);
