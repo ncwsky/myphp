@@ -20,14 +20,6 @@ class Log
     private static $errFlag = false;
     private static $dir = '_def'; //当前日志目录
     private static $logDir = null; //日志目录
-
-    private function __construct()
-    {
-    }
-    public function __destruct()
-    {
-        self::free();
-    }
     public static function free(): void
     {
         if (!self::$instance) {
@@ -282,8 +274,8 @@ class Log
         }
 
         if (!self::$instance) {
-            self::Init();
-        } //自动初始化
+            self::Init(); //初始化
+        }
 
         $dir = $level == '_def' ? '_def' : self::$dir;
         $file = $level == '_def' ? self::$logDir . 'log.log' : self::$file;
@@ -291,17 +283,10 @@ class Log
             error_log($msg . ' write ' . $file . " fail(Permission?)" . PHP_EOL);
             return;
         }
-        self::truncate(self::$instance->handler[$dir], $file);
-
         if ($level && $level != '_def') {
             $msg = '['.date('Y-m-d H:i:s').']['.$level.'] '.$msg;
         }
-        if (flock(self::$instance->handler[$dir], LOCK_EX)) {
-            fwrite(self::$instance->handler[$dir], $msg.PHP_EOL);
-            flock(self::$instance->handler[$dir], LOCK_UN);
-        } else {
-            error_log($msg . ' write ' . $file . " lock fail".PHP_EOL);
-        }
+        self::truncate(self::$instance->handler[$dir], $file, $msg);
     }
     //写入日志 多个内容输入
     public static function echo($content): void
@@ -320,46 +305,38 @@ class Log
             self::Init(); //自动初始化
         }
 
-        self::truncate(self::$instance->handler[self::$dir], self::$file);
-
-        if (flock(self::$instance->handler[self::$dir], LOCK_EX)) {
-            fwrite(self::$instance->handler[self::$dir], $msg.PHP_EOL);
-            flock(self::$instance->handler[self::$dir], LOCK_UN);
-        } else {
-            error_log($msg . ' write ' . self::$file . " lock fail".PHP_EOL);
-        }
+        self::truncate(self::$instance->handler[self::$dir], self::$file, $msg);
     }
 
     /**
      * 日志超过配置大小则备份并重新生成
+     * 在锁定状态下直接在锁定代码外fwrite会失败(Permission denied)
      * @param resource $fp
      * @param string $file
+     * @param string $msg
      */
-    public static function truncate($fp, string $file): void
+    public static function truncate($fp, string $file, string $msg): void
     {
-        $fileSize = fstat($fp)['size'];
-        if (self::$size > $fileSize) {
+        if (fstat($fp)['size'] < self::$size) {
+            if (!fwrite($fp, $msg . PHP_EOL)) {
+                error_log($msg . ' write ' . $file . " fail" . PHP_EOL);
+            }
             return;
         }
-
-        $lockFp = fopen($file, 'r+b'); //读写方式
-        if (flock($lockFp, LOCK_EX)) {
-            $fileSize = fstat($lockFp)['size'];
-            if ($fileSize < self::$size) {
-                flock($lockFp, LOCK_UN);
-                fclose($lockFp);
-                return;
+        //日志超出大小 截断日志
+        if (flock($fp, LOCK_EX)) { //并发阻塞
+            if (fstat($fp)['size'] >= self::$size) { //并发后这里的大小可能已改变
+                copy($file, dirname($file) . '/' . date('YmdHis') . '.log');
+                ftruncate($fp, 0); // 截断文件
+                clearstatcache(true, $file);
             }
-            #$new_fp = fopen(dirname($file) . '/' . date('YmdHis') . '.log', 'ab');
-            #stream_copy_to_stream($lockFp, $new_fp);
-            copy($file, dirname($file).'/'.date('YmdHis').'.log');
-            ftruncate($lockFp, 0); // 截断文件
-
-            //clearstatcache(true, $file);
-            flock($lockFp, LOCK_UN);
+            //需要在加锁状态写入 不然在锁阻塞下会失败(Permission denied)
+            if (!fwrite($fp, $msg . PHP_EOL)) {
+                error_log($msg . ' write ' . $file . " fail" . PHP_EOL);
+            }
+            flock($fp, LOCK_UN);
         } else {
-            error_log(date('Y-m-d H:i:s') . ' truncate, ' . $file . ' lock fail' . PHP_EOL);
+            error_log(date('Y-m-d H:i:s') . $msg . ' truncate, ' . $file . ' lock fail' . PHP_EOL);
         }
-        fclose($lockFp);
     }
 }

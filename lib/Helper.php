@@ -395,14 +395,71 @@ class Helper
         libxml_disable_entity_loader(true);
         return json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
     }
-    //仅记录指定大小的日志 超出大小重置重新记录
-    public static function toFileLog(string $file, $content, int $size = 4194304): void //日志大小 4M
+
+    /**
+     * 仅记录指定大小的日志 超出大小保留限定大小一半 日志大小 4M
+     * @param string $file
+     * @param mixed $content
+     * @param int $max_size
+     * @param bool $ms 记录毫秒
+     * @return void
+     */
+    public static function toFileLog(string $file, $content, int $max_size = 4194304, bool $ms=false)
     {
-        if (is_file($file) && $size <= filesize($file)) {
-            file_put_contents($file, '', LOCK_EX);
+        $logLine = '[' . date('Y-m-d H:i:s') . ($ms ? '.' . substr(microtime(), 2, 3) : '') . ']' . (is_scalar($content) ? $content : self::toJson($content)) . "\n";
+        if (is_file($file) && $max_size <= ($size = filesize($file))) {
+            $handle = fopen($file, 'r+');
+            if (!$handle) {
+                error_log('日志写入失败: 无法打开日志文件: ' . $file . PHP_EOL . $logLine);
+                return;
+            }
+            // 加锁处理并发写入 阻塞模式
+            if (flock($handle, LOCK_EX)) {
+                if (fstat($handle)['size'] >= $max_size) { //阻塞模式下再次验证 防并发大小变动
+                    $halfSize = (int)($size - $max_size / 2);
+                    fseek($handle, $halfSize);
+                    // 使用正则匹配完整日期格式提高准确性
+                    $maxCheckLines = 60; // 增加检查上限同时避免无限循环
+                    $datePattern = '/^\[\d{4}-\d{2}-\d{2} /'; // [Y-m-d H:i:s]....
+                    //使用fgets以便获取到有效的起始行
+                    while (($line = fgets($handle)) !== false && $maxCheckLines-- > 0) {
+                        if (preg_match($datePattern, trim($line))) {
+                            // 回退到有效行起始位置
+                            fseek($handle, -strlen($line), SEEK_CUR);
+                            break;
+                        }
+                    }
+
+                    if ($size > 4194304) { //大于4M使用临时文件
+                        // 使用stream_copy_to_stream优化内存使用
+                        $tempHandle = fopen('php://temp', 'r+');
+                        stream_copy_to_stream($handle, $tempHandle);
+                        rewind($tempHandle);
+
+                        ftruncate($handle, 0);
+                        rewind($handle);
+                        stream_copy_to_stream($tempHandle, $handle);
+                        fclose($tempHandle);
+                    } else {
+                        $tempContent = stream_get_contents($handle);
+
+                        ftruncate($handle, 0);
+                        rewind($handle);
+                        fwrite($handle, $tempContent);
+                    }
+                }
+                fseek($handle, 0, SEEK_END);
+                fwrite($handle, $logLine);
+                flock($handle, LOCK_UN); // 释放锁
+            } else {
+                //这里仅当使用 flock($handle, LOCK_EX | LOCK_NB)  获取独占锁（非阻塞模式）时才会生效
+                self::toFileLog($file . '.bak', $content, $max_size); //把并发日志记录到备用日志以便追溯
+            }
+            fclose($handle);
             clearstatcache(true, $file);
+            return;
         }
-        file_put_contents($file, "[".date("Y-m-d H:i:s").'.'.substr(microtime(), 2, 3)."]".(is_scalar($content) ? $content : self::toJson($content))."\n", FILE_APPEND);
+        file_put_contents($file, $logLine, FILE_APPEND);
     }
     /**
      * 字符串转十六进制函数
