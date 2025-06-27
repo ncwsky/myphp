@@ -58,6 +58,9 @@ return [
         // 'path' => RUNTIME.'/sess', //可指定session存放目录
         // 'prefix' => 'my_', //用于非file方式的名前缀
         // 'expire' => 1440, //默认有效期
+        //'cookie_domain' => '', //cookie作用域 如设为www.test.com,就只在www子域内有效. 跨域共享cookie的域名(例如: .test.com)
+        //'cookie_path' => '/', // cookie路径 '/' cookie就在整个domain内有效,如设为'/foo/',cookie就只在domain下的/foo/目录及子目录内有效.
+        //'cookie_secure' => false, // cookie安全传输
     ),*/
     'req_cache' => false, //请求缓存 true
     'req_cache_expire' => 3600, //请求缓存时间 默认过期时间 秒
@@ -72,30 +75,12 @@ return [
     //'gzip_types'=>'text/plain application/javascript application/x-javascript text/javascript text/css application/xml',
     'encode_key'  => 'oz7oQdlUdlP#y3gKuBbi67mVxhh',//加密串 用于cookie:sys_auth(),getMd5(),aes(),Helper::authcode或其他加密
     'timezone' => 'PRC', //PRC中国 Etc/GMT-8东八区  Asia/Chongqing重庆 Asia/Shanghai上海
-    'htmldir' => '/e',//默认静态目录
-    'updir' => '/up',//默认上传目录
-    'thumb_wh' => '240_180',//默认缩略图大小
-    'img_ext' => 'png,jpg,jpeg,gif',//图片允许的文件后缀类型
-    'img_size_limit' => 0.5,//图片上传限制大小 单位兆
-    'files_ext' => 'swf,mp3,zip,rar,doc,xsl,ppt,wps,pdf,chm,txt',//文件允许的文件后缀类型
-    'files_size_limit' => 2,//上传限制大小 单位兆
-    'watermark_on' => false,//水印开关
-    'watermark_wh' => '280_280', //水印添加条件 宽_高
     'tmp_theme' => false,//模板主题开启-用于前端
     'tmp_suffix' => '.html',//模板后缀名
     'tmp_left_tag' => '{', //模板左侧符号
     'tmp_right_tag' => '}', //模板右侧符号
     'tmp_variables' => [], //模板自定义变量 key=>val|callable 如： '__PUBLIC__'=>ROOT_DIR.'/pub',...
     'site_template' => '',//模板主题
-    'tmp_not_allow_fun' => '',//模板中不允许使用的函数 使用,分隔 如：,eval,echo,
-    /* cookie设置 */
-    'cookie_expire' => 0, //cookie有效期
-    'cookie_domain' => '', //cookie作用域 如设为www.test.com,就只在www子域内有效. 跨域共享cookie的域名(例如: .test.com)
-    'cookie_path' => '/', // cookie路径 '/' cookie就在整个domain内有效,如设为'/foo/',cookie就只在domain下的/foo/目录及子目录内有效.
-    'cookie_pre' => '', // cookie前缀 避免冲突 分站时建议在前端配置中重命名
-    'cookie_secure' => false, // cookie安全传输
-    'cookie_httponly' => true, // httponly设置
-    'cookie_same_site' => false,
     //文件载入
     'files' => [],
     //中间件

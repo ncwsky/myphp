@@ -620,26 +620,19 @@ function get_image($image, $nopic = '/pub/images/nopic.gif')
     }
 }
 //获取缩略图 不存在返回原图 $thumb_wh : 240_180
-function get_thumb($image, $thumb_wh = '', $nopic = '/pub/images/itemi.png')
+function get_thumb($image, $thumb_wh = '240_180', $nopic = '/pub/images/itemi.png')
 {
     if (substr($image, 0, 4) == 'http') {
         return $image;
     } else {
         $image = get_image($image, $nopic);
         $dot = strrpos($image, '.');
-        if ($thumb_wh == '') {
-            $thumb_wh = GetC('thumb_wh');
-            $__has = strpos($thumb_wh, ',');
-            if ($__has !== false) {
-                $thumb_wh = substr($thumb_wh, 0, $__has);
-            }
-        }
         $thumb = substr($image, 0, $dot).$thumb_wh.substr($image, $dot);
         return is_file(SITE_WEB.$thumb) ? $thumb : $image;
     }
 }
-//生成缩略图  return array 缩略图列表
-function make_thumb($image)
+//生成缩略图  return array 缩略图列表 thumb_wh:240_180,...
+function make_thumb($image, $thumb_wh='240_180')
 {
     $thumb = [];
     $image = SITE_WEB.$image;
@@ -654,7 +647,7 @@ function make_thumb($image)
         return false; //图片验证
     }
 
-    $thumbs_wh = explode(',', myphp::$cfg['thumb_wh']);//获取默认缩略图大小
+    $thumbs_wh = explode(',', $thumb_wh);//获取默认缩略图大小
     foreach ($thumbs_wh as $thumb_wh) {
         $thumbname =  $base.$thumb_wh.$ext;
         $wh = explode('_', $thumb_wh);
@@ -665,8 +658,8 @@ function make_thumb($image)
     }
     return $thumb;
 }
-//删除上传文件 文件路径 是否图片
-function del_up_file($file, $is_img = 0): void
+//删除上传文件 文件路径 是否图片 $thumb_wh:240_180,...
+function del_up_file($file, $is_img = 0, $thumb_wh='240_180'): void
 {
     $realFile = SITE_WEB.$file;//真实路径
     if (is_file($realFile)) {
@@ -674,7 +667,7 @@ function del_up_file($file, $is_img = 0): void
             $dot = strrpos($realFile, '.');
             $base = substr($realFile, 0, $dot);
             $ext = substr($realFile, $dot);
-            $thumbs_wh = explode(',', myphp::$cfg['thumb_wh']);//获取默认缩略图大小
+            $thumbs_wh = explode(',', $thumb_wh);//获取默认缩略图大小
             foreach ($thumbs_wh as $thumb_wh) {
                 is_file($base.$thumb_wh.$ext) && @unlink($base.$thumb_wh.$ext);
             }
@@ -739,23 +732,21 @@ function set_config($config, $file = "/config.php", $allow_val = null)
  */
 function cookie($name, $value = '', $option = null)
 {
-    $prefix = myphp::$cfg['cookie_pre'] ?? ''; // cookie 名称前缀
     // 默认设置
     $config = [
-        'expire' => myphp::$cfg['cookie_expire'] ?? 0, // cookie 保存时间
-        'path' => myphp::$cfg['cookie_path'] ?? '/', // cookie 保存路径
-        'domain' => myphp::$cfg['cookie_domain'] ?? '', // cookie 有效域名
-        'secure' => myphp::$cfg['cookie_secure'] ?? false, //  cookie 启用安全传输
-        'httponly' => myphp::$cfg['cookie_httponly'] ?? false, // httponly设置
-        'same_site' => myphp::$cfg['cookie_same_site'] ?? false
+        'prefix' =>  '', // cookie 名称前缀
+        'expire' =>  0, // cookie 保存时间
+        'path' => '/', // cookie路径 '/' cookie就在整个domain内有效,如设为'/foo/',cookie就只在domain下的/foo/目录及子目录内有效.
+        'domain' => '', // cookie作用域 如设为www.test.com,就只在www子域内有效. 跨域共享cookie的域名(例如: .test.com)
+        'secure' => false, //  cookie 启用安全传输
+        'httponly' => true, // httponly设置
+        'same_site' => false
     ];
     // 参数处理
-    if (!is_null($option)) {
-        if (is_numeric($option)) {
-            $config['expire'] = (int)$option;
-        } elseif (is_array($option)) {
-            $config = array_merge($config, $option);
-        }
+    if (is_numeric($option)) {
+        $config['expire'] = (int)$option;
+    } elseif (is_array($option)) {
+        $config = array_merge($config, $option);
     }
     // 清除指定前缀的所有cookie
     if (is_null($name)) {
@@ -764,7 +755,7 @@ function cookie($name, $value = '', $option = null)
         }
 
         foreach ($_COOKIE as $name => $val) {
-            if ($prefix !== '' && strpos($name, $prefix . '_') !== 0) {
+            if ($config['prefix'] && strpos($name, $config['prefix'] . '_') !== 0) {
                 continue;
             }
             if (IS_CLI) {
@@ -782,7 +773,7 @@ function cookie($name, $value = '', $option = null)
         return null;
     }
     $encode = substr($name, 0, 1) == '_' ? false : true; //是否编码 以下划线开头的不编码
-    $name = ($prefix !== '' ? $prefix . '_' : '') . $name;
+    $name = ($config['prefix'] ? $config['prefix'] . '_' : '') . $name;
     if ('' === $value) {//获取cookie值
         if (isset($_COOKIE[$name])) {
             $value = $encode ? sys_auth($_COOKIE[$name], 'DECODE') : $_COOKIE[$name];

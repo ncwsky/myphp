@@ -188,9 +188,9 @@ final class myphp
         if ($res === null) {
             //转驼峰 控制器的类名
             $control = self::$env['app_namespace'] . '\\control\\' . self::$env['CONTROL'];
-            if (!class_exists($control)) {
+            /*if (!class_exists($control)) {
                 return self::res()->e404('class not exists ' . $control);
-            }
+            }*/
             //throw new \Exception('class not exists ' . $control, 404);
             /**
              * @var Control $instance
@@ -247,7 +247,6 @@ final class myphp
         //设置本地时差
         date_default_timezone_set(self::$cfg['timezone']);
         //初始类的可加载目录
-        self::class_dir([COMMON, COMMON . '/model']); //基础类 扩展类 公共模型
         if (!empty(self::$cfg['class_dir'])) {
             $classDir = is_array(self::$cfg['class_dir']) ? self::$cfg['class_dir'] : explode(',', ROOT . str_replace(',', ',' . ROOT, self::$cfg['class_dir']));
             self::class_dir($classDir);
@@ -258,10 +257,10 @@ final class myphp
         }
         //注册类的自动加载
         spl_autoload_register('\myphp::autoload', true, true);
-        // 设定错误和异常处理
-        Log::register();
         //日志记录初始
         Log::init(self::$cfg['log_dir'], self::$cfg['log_level'], self::$cfg['log_size']);
+        // 设定错误和异常处理
+        Log::register();
         is_file(COMMON . '/common.php') && require COMMON . '/common.php';	//引入公共函数
 
         self::$pipe = new Pipeline();
@@ -332,12 +331,14 @@ final class myphp
             self::send($e->getMessage() . (self::$cfg['debug'] ? "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : ''), 500);
             Log::Exception($e, false);
         }
-        self::req()->clear();
-        self::res()->clear();
-        //重置处理
-        self::$cfg = self::$_init_cfg;
-        self::$env = [];
-        self::$lang = [];
+        if (IS_CLI) {
+            self::req()->clear();
+            self::res()->clear();
+            //重置处理
+            self::$cfg = self::$_init_cfg;
+            self::$env = [];
+            self::$lang = [];
+        }
     }
 
     /** 输出数据到页面
@@ -617,9 +618,6 @@ final class myphp
             }
         }
         self::_initApp($app_path, $isCLI);
-        //通过命名空间加载可不需要指定目录遍历了
-        //self::class_dir(self::$env['CONTROL_PATH']); //当前项目类目录
-        //self::class_dir(self::$env['MODEL_PATH']); //当前项目模型目录
     }
     /**
      * 引入合并配置
@@ -1073,16 +1071,15 @@ final class myphp
                         $i = 1;
                         foreach ($vars as $_k => $_v) {
                             if ($_v) {
-                                $vars[$_k] = $regArr[$i];
+                                $_GET[$_k] = $regArr[$i];
                             } else {
-                                $vars[$_k] = $regArr[++$i]; //可选 因是双括号匹配 目标索引得加1
+                                $_GET[$_k] = $regArr[++$i]; //可选 因是双括号匹配 目标索引得加1
                             }
                             if (++$i > $count) {
                                 break;
                             }
                         }
-                        //$_GET = $vars;
-                        $_GET = array_merge($_GET, $vars);
+                        //$_GET = array_merge($_GET, $vars);
                         unset($regArr, $vars);
                     }
                     //var_dump($_GET);//Log::trace($_GET);

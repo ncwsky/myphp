@@ -123,9 +123,9 @@ class EnvSession implements EnvSessionInterface
         isset($this->options['name']) && session_name($this->options['name']);
         session_set_cookie_params(
             isset($this->options['expire']) ? (int)$this->options['expire'] : 0,
-            myphp::$cfg['cookie_path'] ?? '/',
-            myphp::$cfg['cookie_domain'] ?? '',
-            myphp::$cfg['cookie_secure'] ?? false,
+            $this->options['cookie_path'] ?? '/',
+            $this->options['cookie_domain'] ?? '',
+            $this->options['cookie_secure'] ?? false,
             true // HttpOnly; Yes, this is intentional and not configurable for security reasons
         );
         isset($this->options['expire']) && ini_set('session.gc_maxlifetime', (string)$this->options['expire']);

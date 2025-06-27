@@ -413,16 +413,11 @@ class Template
     {
         $code = '';
         $len = count($varArray);
-        // 获取不允许使用的函数
-        $not_fun = myphp::$cfg['tmp_not_allow_fun'];
         for ($i = 0; $i < $len; $i++) {
             //以=分割函数参数，第一个元素就是函数名，之后的都是参数
             $arr = explode('|', $varArray[$i]);
             $funcName = array_shift($arr);//函数名
             $arr = array_shift($arr);//函数参数
-            if (strpos($not_fun, ',' . $funcName . ',') !== false) { //不允许使用的函数判断
-                continue;
-            }
 
             $param = '';
             if ($arr !== '') { //参数不为空   字符的参数需要加上单引号

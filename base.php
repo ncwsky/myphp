@@ -5,18 +5,10 @@ declare(strict_types=1);
 use myphp\Db;
 use myphp\Helper;
 
-//系统开始时间
-define('SYS_START_TIME', microtime(true));//时间戳.微秒数
-define('SYS_TIME', time());//时间戳
-// 记录内存初始使用
-define('MEMORY_LIMIT_ON', function_exists('memory_get_usage'));
-MEMORY_LIMIT_ON && define('SYS_MEMORY', memory_get_usage());
 //系统变量
 const IS_CLI = PHP_SAPI === 'cli';
 const IS_WIN = DIRECTORY_SEPARATOR === '\\'; //strpos(PHP_OS, 'WIN') !== false
 const DS = '/';
-//定义MY_PATH常量
-const MY_PATH = __DIR__;
 
 //REQUEST_URI 处理 ORIG_PATH_INFO REDIRECT_PATH_INFO REDIRECT_URL
 if (!IS_CLI && !isset($_SERVER['REQUEST_URI'])) {
@@ -108,18 +100,38 @@ myphp::init($cfg ?? null);
 /*---------- 辅助方法 ----------*/
 /**
  * 统计程序运行时间 秒
- * @param float|string $micro
+ * @param bool $start
  * @return string
  */
-function run_time($micro = SYS_START_TIME): string
+function run_time(bool $start = false): string
 {
+    static $micro;
+    if ($start) {
+        $micro = microtime(true);
+        return '';
+    }
+    if (!$micro) {
+        return '';
+    }
     return number_format(microtime(true) - $micro, 4);
 }
 
-//统计程序内存开销
-function run_mem(): string
+/**
+ * 统计程序内存开销
+ * @param bool $start
+ * @return string
+ */
+function run_mem(bool $start = false): string
 {
-    return MEMORY_LIMIT_ON ? toByte(memory_get_usage() - SYS_MEMORY) : 'unknown';
+    static $usage;
+    if ($start) {
+        $usage = memory_get_usage();
+        return '';
+    }
+    if (!$usage) {
+        return '';
+    }
+    return toByte(memory_get_usage() - $usage);
 }
 
 /**
