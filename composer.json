@@ -11,8 +11,5 @@
     },
     "bin": [
         "my"
-    ],
-    "require-dev": {
-        "phpstan/phpstan": "2.0.x-dev"
-    }
+    ]
 }
