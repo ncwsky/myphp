@@ -86,7 +86,6 @@ myphp::$classMap = [
     'Http' => __DIR__ . '/ext/Http.php',
     'HttpAuth' => __DIR__ . '/ext/HttpAuth.php',
     'HttpCode' => __DIR__ . '/ext/HttpCode.php',
-    'HttpReqInfo' => __DIR__ . '/ext/HttpReqInfo.php',
     'Image' => __DIR__ . '/ext/Image.php',
     'lib_redis' => __DIR__ . '/ext/lib_redis.php',
     'Py' => __DIR__ . '/ext/Py.php',
