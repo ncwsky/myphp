@@ -188,10 +188,9 @@ final class myphp
         if ($res === null) {
             //转驼峰 控制器的类名
             $control = self::$env['app_namespace'] . '\\control\\' . self::$env['CONTROL'];
-            /*if (!class_exists($control)) {
-                return self::res()->e404('class not exists ' . $control);
-            }*/
-            //throw new \Exception('class not exists ' . $control, 404);
+            if (!class_exists($control)) {
+                return self::res()->e404('Not Found ' . self::$env['c']);
+            }
             /**
              * @var Control $instance
              */
@@ -307,17 +306,19 @@ final class myphp
     }
     /**
      * 运行程序 $isCli 可设置CLI模式下false用于解析数据的参数
-     * @param null|callable $sendFun
+     * @param callable|null $sendFun
      * @param bool $isCli
      * @throws \Exception
      */
-    public static function Run($sendFun = null, bool $isCli = IS_CLI): void
+    public static function Run(callable $sendFun = null, bool $isCli = IS_CLI): void
     {
         self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法及初始化
         self::$sendFun = $sendFun;
         try {
             $res = self::handle();
-            $res !== null && self::send($res, self::res()->getStatusCode(), self::req()->expire);
+            if ($res !== null) {
+                self::send($res, self::res()->getStatusCode(), self::req()->expire);
+            }
         } catch (\Exception $e) {
             $errCode = $e->getCode();
             //匹配状态码时 //$errCode==404 || $errCode==200
@@ -455,6 +456,7 @@ final class myphp
     {
         self::res()->setContentType($conType, $charset);
     }
+
     /**
      * 解析URL获得控制器的与方法
      * m c a在GET变量下为内置参数名，不可用于其他
@@ -462,6 +464,7 @@ final class myphp
      * 0、http://localhost/index.php?c=控制器&a=方法
      * 2、http://localhost/index.php/[模块/]控制器/方法?其他参数
      * @param bool $isCLI cli命令脚本模式处理
+     * @throws Exception
      */
     public static function Analysis(bool $isCLI = IS_CLI): void
     {
