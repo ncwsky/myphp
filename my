@@ -1,7 +1,5 @@
 #!/usr/bin/env php
 <?php
-
-declare(strict_types=1);
 /**
  * cli模式下脚本执行入口
  * my --init 应用初始化
@@ -45,11 +43,17 @@ if ($init) { //初始化
 }
 //请求是有指定入口php文件 /xxx.php/c/a?d=1
 if (!empty($_SERVER['argv'][1]) && $pos = strpos($_SERVER['argv'][1], '.php/')) {
-    $run = substr($_SERVER['argv'][1], 0, $pos);
+    $run = substr($_SERVER['argv'][1], 0, $pos) . '.php';
     $_SERVER['argv'][1] = substr($_SERVER['argv'][1], $pos + 4); //请求地址处理
-    //echo APP_RUN_DIR . '/web' . $run . '.php', PHP_EOL;
+    //echo APP_RUN_DIR . '/web' . $run, PHP_EOL;
     #print_r($_SERVER);
-    require APP_RUN_DIR . '/web' . $run . '.php';
+    if (is_file(APP_RUN_DIR . '/web' . $run)) {
+        require APP_RUN_DIR . '/web' . $run;
+    } elseif (is_file(APP_RUN_DIR . $run)) {
+        require APP_RUN_DIR . $run;
+    } else {
+        echo APP_RUN_DIR . '或' . APP_RUN_DIR . '/web目录下未找到' . $run . '文件';
+    }
     exit();
 }
 //应用目录指定
