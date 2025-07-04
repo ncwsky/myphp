@@ -73,6 +73,7 @@ myphp::Run();
 _admin模块入口文件 admin.php_ 
 > 模块需放置在项目根目录/或/app下    
 > 在app目录下的时必需要配置文件或全局配置有模块路径映射  
+> app_namespace有配置时同时需要配置$namespaceMap命名空间前缀路径
 ```php
 <?php
 define('APP_PATH',__DIR__.'/../app');

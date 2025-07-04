@@ -473,7 +473,7 @@ final class myphp
         //命名空间前缀处理
         if (empty(self::$cfg['app_namespace'])) {
             self::$env['app_namespace'] = $app_name;
-            //自动指定app顶层命名空间目录
+            //指定app顶层命名空间目录
             if (!isset(self::$namespaceMap[self::$env['app_namespace'] . '\\'])) {
                 self::$namespaceMap[self::$env['app_namespace'] . '\\'] = APP_PATH;
             }
