@@ -502,11 +502,16 @@ final class myphp
             //cli_url_mode请求模式 默认2 PATH_INFO模式
             $url_mode = self::$cfg['url_mode'] = self::$cfg['cli_url_mode'] ?? 2;
             if ($url_mode == 2) { // php xxx.php m/c/a "b=1&d=1"|b=1 d=1
-                $_SERVER["REQUEST_URI"] = $_SERVER['argv'][1] ?? '/';
-                parse_str(implode('&', array_slice($_SERVER['argv'], 2)), $_GET);
+                // php xxx.php "m/c/a?b=1&d=1"
+                // php 0       1
+                $_SERVER['REQUEST_URI'] = $_SERVER['argv'][1] ?? '/';
+                $hasQuery = strpos($_SERVER['REQUEST_URI'], '?');
+                $_SERVER['QUERY_STRING'] = $hasQuery ? substr($_SERVER['REQUEST_URI'], $hasQuery + 1) : '';
+                isset($_SERVER['argv'][2]) && parse_str(implode('&', array_slice($_SERVER['argv'], 2)), $_GET);
             } else { // php xxx.php "c=x&a=y&b=1&d=1"|c=x a=y b=1 d=1
-                $_SERVER["REQUEST_URI"] = '/';
-                parse_str(implode('&', array_slice($_SERVER['argv'], 1)), $_GET);
+                $_SERVER['REQUEST_URI'] = '/';
+                $_SERVER['QUERY_STRING'] = $_SERVER['argv'][1] ?? '';
+                isset($_SERVER['argv'][1]) && parse_str(implode('&', array_slice($_SERVER['argv'], 1)), $_GET);
             }
             $_REQUEST = $_GET; //兼容处理
         }
