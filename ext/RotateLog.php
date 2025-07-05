@@ -122,8 +122,7 @@ class RotateLog
                 fclose($fp);
                 return;
             }
-            $microtime = microtime(true);
-
+            run_time(true);
             if ($this->mode == self::MODE_FIXED) {
                 $size = $this->keepSize;
 
@@ -154,7 +153,7 @@ class RotateLog
                 // 截断文件，删除多余的内容
                 ftruncate($fp, $w_offset);
                 //stat
-                fwrite($fp, '['.date('Y-m-d H:i:s').'.'.substr(microtime(), 2, 3) . ']'. sprintf('use %s truncate, %s -> %s', run_time($microtime), $fileSize, $size) . PHP_EOL);
+                fwrite($fp, '['.date('Y-m-d H:i:s').'.'.substr(microtime(), 2, 3) . ']'. sprintf('use %s truncate, %s -> %s', run_time(), $fileSize, $size) . PHP_EOL);
             } else {
                 $new_fp = fopen(dirname($this->logFile).'/'.date('YmdHis').'.log', 'ab');
                 stream_copy_to_stream($fp, $new_fp);
