@@ -63,12 +63,58 @@ class Value
     /**
      * @param array|null $data
      * @param string $name
+     * @param int|null $min
+     * @param int|null $max
+     * @param int $default
+     * @return int
+     */
+    public static function int(?array &$data, string $name, int $min = null, int $max = null, int $default = 0): int
+    {
+        return self::get($data, $name, ['d', 'min' => $min, 'max' => $max], $default);
+    }
+
+    /**
+     * @param array|null $data
+     * @param string $name
+     * @param float|null $min
+     * @param float|null $max
+     * @param float $default
+     * @return float
+     */
+    public static function float(?array &$data, string $name, float $min = null, float $max = null, float $default = 0): float
+    {
+        return self::get($data, $name, ['f', 'min' => $min, 'max' => $max], $default);
+    }
+
+    public static function str(?array &$data, string $name, int $max = null, int $min = null, string $default = ''): string
+    {
+        return self::get($data, $name, ['s', 'min' => $min, 'max' => $max], $default);
+    }
+
+    public static function ymd(?array &$data, string $name, string $default = ''): string
+    {
+        return Value::get($data, $name, ['ymd'], $default);
+    }
+
+    public static function date(?array &$data, string $name, string $default = ''): string
+    {
+        return Value::get($data, $name, ['date'], $default);
+    }
+
+    public static function his(?array &$data, string $name, string $default = ''): string
+    {
+        return Value::get($data, $name, ['his'], $default);
+    }
+
+    /**
+     * @param array|null $data
+     * @param string $name
      * @param string|array $rule array['rule','def'] | string %s{}:fun   %s,%b,%d,%f,%a,%date[2014-01-11 13:23:32],%his[13:23:32]  {1,20}取值范围 filter:fun1,fun2,/regx/i正则过滤
      * @param mixed $default $rule是string时可指定默认值
      * @param bool $strict 是否严格验证
      * @return array|bool|float|int|string
      */
-    public static function get(&$data, string $name, $rule = '', $default = null, bool $strict = false)
+    public static function get(?array &$data, string $name, $rule = '', $default = null, bool $strict = false)
     {
         if (strpos($name, '.')) { //多维数组
             $val = Helper::getValue($data, $name);
@@ -227,12 +273,12 @@ class Value
                     break;
                 case 'd': // 数字
                 case 'f': // 浮点
-                    if ($val === '' || !is_numeric($val)) {
+                    if ($val === null || !is_numeric($val)) {
                         $errCode = 1;
                         //$val = $default;
                         break;
                     }
-                    if ($type == 'd') { //php_32位或32位系统有溢出bug
+                    if ($type == 'd') { //php_32位或32位系统有溢出
                         if (PHP_INT_SIZE === 8 || ($val >= -2147483648 && $val <= 2147483647)) {
                             $val = (int)$val;
                         }
@@ -288,7 +334,7 @@ class Value
                     break;
                 case 's':   // 字符串
                 default:
-                    if ($val === '') {
+                    if ($val === null || $val === '') {
                         $errCode = 1;
                         //$val = $default;
                         break;

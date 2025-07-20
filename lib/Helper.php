@@ -392,7 +392,7 @@ class Helper
     public static function xmlToArr(string $xml)
     {
         //禁止引用外部xml实体
-        libxml_disable_entity_loader(true);
+        //libxml_disable_entity_loader(true);
         return json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
     }
 
@@ -404,7 +404,7 @@ class Helper
      * @param bool $ms 记录毫秒
      * @return void
      */
-    public static function toFileLog(string $file, $content, int $max_size = 4194304, bool $ms=false)
+    public static function toFileLog(string $file, $content, int $max_size = 4194304, bool $ms = false)
     {
         $logLine = '[' . date('Y-m-d H:i:s') . ($ms ? '.' . substr(microtime(), 2, 3) : '') . ']' . (is_scalar($content) ? $content : self::toJson($content)) . "\n";
         if (is_file($file) && $max_size <= ($size = filesize($file))) {

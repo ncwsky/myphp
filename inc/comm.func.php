@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use myphp\Value;
+
 /**
  *  comm.func.php 功能函数库
  */
@@ -568,8 +570,8 @@ function return_args($args)
 //key=args_val+my_hash
 function getargs($args_item = '', $gtype = 1)
 {
-    $args_val = urldecode(Q('args', ''));
-    $key = Q('key', '');
+    $args_val = urldecode(Q('get.args', ''));
+    $key = Q('get.key', '');
     if ($args_val == '' || $args_item == '' || $key == '') {
         throw new \Exception('args error!');
     }
@@ -894,7 +896,7 @@ function array_call_func($func, &$data)
  * 获取输入参数 支持过滤和默认值
  * 使用方法:
  * <code>
- * Q('id',0); 获取id参数 自动判断get或者post
+ * Q('id',0); 获取id参数 使用$_REQEUST
  * Q('post.name:htmlspecialchars'); 获取$_POST['name']
  * Q('get.:null'); 获取$_GET 且不执行过滤操作 filter=null
  * </code>
@@ -915,7 +917,7 @@ function Q($name, $defVal = '', $datas = null)
     $filter = $min = $max = null;
     $type = 's'; // 默认转换为字符串
     $digit = 0; //小数位处理 四舍五入
-    \myphp\Value::parseType($name, $type, $min, $max, $filter, $digit);
+    Value::parseType($name, $type, $min, $max, $filter, $digit);
 
     $method = 'request'; // 默认为_REQUEST
     if (strpos($name, '.') !== false) { // 指定参数来源
@@ -974,10 +976,91 @@ function Q($name, $defVal = '', $datas = null)
         $filter = null;
     }
 
-    \myphp\Value::type2val($val, [$type, 'min' => $min, 'max' => $max, 'digit' => $digit, 'filter' => $filter], $defVal);
+    Value::type2val($val, [$type, 'min' => $min, 'max' => $max, 'digit' => $digit, 'filter' => $filter], $defVal);
 
     return $val;
 }
+
+function intPost(string $name, int $min = null, int $max = null, int $default = 0): int
+{
+    if (!isset($_POST[$name])) {
+        return $default;
+    }
+    $val = $_POST[$name];
+    Value::type2val($val, ['d', 'min' => $min, 'max' => $max], $default);
+    return $val;
+}
+
+function intGet(string $name, int $min = null, int $max = null, int $default = 0): int
+{
+    if (!isset($_GET[$name])) {
+        return $default;
+    }
+    $val = $_GET[$name];
+    Value::type2val($val, ['d', 'min' => $min, 'max' => $max], $default);
+    return $val;
+}
+
+function floatPost(string $name, float $min = null, float $max = null, float $default = 0): float
+{
+    if (!isset($_POST[$name])) {
+        return $default;
+    }
+    $val = $_POST[$name];
+    Value::type2val($val, ['f', 'min' => $min, 'max' => $max], $default);
+    return $val;
+}
+
+function floatGet(string $name, float $min = null, float $max = null, float $default = 0): float
+{
+    if (!isset($_GET[$name])) {
+        return $default;
+    }
+    $val = $_GET[$name];
+    Value::type2val($val, ['f', 'min' => $min, 'max' => $max], $default);
+    return $val;
+}
+
+function ymdPost(string $name, string $default = ''): string
+{
+    return Value::get($_POST, $name, ['ymd'], $default);
+}
+
+function ymdGet(string $name, string $default = ''): string
+{
+    return Value::get($_GET, $name, ['ymd'], $default);
+}
+
+function datePost(string $name, string $default = ''): string
+{
+    return Value::get($_POST, $name, ['date'], $default);
+}
+
+function dateGet(string $name, string $default = ''): string
+{
+    return Value::get($_GET, $name, ['date'], $default);
+}
+
+function strPost(string $name, int $max = null, int $min = null, string $default = ''): string
+{
+    if (!isset($_POST[$name])) {
+        return $default;
+    }
+    $val = $_POST[$name];
+    Value::type2val($val, ['s', 'min' => $min, 'max' => $max], $default);
+    return $val;
+}
+
+function strGet(string $name, int $max = null, int $min = null, string $default = ''): string
+{
+    if (!isset($_GET[$name])) {
+        return $default;
+    }
+    $val = $_GET[$name];
+    Value::type2val($val, ['s', 'min' => $min, 'max' => $max], $default);
+    return $val;
+}
+
 //xss 过滤
 function remove_xss($val)
 {
