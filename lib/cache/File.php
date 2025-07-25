@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace myphp\cache;
 
-//文件缓存类
 use myphp\Log;
 
+/**
+ * 文件缓存类
+ * 操作失败返回 false
+ */
 class File extends \myphp\CacheAbstract
 {
     public $gcProbability = 10; //100000次设置有10次机率触发垃圾回收
@@ -17,10 +20,9 @@ class File extends \myphp\CacheAbstract
 
     //配置
     protected $options = [
-        'path' => "./",
+        'path' => RUNTIME . '/cache',
         'prefix' => '_',
         'mode' => self::MODE_SERIALIZE, //mode 1 为serialize model 2为保存为可执行文件
-        'expire' => 0, //有效期
         'dir_level' => 0, //缓存层级
     ];
 
@@ -73,26 +75,16 @@ class File extends \myphp\CacheAbstract
      * 设置一个缓存
      * @param string $name 缓存name
      * @param mixed $data 缓存内容
-     * @param int|null $expire 缓存生命 默认为0无限生命
+     * @param int $expire 缓存生命 默认为0无限
      * @return bool
      */
-    public function set(string $name, $data, ?int $expire = null): bool
+    public function set(string $name, $data, int $expire = 0): bool
     {
-        if ($expire === null) {
-            $expire = $this->options['expire'];
-        }
-
         $this->gc();//触发垃圾回收
 
-        $time = time();
-        $cache = ['contents' => $data, 'expire' => $expire == 0 ? 0 : $time + $expire];
+        $time = $expire > 0 ? time() + $expire : 0;
         $file = $this->_file($name, true);
-        if (false !== $this->_filePutContent($file, $cache)) {
-            return @touch($file, $expire ? $time + $expire : 0); //修改访问时间 用于垃圾回收 $time+($expire == 0 ? 31536000 : $expire)
-        }
-        $error = error_get_last();
-        Log::WARN("Unable to write cache file '{$file}': {$error['message']}");
-        return false;
+        return $this->_filePutContent($file, $data, $time);
     }
     /**
      * 得到缓存信息
@@ -102,11 +94,7 @@ class File extends \myphp\CacheAbstract
     public function get(string $name)
     {
         $file = $this->_file($name);
-        $data = $this->_fileGetContent($file);
-        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-            return $data['contents'];
-        }
-        return false;
+        return $this->_fileGetContent($file);
     }
     /**
      * 判断缓存是否存在
@@ -148,6 +136,57 @@ class File extends \myphp\CacheAbstract
         return @unlink($file);
     }
 
+    /**
+     * 自增
+     * @param string $name
+     * @param int $increment 自增 数
+     * @param int $expire
+     * @return int
+     */
+    public function incr(string $name, int $increment = 1, int $expire = 0): int
+    {
+        //$file = $this->_hFile('.incr', $name, true); //自增值 固定目录.incr
+        $file = $this->_file($name);
+        $fp = fopen($file, 'c+');
+        if (!$fp) {
+            return 0;
+        }
+        $num = -1;
+        try {
+            if (flock($fp, LOCK_EX)) {
+                $time = time();
+                $mtime = filemtime($file);
+                if ($mtime && $mtime < $time) {
+                    $num = 0;
+                } else {
+                    $num = (int)$this->_rContent($file, $fp);
+                }
+                if ($increment > 1) {
+                    $num += $increment;
+                } else {
+                    $num++;
+                }
+                if ($num == $increment) {
+                    $mtime = $expire > 0 ? $expire + $time : 0;//$time + 315360000
+                }
+                fseek($fp, 0);
+                if (false !== fwrite($fp, $this->_content($num))) {
+                    touch($file, $mtime);
+                    clearstatcache(true, $file); //清除缓存
+                }
+                flock($fp, LOCK_UN);
+            }
+        } finally {
+            fclose($fp);
+        }
+        return $num;
+    }
+
+    public function incrby(string $name, int $increment): int
+    {
+        return $this->incr($name, $increment);
+    }
+
     /** 设置过期时间
      * @param string $name
      * @param int $time 过期秒数 0不过期
@@ -157,22 +196,82 @@ class File extends \myphp\CacheAbstract
     public function expire(string $name, int $time = 0, bool $is_file = false): bool
     {
         $file = $is_file ? $name : $this->_file($name);
-        $data = $this->_fileGetContent($file);
-        if (!$data) {
+        if (!file_exists($file)) {
             return false;
         }
-
+        if (($mTime = @filemtime($file)) && $mTime < time()) {
+            return false;
+        }
         if ($time) {
             $time = $time + time();
         }
-        $data['expire'] = $time;
-        if (false !== $this->_filePutContent($file, $data)) {
-            return @touch($file, $data['expire']);
-        }
-        $error = error_get_last();
-        Log::WARN("Unable to write expire file '{$file}': {$error['message']}");
-        return false;
+        return @touch($file, $time);
     }
+
+    /**
+     * 获取缓存的剩余时间 -2无缓存 -1无过期时间
+     * @param string $name
+     * @return int
+     */
+    public function ttl(string $name): int
+    {
+        $file = $this->_file($name);
+        if (!file_exists($file)) {
+            return -2;
+        }
+        $mTime = @filemtime($file);
+        if (!$mTime) { //未设置过期时间
+            return -1;
+        }
+        $t = time();
+        if ($mTime <= $t) {
+            return 0;
+        }
+        return $mTime - $t;
+    }
+
+    /**
+     * 加锁 解锁 主要用于保证并发时操作的原子性 会阻塞
+     * @param string $lockKey
+     * @param int $lockTimeout
+     * @return bool
+     */
+    public function lockBlock(string $lockKey, int $lockTimeout = 10): bool
+    {
+        if ($lockTimeout == 0) { //释放锁
+            return $this->del($lockKey);
+        }
+        do {
+            //获得锁 加过期时间 防止意外终止锁不释放
+            $num = $this->incr($lockKey, 1, $lockTimeout);
+            if ($num === 1) {
+            } else {
+                #echo 'waiting...'.microtime(),PHP_EOL;
+                usleep(100000); //睡眠，降低抢锁频率，缓解cpu压力
+            }
+        } while ($num > 1);
+        return true;
+    }
+
+    /**
+     * 加锁 解锁 主要用于判断是否重复操作
+     * @param string $lockKey
+     * @param int $lockTimeout
+     * @return bool
+     */
+    public function lockOnce(string $lockKey, int $lockTimeout = 10): bool
+    {
+        if ($lockTimeout == 0) { //释放锁
+            return $this->del($lockKey);
+        }
+        $num = $this->incr($lockKey, 1, $lockTimeout);
+        if ($num === 1) {
+            return true; //获得锁 加过期时间 防止意外终止锁不释放
+        } else {
+            return false;
+        }
+    }
+
     //针对h的多键 key 过期设置 暂不支持主目录 name过期设置
     public function hExpire($name, $key, int $time = 0): bool
     {
@@ -184,26 +283,13 @@ class File extends \myphp\CacheAbstract
     {
         $this->gc();//触发垃圾回收
 
-        $cache = [];
-        $cache['contents'] = $val;
-        $cache['expire'] = 0;
-
         $file = $this->_hFile($name, $key, true);
-        if (false !== $this->_filePutContent($file, $cache)) {
-            return @touch($file, 0);
-        }
-        $error = error_get_last();
-        Log::WARN("Unable to write cache file '{$file}': {$error['message']}");
-        return false;
+        return $this->_filePutContent($file, $val);
     }
     public function hGet($name, $key)
     {
         $file = $this->_hFile($name, $key);
-        $data = $this->_fileGetContent($file);
-        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-            return $data['contents'];
-        }
-        return false;
+        return $this->_fileGetContent($file);
     }
     public function hDel($name, $key): bool
     {
@@ -218,18 +304,6 @@ class File extends \myphp\CacheAbstract
         $name = $this->buildKey($name);
         $keyList = [];
         $path = $this->options['path'].DIRECTORY_SEPARATOR.$name;
-        /*
-        $files = glob($path.DIRECTORY_SEPARATOR.'*'.$this->suffix);
-        if($files) {
-            foreach ($files as $file){
-                $fullPath = $path . DIRECTORY_SEPARATOR . $file;
-                $data = $this->_fileGetContent($fullPath);
-                if($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-                    $keyList[basename($file, $this->suffix)] = $data['contents'];
-                }
-            }
-        }*/
-
         if (is_dir($path) && ($handle = opendir($path)) !== false) {
             while (($file = readdir($handle)) !== false) {
                 if ($file === '.' || $file === '..') {
@@ -238,8 +312,8 @@ class File extends \myphp\CacheAbstract
 
                 $fullPath = $path . DIRECTORY_SEPARATOR . $file;
                 $data = $this->_fileGetContent($fullPath);
-                if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-                    $keyList[basename($file, $this->suffix)] = $data['contents'];
+                if (false !== $data) {
+                    $keyList[basename($file, $this->suffix)] = $data;
                 }
             }
             closedir($handle);
@@ -251,8 +325,8 @@ class File extends \myphp\CacheAbstract
             if($fileInfo->isFile()){
                 $key = $fileInfo->getBasename($this->suffix);
                 $data = $this->_fileGetContent($fileInfo->getPathname());
-                if($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-                    $keyList[$key] = $data['contents'];
+                if($data) {
+                    $keyList[$key] = $data;
                 }
             }
         }*/
@@ -266,7 +340,6 @@ class File extends \myphp\CacheAbstract
         /*
         $files = glob($path.DIRECTORY_SEPARATOR.'*'.$this->suffix);
         if($files) $len = count($files);*/
-
         if (($handle = opendir($path)) !== false) {
             while (($file = readdir($handle)) !== false) {
                 if ($file === '.' || $file === '..') {
@@ -287,7 +360,7 @@ class File extends \myphp\CacheAbstract
         return $len;
     }
     //多键值的缓存文件路径
-    protected function _hFile($name, $key, $mkdir = false): string
+    protected function _hFile($name, $key, bool $mkdir = false): string
     {
         $name = $this->buildKey($name);
         if ($mkdir && !is_dir($this->options['path'].DIRECTORY_SEPARATOR.$name)) {
@@ -304,26 +377,23 @@ class File extends \myphp\CacheAbstract
 
         $file = $this->_file($name, true);
         $data = $this->_fileGetContent($file);
-        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-
+        $mtime = 0;
+        if ($data === false) { //init
+            $data = [];
+        } elseif (!is_array($data)) {
+            return false;
         } else {
-            $data = ['contents' => [], 'expire' => 0];
+            $mtime = filemtime($file);
         }
-        $data['contents'][$key] = $val;
-
-        if (false !== $this->_filePutContent($file, $data)) {
-            return @touch($file, $data['expire']);
-        }
-        $error = error_get_last();
-        Log::WARN("Unable to write cache file '{$file}': {$error['message']}");
-        return false;
+        $data[$key] = $val;
+        return $this->_filePutContent($file, $data, $mtime);
     }
     public function mGet($name, $key)
     {
         $file = $this->_file($name);
         $data = $this->_fileGetContent($file);
-        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-            return $data['contents'][$key] ?? null;
+        if ($data && is_array($data)) {
+            return $data[$key] ?? null;
         }
         return false;
     }
@@ -335,20 +405,16 @@ class File extends \myphp\CacheAbstract
     {
         $file = $this->_file($name);
         $data = $this->_fileGetContent($file);
-        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-            return count($data['contents']);
-        }
-        return 0;
+        return $data && is_array($data) ? count($data) : 0;
     }
     public function mDel($name, $key): bool
     {
         $file = $this->_file($name);
         $data = $this->_fileGetContent($file);
-        if ($data && ($data['expire'] == 0 || time() < $data['expire'])) {
-            unset($data['contents'][$key]);
-            if (false !== $this->_filePutContent($file, $data)) {
-                return @touch($file, $data['expire']);
-            }
+        if ($data) {
+            unset($data[$key]);
+            $mtime = filemtime($file);
+            return $this->_filePutContent($file, $data, $mtime);
         }
         return false;
     }
@@ -427,16 +493,67 @@ class File extends \myphp\CacheAbstract
         }
         return $file;
     }
+    //格式缓存内容
+    protected function _content(&$data): string
+    {
+        return $this->options['mode'] == self::MODE_SERIALIZE ? '<?php exit;//' . serialize($data) : "<?php\n return " . var_export($data, true).';';
+    }
+    //读取缓存文件内容
+    protected function _rContent(string $file, $fp = null)
+    {
+        try {
+            if ($this->options['mode'] == self::MODE_SERIALIZE) {
+                if ($fp) {
+                    $data = stream_get_contents($fp, -1, 13);
+                    $data = $data ? unserialize($data) : false;
+                } else {
+                    $fp = @fopen($file, 'r');
+                    if ($fp !== false) {
+                        @flock($fp, LOCK_SH);
+                        $data = stream_get_contents($fp, -1, 13);
+                        $data = $data ? unserialize($data) : false;
+                        /*
+                        //兼容未序列化数据
+                        if (stream_get_contents($fp, 13, 0) == '<?php exit;//') {
+                            $data = stream_get_contents($fp, -1, 13);
+                            $data = $data ? unserialize($data) : false;
+                        } else {
+                            $data = stream_get_contents($fp, -1, 0);
+                        }*/
+                        @flock($fp, LOCK_UN);
+                        @fclose($fp);
+                    } else {
+                        return false;
+                    }
+                }
+                //兼容旧版处理
+                if (is_array($data) && isset($data['contents']) && isset($data['expire'])) {
+                    return $data['contents'];
+                }
+            } else {
+                $data = require($file);
+            }
+        } catch (\Exception|\Error $e) {
+            return false;
+        }
+        return $data;
+    }
+
     /**
      * 把数据写入文件
      * @param string $file 文件
      * @param mixed $data
+     * @param int $time
      * @return false|int
      */
-    protected function _filePutContent(string $file, $data)
+    protected function _filePutContent(string $file, $data, int $time = 0)
     {
-        $content = $this->options['mode'] == self::MODE_SERIALIZE ? '<?php exit;//' . serialize($data) : "<?php\n return " . var_export($data, true).';';
-        return @file_put_contents($file, $content, LOCK_EX);
+        if (@file_put_contents($file, $this->_content($data), LOCK_EX) !== false) {
+            return @touch($file, $time);
+        }
+        $error = error_get_last();
+        Log::WARN("Unable to write cache file '{$file}': {$error['message']}");
+        return false;
     }
     /**
      * 从文件得到数据
@@ -453,12 +570,7 @@ class File extends \myphp\CacheAbstract
             return false;
         }
 
-        if ($this->options['mode'] == self::MODE_SERIALIZE) {
-            $content = file_get_contents($file, false, null, 13);
-            return unserialize($content);
-        } else {
-            return require($file);
-        }
+        return $this->_rContent($file);
     }
 }
 

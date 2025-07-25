@@ -309,25 +309,25 @@ class Value
                     $val = (bool)$val;
                     break;
                 case 'date'://Y-m-d[ H:i:s]
-                    if (!Helper::is_date($val)) {
+                    if (!Helper::is_date((string)$val)) {
                         $errCode = 2;
                     }
                     //$val = Helper::is_date($val) ? $val : $default;
                     break;
                 case 'ymd'://Y-m[-d]
-                    if (!Helper::is_ymd($val)) {
+                    if (!Helper::is_ymd((string)$val)) {
                         $errCode = 2;
                     }
                     //$val = Helper::is_ymd($val) ? $val : $default;
                     break;
                 case 'his':// h:i[:s]
-                    if (!Helper::is_his($val)) {
+                    if (!Helper::is_his((string)$val)) {
                         $errCode = 2;
                     }
                     //$val = Helper::is_his($val) ? $val : $default;
                     break;
                 case 'json':
-                    if (!Helper::is_json($val)) {
+                    if (!Helper::is_json((string)$val)) {
                         $errCode = 2;
                     }
                     //$val = Helper::is_json($val) ? $val : $default;

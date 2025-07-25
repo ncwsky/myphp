@@ -48,8 +48,7 @@ return [
     'cache' => null, // 'file'
     'cache_option' => [
         'path' => RUNTIME . '/cache',
-        'prefix' => '_',
-        'expire' => 0, //默认有效期
+        'prefix' => '_'
     ],
     'session' => null, /*array(
         //'class'=> null, //[优先]自定义session类,需要满足EnvSessionInterface接口的方法,如:\myphp\EnvSession

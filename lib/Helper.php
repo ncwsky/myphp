@@ -11,21 +11,21 @@ class Helper
     //日期检测函数(格式:2007-5-6[ 15:30:33])
     public static function is_date(string $date)
     {
-        return preg_match('/^(\d{4})-(0[1-9]|[1-9]|1[0-2])-(0[1-9]|[1-9]|1\d|2\d|3[0-1])(| (0[0-9]|[0-9]|1[0-9]|2[0-3]):([0-5][0-9]|0[0-9]|[0-9])(|:([0-5][0-9]|0[0-9]|[0-9])))$/', $date);
+        return $date && preg_match('/^(\d{4})-(0[1-9]|[1-9]|1[0-2])-(0[1-9]|[1-9]|1\d|2\d|3[0-1])(| (0[0-9]|[0-9]|1[0-9]|2[0-3]):([0-5][0-9]|0[0-9]|[0-9])(|:([0-5][0-9]|0[0-9]|[0-9])))$/', $date);
     }
     //Ymd检测函数(格式:2007-5[-6])
     public static function is_ymd(string $date)
     {
-        return preg_match('/^(\d{4})-(0[1-9]|[1-9]|1[0-2])(|-(0[1-9]|[1-9]|1\d|2\d|3[0-1]))$/', $date);
+        return $date && preg_match('/^(\d{4})-(0[1-9]|[1-9]|1[0-2])(|-(0[1-9]|[1-9]|1\d|2\d|3[0-1]))$/', $date);
     }
     //His检测函数(格式:15:30[:33])
     public static function is_his(string $date)
     {
-        return preg_match('/^(0[0-9]|[0-9]|1[0-9]|2[0-3]):([0-5][0-9]|0[0-9]|[0-9])(|:([0-5][0-9]|0[0-9]|[0-9]))$/', $date);
+        return $date && preg_match('/^(0[0-9]|[0-9]|1[0-9]|2[0-3]):([0-5][0-9]|0[0-9]|[0-9])(|:([0-5][0-9]|0[0-9]|[0-9]))$/', $date);
     }
     public static function is_json($data): bool
     {
-        return is_array(json_decode($data, true));
+        return $data && is_array(json_decode($data, true));
     }
     //判断email格式是否正确
     public static function is_email(string $email): bool
@@ -40,7 +40,7 @@ class Helper
     //判断是否IP
     public static function is_ip($ip)
     {
-        return preg_match("/^((?:(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d)))\.){3}(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d))))$/", $ip);
+        return $ip && preg_match("/^((?:(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d)))\.){3}(?:25[0-5]|2[0-4]\d|((1\d{2})|([1-9]?\d))))$/", $ip);
     }
     // Returns true if $string is valid UTF-8 and false otherwise.
     public static function is_utf8($word): bool
@@ -955,63 +955,5 @@ class Helper
 
         $args[] = &$array;
         call_user_func_array('array_multisort', $args);
-    }
-
-    /**
-     * 文件方式加锁 解锁 主要用于判断是否重复操作
-     * @param string $lockKey
-     * @param int $lockTimeout
-     * @param string|null $dir
-     * @return bool
-     */
-    public static function fileLockOnce(string $lockKey, int $lockTimeout = 10, ?string $dir = null): bool
-    {
-        $lockKey = str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], '', $lockKey);
-        if (!$dir) {
-            $dir = RUNTIME . '/lock';
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
-        }
-        $lockFile = $dir . '/' . $lockKey . '.lock';
-        if ($lockTimeout == 0) { //清除锁定
-            if (file_exists($lockFile)) {
-                touch($lockFile, 0); //这里会重置修改时间为当前时间
-                clearstatcache(true, $lockFile);
-            }
-            return true;
-        }
-        $fp = fopen($lockFile, 'c+'); // 以读写模式打开文件，不截断内容
-        if (!$fp) {
-            return false; // 文件打开失败（如权限问题）
-        }
-        $time = time();
-        if ($time < filemtime($lockFile)) {
-            fclose($fp);
-            return false;
-        }
-
-        $locked = false;
-        try {
-            if (flock($fp, LOCK_EX)) { // 获取独占锁（阻塞模式）
-                clearstatcache(true, $lockFile); //清除缓存
-                $expireTime = filemtime($lockFile);
-                //使用新文件判断方式，并发60秒能正常锁定6次，但每次递增时间会在前次加1；未使用并发会在最60秒时多锁定一次共7次，但锁定递增时间能对齐10秒
-                //$is_new = $time == $expireTime && fread($fp, 1) == ''; //可能是新文件
-                if ($time >= $expireTime) { //$is_new || $time > $expireTime
-                    /*if ($is_new) {
-                        rewind($fp);
-                        fwrite($fp, '1');
-                    }*/
-                    touch($lockFile, $time + $lockTimeout); //设定过期时间
-                    clearstatcache(true, $lockFile); //清除缓存
-                    $locked = true;
-                }
-                flock($fp, LOCK_UN); // 释放锁
-            }
-        } finally {
-            fclose($fp);
-        }
-        return $locked;
     }
 }

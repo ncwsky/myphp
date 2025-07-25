@@ -374,12 +374,12 @@ class lib_redis
      * 加锁 解锁 主要用于保证并发时操作的原子性 会阻塞
      * @param string $lockKey
      * @param int $lockTimeout
-     * @return bool|int|mixed
+     * @return bool
      */
-    public function lockBlock(string $lockKey, int $lockTimeout = 10)
+    public function lockBlock(string $lockKey, int $lockTimeout = 10): bool
     {
         if ($lockTimeout == 0) { //释放锁
-            return $this->handler->del($lockKey);
+            return (bool)$this->handler->del($lockKey);
         }
         do {
             $num = $this->handler->incr($lockKey);
@@ -398,12 +398,12 @@ class lib_redis
      * 加锁 解锁 主要用于判断是否重复操作
      * @param string $lockKey
      * @param int $lockTimeout
-     * @return bool|int|mixed
+     * @return bool
      */
-    public function lockOnce(string $lockKey, int $lockTimeout = 10)
+    public function lockOnce(string $lockKey, int $lockTimeout = 10): bool
     {
         if ($lockTimeout == 0) { //释放锁
-            return $this->handler->del($lockKey);
+            return (bool)$this->handler->del($lockKey);
         }
         $num = $this->handler->incr($lockKey);
         if ($num === 1) {
@@ -418,12 +418,12 @@ class lib_redis
      * 加锁 解锁 主要用于判断是否重复操作 使用setnx方式
      * @param string $lockKey
      * @param int $lockTimeout
-     * @return bool|int|mixed
+     * @return bool
      */
-    public function lockNX(string $lockKey, int $lockTimeout = 10)
+    public function lockNX(string $lockKey, int $lockTimeout = 10): bool
     {
         if ($lockTimeout == 0) { //释放锁
-            return $this->handler->del($lockKey);
+            return (bool)$this->handler->del($lockKey);
         }
         $result = (int)$this->handler->setnx($lockKey, 1);
         if ($result === 1) {

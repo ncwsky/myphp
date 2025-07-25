@@ -877,7 +877,7 @@ function cache($name, $value = '', $option = null)
         if (is_null($value)) {//删除 cache
             $cache->del($name);
         } else {// 设置 session
-            $cache->set($name, $value, is_numeric($option) ? $option : 0);
+            $cache->set($name, $value, is_numeric($option) ? (int)$option : 0);
         }
     }
     return null;

@@ -19,8 +19,7 @@ class Redis extends \myphp\CacheAbstract
         'password' => '',
         'select' => 7, //选择库
         'timeout' => 0,
-        'pconnect' => false, //持续连接
-        'expire' => 0 //有效期
+        'pconnect' => false //持续连接
     ];
     //构造函数
     public function __construct(array $options = [])
@@ -59,20 +58,15 @@ class Redis extends \myphp\CacheAbstract
      * @access public
      * @param string $name 缓存变量名
      * @param mixed $data 存储数据
-     * @param int|null $expire 有效时间（秒）
+     * @param int $expire 有效时间（秒）
      * @return mixed
      */
-    public function set(string $name, $data, ?int $expire = null)
+    public function set(string $name, $data, int $expire = 0)
     {
-        if ($expire === null) {
-            $expire = $this->options['expire'];
-        }
-
-        //$expire = $expire == 0 ? 0 : time() + $expire;//缓存有效期为0表示永久缓存
         $name = $this->options['prefix'].$name;
         //对数组/对象数据进行缓存处理，保证数据完整性
         $data  =  (is_object($data) || is_array($data)) ? json_encode($data) : $data;
-        if (is_int($expire) && $expire) {
+        if ($expire > 0) {
             $result = $this->handler->setex($name, $expire, $data);
         } else {
             $result = $this->handler->set($name, $data);
