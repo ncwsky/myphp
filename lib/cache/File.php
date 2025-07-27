@@ -187,6 +187,8 @@ class File extends \myphp\CacheAbstract
         return $this->incr($name, $increment);
     }
 
+    //todo 模拟  decr decrby  zrevrangebyscore zremrangebyscore zadd rpush lpop lpush rpop
+    // -inf负无穷 +inf正无穷
     /** 设置过期时间
      * @param string $name
      * @param int $time 过期秒数 0不过期

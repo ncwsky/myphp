@@ -49,7 +49,7 @@ class tb_sqlite extends \myphp\TbBase
         $res = $db->query($sql);
         while ($rs = $db->fetch($res)) {
             $rs = array_change_key_case($rs);
-            $null = strtolower($rs['notnull']) == 0 ? 1 : 0;
+            $null = $rs['notnull'] == 0 ? 1 : 0;
             $toRule = $this->fieldToRule(strtolower($rs['type']), $vType);
             //规则
             $rule[$rs['name']] = [
@@ -62,7 +62,7 @@ class tb_sqlite extends \myphp\TbBase
                 $rule[$rs['name']]['def'] = $rs['dflt_value'];
             }
             //主键
-            if ($prikey == '' && (strtolower($rs['pk']) == 1)) { //sqlite只允许一个主键
+            if ($prikey == '' && ($rs['pk'] == 1)) { //sqlite只允许一个主键
                 $prikey = $rs['name'];
                 if ($autoKey == '' && stripos($rs['type'], 'int') !== false) {
                     $autoKey = $rs['name'];
@@ -86,6 +86,9 @@ class tb_sqlite extends \myphp\TbBase
         $sql = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"; // UNION ALL SELECT name FROM sqlite_temp_master WHERE type='table'
         $res = $db->query($sql);
         while ($rs = $db->fetch($res, 'num')) {
+            if ($rs[0] == 'sqlite_sequence') {
+                continue;
+            }
             $tables[] = $rs[0];
         }
         return $tables;
