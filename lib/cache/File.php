@@ -60,15 +60,11 @@ class File extends \myphp\CacheAbstract
     {
         $this->options['mode'] = $mode == self::MODE_SERIALIZE ? self::MODE_SERIALIZE : self::MODE_PHP;
     }
-    public function buildKey($key): string
+    public function buildKey(string $key): string
     {
-        if (is_scalar($key)) {
-            $key = str_replace(['\\','/',':','*','?','"','<','>','|'], '', $key);
-            $key = strlen($key) <= 128 ? $key : md5($key); //ctype_alnum($key)
-        } else {
-            $key = md5(json_encode($key));
-        }
-        return $key;
+        $key = str_replace(['\\', '/', ':', '*', '?', '"', '<', '>', '|'], '', $key);
+        //ctype_alnum($key)
+        return strlen($key) <= 128 ? $key : md5($key);
     }
 
     /**
@@ -187,7 +183,29 @@ class File extends \myphp\CacheAbstract
         return $this->incr($name, $increment);
     }
 
-    //todo 模拟  decr decrby  zrevrangebyscore zremrangebyscore zadd rpush lpop lpush rpop
+    /**
+     * 获取所有符合给定模式 pattern 的 key, key超出128字符、hset的key无法获取
+     * @param string $pattern
+     * @return array
+     */
+    public function keys(string $pattern): array
+    {
+        $pattern = str_replace(['\\', '/', ':', '?', '"', '<', '>', '|'], '', $pattern);
+        $keys = [];
+        $prefixLen = strlen($this->options['prefix']);
+        $path = $this->options['path'] . DIRECTORY_SEPARATOR . $this->options['prefix'] . $pattern . $this->suffix;
+
+        $files = glob($path);
+        if ($files) {
+            foreach ($files as $file) {
+                $name = basename($file, $this->suffix);
+                $keys[] = $prefixLen ? substr($name, $prefixLen) : $name;
+            }
+        }
+        return $keys;
+    }
+
+    //todo 模拟  decr decrby zrevrangebyscore zremrangebyscore zadd rpush lpop lpush rpop scan
     // -inf负无穷 +inf正无穷
     /** 设置过期时间
      * @param string $name
@@ -301,7 +319,7 @@ class File extends \myphp\CacheAbstract
         }
         return @unlink($file);
     }
-    public function hGetAll($name): array
+    public function hGetAll(string $name): array
     {
         $name = $this->buildKey($name);
         $keyList = [];
@@ -334,7 +352,7 @@ class File extends \myphp\CacheAbstract
         }*/
         return $keyList;
     }
-    public function hLen($name): int
+    public function hLen(string $name): int
     {
         $name = $this->buildKey($name);
         $len = 0;
@@ -362,7 +380,7 @@ class File extends \myphp\CacheAbstract
         return $len;
     }
     //多键值的缓存文件路径
-    protected function _hFile($name, $key, bool $mkdir = false): string
+    protected function _hFile(string $name, $key, bool $mkdir = false): string
     {
         $name = $this->buildKey($name);
         if ($mkdir && !is_dir($this->options['path'].DIRECTORY_SEPARATOR.$name)) {

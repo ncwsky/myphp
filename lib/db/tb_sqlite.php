@@ -59,6 +59,9 @@ class tb_sqlite extends \myphp\TbBase
             ];
             //无def项时表示必需有值
             if ($rs['dflt_value'] !== null || $null) { //不是not null 或 非null的有默认值|可为null
+                if ($rs['dflt_value'] == '""' || $rs['dflt_value'] == "''") {
+                    $rs['dflt_value'] = '';
+                }
                 $rule[$rs['name']]['def'] = $rs['dflt_value'];
             }
             //主键
