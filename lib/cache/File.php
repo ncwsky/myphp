@@ -139,7 +139,7 @@ class File extends \myphp\CacheAbstract
      * @param int $expire
      * @return int
      */
-    public function incr(string $name, int $increment = 1, int $expire = 0): int
+    public function incr(string $name, int $increment = 1, int $expire = 0): ?int
     {
         //$file = $this->_hFile('.incr', $name, true); //自增值 固定目录.incr
         $file = $this->_file($name);
@@ -147,7 +147,6 @@ class File extends \myphp\CacheAbstract
         if (!$fp) {
             return 0;
         }
-        $num = -1;
         try {
             if (flock($fp, LOCK_EX)) {
                 $time = time();
@@ -157,12 +156,12 @@ class File extends \myphp\CacheAbstract
                 } else {
                     $num = (int)$this->_rContent($file, $fp);
                 }
-                if ($increment > 1) {
+                if ($increment != 1) {
                     $num += $increment;
                 } else {
                     $num++;
                 }
-                if ($num == $increment) {
+                if ($num == $increment) { //初始值
                     $mtime = $expire > 0 ? $expire + $time : 0;//$time + 315360000
                 }
                 fseek($fp, 0);
@@ -175,12 +174,22 @@ class File extends \myphp\CacheAbstract
         } finally {
             fclose($fp);
         }
-        return $num;
+        return $num ?? null;
     }
 
-    public function incrby(string $name, int $increment): int
+    public function incrby(string $name, int $increment): ?int
     {
         return $this->incr($name, $increment);
+    }
+
+    public function decr(string $name): ?int
+    {
+        return $this->incr($name, -1);
+    }
+
+    public function decrby(string $name, int $decrement): ?int
+    {
+        return $this->incr($name, -$decrement);
     }
 
     /**
@@ -205,7 +214,7 @@ class File extends \myphp\CacheAbstract
         return $keys;
     }
 
-    //todo 模拟  decr decrby zrevrangebyscore zremrangebyscore zadd rpush lpop lpush rpop scan
+    //todo 模拟  zrevrangebyscore zremrangebyscore zadd rpush lpop lpush rpop scan
     // -inf负无穷 +inf正无穷
     /** 设置过期时间
      * @param string $name
