@@ -192,6 +192,123 @@ class File extends \myphp\CacheAbstract
         return $this->incr($name, -$decrement);
     }
 
+    public function push(string $name, $value, bool $unshift = false): int
+    {
+        $file = $this->_file($name);
+        $fp = fopen($file, 'c+');
+        if (!$fp) {
+            return 0;
+        }
+        $data = [];
+        try {
+            if (flock($fp, LOCK_EX)) {
+                $time = time();
+                $mtime = filemtime($file);
+                if ($mtime && $mtime < $time) {
+                    $data = [];
+                } else {
+                    $data = $this->_rContent($file, $fp);
+                    if ($data === false) {
+                        $data = [];
+                    }
+                }
+                if (count($data) == 0) { //初始数据时
+                    $mtime = 0; //$time + 315360000
+                }
+                if ($unshift) { //插入头部
+                    if (is_array($value)) { //多个追加
+                        array_unshift($data, ...$value);
+                    } else {
+                        array_unshift($data, $value);
+                    }
+                } else { //追加尾部
+                    if (is_array($value)) { //多个追加
+                        var_dump($value);
+                        array_push($data, ...$value);
+                    } else {
+                        $data[] = $value;
+                    }
+                }
+                fseek($fp, 0);
+                if (false !== fwrite($fp, $this->_content($data))) {
+                    touch($file, $mtime);
+                    clearstatcache(true, $file); //清除缓存
+                }
+                flock($fp, LOCK_UN);
+            }
+        } finally {
+            fclose($fp);
+        }
+        return count($data);
+    }
+
+    public function rpush(string $name, ...$value)
+    {
+        return $this->push($name, $value);
+    }
+
+    public function lpush(string $name, ...$value)
+    {
+        return $this->push($name, $value, true);
+    }
+
+    public function pop(string $name, bool $unshift = false)
+    {
+        $file = $this->_file($name);
+        $fp = fopen($file, 'c+');
+        if (!$fp) {
+            return 0;
+        }
+        $value = null;
+        try {
+            if (flock($fp, LOCK_EX)) {
+                $time = time();
+                $mtime = filemtime($file);
+                if ($mtime && $mtime < $time) {
+                    $data = [];
+                } else {
+                    $data = $this->_rContent($file, $fp);
+                    if ($data === false) {
+                        $data = [];
+                    }
+                }
+                if (count($data) == 0) { //是初始数据
+                    $mtime = 0; //$time + 315360000
+                }
+                if ($data) {
+                    if ($unshift) { //头部取出
+                        $value = array_shift($data);
+                    } else { //尾部取出
+                        $value = array_pop($data);
+                    }
+                }
+
+                if ($value !== null) { //有数据
+                    fseek($fp, 0);
+                    if (false !== fwrite($fp, $this->_content($data))) {
+                        touch($file, $mtime);
+                        clearstatcache(true, $file); //清除缓存
+                    }
+                }
+                flock($fp, LOCK_UN);
+            }
+        } finally {
+            fclose($fp);
+        }
+        return $value;
+    }
+
+
+    public function rpop(string $name)
+    {
+        return $this->pop($name);
+    }
+
+    public function lpop(string $name)
+    {
+        return $this->pop($name, true);
+    }
+
     /**
      * 获取所有符合给定模式 pattern 的 key, key超出128字符、hset的key无法获取
      * @param string $pattern
@@ -214,7 +331,7 @@ class File extends \myphp\CacheAbstract
         return $keys;
     }
 
-    //todo 模拟  zrevrangebyscore zremrangebyscore zadd rpush lpop lpush rpop scan
+    //todo 模拟  zrevrangebyscore zremrangebyscore zadd scan
     // -inf负无穷 +inf正无穷
     /** 设置过期时间
      * @param string $name
