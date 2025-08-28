@@ -149,8 +149,8 @@ class File extends \myphp\CacheAbstract
         }
         try {
             if (flock($fp, LOCK_EX)) {
-                $time = time();
                 $mtime = filemtime($file);
+                $time = time();
                 if ($mtime && $mtime < $time) {
                     $num = 0;
                 } else {
@@ -202,9 +202,8 @@ class File extends \myphp\CacheAbstract
         $data = [];
         try {
             if (flock($fp, LOCK_EX)) {
-                $time = time();
                 $mtime = filemtime($file);
-                if ($mtime && $mtime < $time) {
+                if ($mtime && $mtime < time()) {
                     $data = [];
                 } else {
                     $data = $this->_rContent($file, $fp);
@@ -213,7 +212,7 @@ class File extends \myphp\CacheAbstract
                     }
                 }
                 if (count($data) == 0) { //初始数据时
-                    $mtime = 0; //$time + 315360000
+                    $mtime = 0;
                 }
                 if ($unshift) { //插入头部
                     if (is_array($value)) { //多个追加
@@ -223,7 +222,6 @@ class File extends \myphp\CacheAbstract
                     }
                 } else { //追加尾部
                     if (is_array($value)) { //多个追加
-                        var_dump($value);
                         array_push($data, ...$value);
                     } else {
                         $data[] = $value;
@@ -268,7 +266,7 @@ class File extends \myphp\CacheAbstract
                     $data = [];
                 } else {
                     $data = $this->_rContent($file, $fp);
-                    if ($data === false) {
+                    if ($data === false || !is_array($data)) {
                         $data = [];
                     }
                 }
@@ -283,7 +281,7 @@ class File extends \myphp\CacheAbstract
                     }
                 }
 
-                if ($value !== null) { //有数据
+                if ($value !== null) { //有弹出数据
                     fseek($fp, 0);
                     if (false !== fwrite($fp, $this->_content($data))) {
                         touch($file, $mtime);
@@ -298,7 +296,6 @@ class File extends \myphp\CacheAbstract
         return $value;
     }
 
-
     public function rpop(string $name)
     {
         return $this->pop($name);
@@ -307,6 +304,33 @@ class File extends \myphp\CacheAbstract
     public function lpop(string $name)
     {
         return $this->pop($name, true);
+    }
+
+    public function llen(string $name)
+    {
+        $file = $this->_file($name);
+        $fp = fopen($file, 'c+');
+        if (!$fp) {
+            return 0;
+        }
+        $data = [];
+        try {
+            if (flock($fp, LOCK_EX)) {
+                $mtime = filemtime($file);
+                if ($mtime && $mtime < time()) {
+                    $data = [];
+                } else {
+                    $data = $this->_rContent($file, $fp);
+                    if ($data === false || !is_array($data)) {
+                        $data = [];
+                    }
+                }
+                flock($fp, LOCK_UN);
+            }
+        } finally {
+            fclose($fp);
+        }
+        return count($data);
     }
 
     /**
