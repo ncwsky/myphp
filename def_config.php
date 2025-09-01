@@ -25,7 +25,7 @@ return [
         'user' => 'root', //数据库用户
         'pwd' => '', //数据库密码
         'port' => 3306,   // 端口
-        'char' => 'utf8', //数据库编码
+        'char' => 'utf8mb4', //数据库编码 utf8
         //'timezone'=>'', //数据库时区 mysql +08:00,pqsql PRC
         'prefix' => '',   //数据库表前缀
         //'prod' => false,  //生产环境 对没有建表model的生成表缓存信息

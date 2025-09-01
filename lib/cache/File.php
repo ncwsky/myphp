@@ -334,6 +334,172 @@ class File extends \myphp\CacheAbstract
     }
 
     /**
+     * 有序集合
+     * @param string $name
+     * @param int|float $score
+     * @param string $value
+     * @return int|string
+     */
+    public function zadd(string $name, $score, string $value)
+    {
+        $file = $this->_file($name);
+        $fp = fopen($file, 'c+');
+        if (!$fp) {
+            return 0;
+        }
+        try {
+            if (flock($fp, LOCK_EX)) {
+                $time = time();
+                $mtime = filemtime($file);
+                if ($mtime && $mtime < $time) {
+                    $data = [
+                        'values' => [],
+                        'sort' => []
+                    ];
+                } else {
+                    $data = $this->_rContent($file, $fp);
+                    if ($data === false || !is_array($data)) {
+                        $data = [
+                            'values' => [],
+                            'sort' => []
+                        ];
+                    }
+                }
+                if (count($data['values']) == 0) { //是初始数据
+                    $mtime = 0; //$time + 315360000
+                }
+                $md5 = md5($value);
+                $data['values'][$md5] = $value;
+                $data['sort'][$md5] = (float)$score;
+                asort($data['sort']);
+
+                fseek($fp, 0);
+                if (false !== fwrite($fp, $this->_content($data))) {
+                    touch($file, $mtime);
+                    clearstatcache(true, $file); //清除缓存
+                }
+                flock($fp, LOCK_UN);
+            }
+        } finally {
+            fclose($fp);
+        }
+        return 1;
+    }
+
+    /**
+     * 返回有序集中指定分数区间内的成员，分数从高到低排序
+     * @param string $name
+     * @param string $max
+     * @param string $min
+     * @param string|bool $WITHSCORES
+     * @return array|int
+     */
+    public function zrevrangebyscore(string $name, $max, $min, $WITHSCORES = null)
+    {
+        $file = $this->_file($name);
+        $fp = fopen($file, 'c+');
+        if (!$fp) {
+            return 0;
+        }
+        $values = [];
+        try {
+            if (flock($fp, LOCK_EX)) {
+                $time = time();
+                $mtime = filemtime($file);
+                if ($mtime && $mtime < $time) {
+                    $data = [
+                        'values' => [],
+                        'sort' => []
+                    ];
+                } else {
+                    $data = $this->_rContent($file, $fp);
+                    if ($data === false || !is_array($data)) {
+                        $data = [
+                            'values' => [],
+                            'sort' => []
+                        ];
+                    }
+                }
+                $max = $max == '+inf' ? PHP_INT_MAX : (float)$max;
+                $min = $min == '-inf' ? -PHP_INT_MAX : (float)$min;
+                foreach ($data['sort'] as $md5 => $score) {
+                    if ($score <= $max && $score >= $min) {
+                        $values[] = $data['values'][$md5];
+                    }
+                    if ($score > $max) {
+                        break;
+                    }
+                }
+                flock($fp, LOCK_UN);
+            }
+        } finally {
+            fclose($fp);
+        }
+        return $values;
+    }
+
+    /**
+     * 移除有序集合中给定的分数区间的所有成员
+     * @param string $name
+     * @param string $min
+     * @param string $max
+     * @return int
+     */
+    public function zremrangebyscore(string $name, $min, $max)
+    {
+        $file = $this->_file($name);
+        $fp = fopen($file, 'c+');
+        if (!$fp) {
+            return 0;
+        }
+        $del = 0;
+        try {
+            if (flock($fp, LOCK_EX)) {
+                $time = time();
+                $mtime = filemtime($file);
+                if ($mtime && $mtime < $time) {
+                    $data = [
+                        'values' => [],
+                        'sort' => []
+                    ];
+                } else {
+                    $data = $this->_rContent($file, $fp);
+                    if ($data === false || !is_array($data)) {
+                        $data = [
+                            'values' => [],
+                            'sort' => []
+                        ];
+                    }
+                }
+                if (count($data['values']) == 0) { //是初始数据
+                    $mtime = 0; //$time + 315360000
+                }
+                $max = $max == '+inf' ? PHP_INT_MAX : (float)$max;
+                $min = $min == '-inf' ? -PHP_INT_MAX : (float)$min;
+                foreach ($data['sort'] as $md5 => $score) {
+                    if ($score <= $max && $score >= $min) {
+                        unset($data['sort'][$md5], $data['values'][$md5]);
+                        $del++;
+                    }
+                    if ($score > $max) {
+                        break;
+                    }
+                }
+
+                fseek($fp, 0);
+                if (false !== fwrite($fp, $this->_content($data))) {
+                    touch($file, $mtime);
+                    clearstatcache(true, $file); //清除缓存
+                }
+                flock($fp, LOCK_UN);
+            }
+        } finally {
+            fclose($fp);
+        }
+        return $del;
+    }
+
+    /**
      * 获取所有符合给定模式 pattern 的 key, key超出128字符、hset的key无法获取
      * @param string $pattern
      * @return array
@@ -355,7 +521,7 @@ class File extends \myphp\CacheAbstract
         return $keys;
     }
 
-    //todo 模拟  zrevrangebyscore zremrangebyscore zadd scan
+    //todo 模拟 scan zrange
     // -inf负无穷 +inf正无穷
     /** 设置过期时间
      * @param string $name

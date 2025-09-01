@@ -33,11 +33,12 @@ class GetOpt
      * 选项的解析会终止于找到的第一个非选项，之后的任何东西都会被丢弃。
      * @param string $short
      * @param array $long
+     * @param null $rest_index
      * @return array
      */
-    public static function parse(string $short, array $long = []): array
+    public static function parse(string $short, array $long = [], &$rest_index = null): array
     {
-        self::$options = getopt($short, $long);
+        self::$options = getopt($short, $long, $rest_index);
         if (self::$options === false) {
             self::$options = [];
         }
