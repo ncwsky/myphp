@@ -782,7 +782,7 @@ function cookie($name, $value = '', $option = null)
             $flag = substr($value, 0, 2);
             if ($flag == '@:' || $flag == '@*') {
                 $value = substr($value, 2);
-                $value = json_decode($flag == '@*' ? gzuncompress($value) : $value, true);
+                $value = \json_decode($flag == '@*' ? gzuncompress($value) : $value, true);
             }
             return $value;
         }
@@ -804,7 +804,7 @@ function cookie($name, $value = '', $option = null)
             unset($_COOKIE[$name]); // 删除指定cookie
         } else {// 设置cookie
             if (is_array($value)) {
-                $value = json_encode($value);
+                $value = \json_encode($value);
                 $value = strlen($value) > 768 ? '@*'.gzcompress($value) : '@:'.$value;
             }
             $value = $encode ? sys_auth($value, 'ENCODE') : $value;
@@ -941,7 +941,7 @@ function Q($name, $defVal = '', $datas = null)
                 $rawBody = myphp::rawBody();
                 $first_c = substr($rawBody, 0, 1);
                 if ($first_c == '[' || $first_c == '{') {
-                    $_PUT = (array)json_decode($rawBody, true);
+                    $_PUT = (array)\json_decode($rawBody, true);
                 } else {
                     parse_str($rawBody, $_PUT);
                 }

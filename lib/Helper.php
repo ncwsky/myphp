@@ -25,7 +25,7 @@ class Helper
     }
     public static function is_json($data): bool
     {
-        return $data && is_array(json_decode($data, true));
+        return $data && is_array(\json_decode($data, true));
     }
     //判断email格式是否正确
     public static function is_email(string $email): bool
@@ -365,13 +365,13 @@ class Helper
     //json_encode 缩写
     public static function toJson($res, $option = 0)
     {
-        if ($option == 0 && defined('JSON_UNESCAPED_UNICODE')) {
-            $option = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+        if ($option == 0) {
+            $option = \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES;
             if (defined('JSON_INVALID_UTF8_SUBSTITUTE')) {
-                $option |= JSON_INVALID_UTF8_SUBSTITUTE;
+                $option |= \JSON_INVALID_UTF8_SUBSTITUTE;
             }
         }
-        return json_encode($res, $option);
+        return \json_encode($res, $option);
     }
     //toXml 转换成xml
     public static function toXml(array $res, bool $r = false): string
@@ -393,7 +393,7 @@ class Helper
     {
         //禁止引用外部xml实体
         //libxml_disable_entity_loader(true);
-        return json_decode(json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
+        return \json_decode(\json_encode(simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
     }
 
     /**

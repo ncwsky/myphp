@@ -319,7 +319,7 @@ class lib_redis
             if ($val === null) {
                 return $val;
             }
-            $jsonData = json_decode($val, true);
+            $jsonData = \json_decode($val, true);
             return ($jsonData === null) ? $val : $jsonData;    //检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
         }
         return $val;
@@ -339,8 +339,7 @@ class lib_redis
         }
         //对数组/对象数据进行缓存处理，保证数据完整性
         if (is_array($data) || is_object($data)) {
-            $option = defined('JSON_UNESCAPED_UNICODE') ? JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES : 0;
-            $data = json_encode($data, $option);
+            $data = \json_encode($data, \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES);
         }
         if ($expire > 0) {
             $result = $this->handler->setex($name, $expire, $data);

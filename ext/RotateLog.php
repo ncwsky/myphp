@@ -61,7 +61,7 @@ class RotateLog
 
     public function json($content)
     {
-        return json_encode($content, defined('JSON_UNESCAPED_UNICODE') ? JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES : 0);
+        return \json_encode($content, \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES);
     }
 
     //仅记录指定大小的日志 超出大小重置重新记录

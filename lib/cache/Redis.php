@@ -49,7 +49,7 @@ class Redis extends \myphp\CacheAbstract
     public function get(string $name)
     {
         $value = $this->handler->get($this->options['prefix'].$name);
-        $jsonData = json_decode($value, true);
+        $jsonData = \json_decode($value, true);
         return ($jsonData === null) ? $value : $jsonData;	//检测是否为JSON数据 true 返回JSON解析数组, false返回源数据
     }
 
@@ -65,7 +65,7 @@ class Redis extends \myphp\CacheAbstract
     {
         $name = $this->options['prefix'].$name;
         //对数组/对象数据进行缓存处理，保证数据完整性
-        $data  =  (is_object($data) || is_array($data)) ? json_encode($data) : $data;
+        $data  =  (is_object($data) || is_array($data)) ? \json_encode($data) : $data;
         if ($expire > 0) {
             $result = $this->handler->setex($name, $expire, $data);
         } else {

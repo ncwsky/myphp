@@ -191,7 +191,7 @@ class ReplyAckQueue
                         break;
                     }
                     //echo $res[3].PHP_EOL;
-                    $data = json_decode($res[1], true);
+                    $data = \json_decode($res[1], true);
                     if (isset($data['uid'])) {
                         /* //todo 实现发送 及应答处理
                        $this->data = $data;
