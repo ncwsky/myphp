@@ -7,7 +7,7 @@ class Http
     public static $way = 0;
     public static $protocol = '1.1';
     public static $curlOpt = []; //curl配置 ssl cookie header redirect opts[curl_opt=>value,..]
-    public static $curlProxy = []; //代理 [user,pass,host,port]
+    public static $curlProxy = []; //代理 [scheme,user,pass,host,port]
     public static $curlBeforeCall = null; //curl前置处理 function(&$url, &$type, &$data, &$timeout, &$header, &$opt):void
     public static $curlAfterCall = null; //curl后置处理 function(&$result):void
     public static $curlRetries = 0;
@@ -243,6 +243,13 @@ class Http
             $options[CURLOPT_PROXY] = $host;
             if (isset(self::$curlProxy['user']) && isset(self::$curlProxy['pass'])) {
                 $options[CURLOPT_PROXYUSERPWD] = self::$curlProxy['user'] . ':' . self::$curlProxy['pass'];
+            }
+            if (isset(self::$curlProxy['scheme'])) {
+                if (self::$curlProxy['scheme'] == 'socket5') {
+                    $options[CURLOPT_PROXYTYPE] = CURLPROXY_SOCKS5;
+                } elseif (self::$curlProxy['scheme'] == 'https') {
+                    //$options[CURLOPT_PROXYTYPE] = CURLPROXY_HTTPS;
+                }
             }
         }
 
@@ -481,9 +488,9 @@ class Http
 
             while ($info = curl_multi_info_read($mh, $queued_messages)) {
                 $key = (int)$info['handle'];
-                $httpCode = curl_getinfo($info['handle'], CURLINFO_HTTP_CODE); //状态码
-                $total_time = curl_getinfo($info['handle'], CURLINFO_TOTAL_TIME); //执行时间
-                $url = curl_getinfo($info['handle'], CURLINFO_EFFECTIVE_URL);
+                #$httpCode = curl_getinfo($info['handle'], CURLINFO_HTTP_CODE); //状态码
+                #$total_time = curl_getinfo($info['handle'], CURLINFO_TOTAL_TIME); //执行时间
+                #$url = curl_getinfo($info['handle'], CURLINFO_EFFECTIVE_URL);
                 //echo ('resource:' . $key . ', queue:' . $queued_messages . ', result:' . $info['result'] . ', http_code:' . $httpCode . ', rt:' . $total_time . ', ' . $url . ' -> ' . curl_errno($info['handle']) . ':' . curl_error($info['handle'])), PHP_EOL;
 
                 if ($info['result'] === CURLE_OK) {
