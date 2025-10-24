@@ -31,6 +31,7 @@ class Db
 {
     public static $sql = ''; //完整的Sql
     public static $times = 0; //执行次数
+    public static $useIdentifier = false; //字段fields、条件处理makeWhere时使用标识符
     private static $log_type = 0; //是否记录sql
     private static $instance = [];
 
@@ -507,9 +508,28 @@ class Db
      * @param $val
      * @return $this
      */
-    public function fields($val): Db
+    public function fields($names): Db
     {
-        $this->options['fields'] = is_array($val) ? implode(',', $val) : $val;
+        if (is_array($names)) {
+            if (self::$useIdentifier) {
+                foreach ($names as $k => $v) {
+                    if ($v instanceof Expr || strpos($v, ' ') || strpos($v, '.') || strpos($v, '(')) { //表达式 有别名 指定库名 函数其他
+                        continue;
+                    }
+                    /*
+                    if ($pos = strpos($v, ' ')) { //有别名
+                        $v = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, $v);
+                    } elseif (strpos($v, '.')) { //指定库名
+                        $v = str_replace('.', $this->endSpec . '.' . $this->startSpec, $v);
+                    }*/
+                    $names[$k] = $this->startSpec . $v . $this->endSpec;
+                }
+            }
+            $this->options['fields'] = implode(',', $names);
+        } else {
+            $this->options['fields'] = $names;
+        }
+
         return $this;
     }
     /**
@@ -576,6 +596,12 @@ class Db
                         $k = substr($k, 0, $pos);
                     } elseif (is_array($v) || $v instanceof Model) {
                         $operator = ' in ';
+                    }
+                    if (self::$useIdentifier) {
+                        if (strpos($k, '.') || strpos($k, '(')) { //指定库名 函数其他
+                        } else {
+                            $k = $this->startSpec . $k . $this->endSpec;
+                        }
                     }
                     switch ($operator) {
                         case ' between ':
@@ -907,13 +933,13 @@ class Db
      * @return mixed|string 自动自增获取最后插入记录的id
      * @throws Exception
      */
-    public function add($post, $table = '')
+    public function add(array $post, string $table = '')
     {
         $this->execute($this->add_sql($post, $table));
         return $this->db->insert_id();
     }
     //更新记录 $where[str|arr]
-    public function update_sql($post, $table = '', $where = '')
+    public function update_sql(array $post, string $table = '', $where = '')
     {
         $value = '';
         if (is_array($post)) {
