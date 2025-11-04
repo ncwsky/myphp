@@ -62,6 +62,15 @@ $_appDir = MY_RUN_DIR . '/' . $_app;
 if (!$init && !is_dir($_appDir)) {
     die($_appDir . ' directory does not exist');
 }
+if ($init && $_app != 'app') { //初始
+    $entryFile = APP_RUN_DIR . '/web/' . $_app . '.php';
+    $defEntryFile = APP_RUN_DIR . '/web/index.php';
+    if (!file_exists($entryFile) && file_exists($defEntryFile)) { //生成web下的单独的入口文件
+        file_put_contents($entryFile, str_replace('/app', '/' . $_app, file_get_contents($defEntryFile)));
+        echo $_app . ' 入口文件(' . $entryFile . ')生成完成', PHP_EOL;
+        echo "可在 conf.php -> module_maps 下配置: '" . $_app . "'=>'/" . $_app . "', 实现 /" . $_app . " 访问映射", PHP_EOL;
+    }
+}
 $_SERVER['IS_CLI_RUN'] = true;
 define('APP_PATH', $_appDir);
 define('COMMON', MY_RUN_DIR . '/common');
