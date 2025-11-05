@@ -146,7 +146,7 @@ class Control
         return $this;
     }
     //在子类控制器及方法中调用 显示模板 非cli模式下使用
-    final public function display(string $file = '', array $var = null, bool $htmlEncode = null)
+    final public function display(string $file = '', ?array $var = null, ?bool $htmlEncode = null)
     {
         $this->response->setContentType(Response::CONTENT_TYPE_HTML);
         if ($htmlEncode === null) {
@@ -169,7 +169,7 @@ class Control
      * @param bool $htmlEncode
      * @return Response
      */
-    final public function fetch(string $file = '', array $var = null, bool $htmlEncode = null): Response
+    final public function fetch(string $file = '', ?array $var = null, ?bool $htmlEncode = null): Response
     {
         if ($htmlEncode === null) {
             $htmlEncode = $this->htmlEncode;

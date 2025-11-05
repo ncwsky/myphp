@@ -981,7 +981,7 @@ function Q($name, $defVal = '', $datas = null)
     return $val;
 }
 
-function intPost(string $name, int $min = null, int $max = null, int $default = 0): int
+function intPost(string $name, ?int $min = null, ?int $max = null, int $default = 0): int
 {
     if (!isset($_POST[$name])) {
         return $default;
@@ -991,7 +991,7 @@ function intPost(string $name, int $min = null, int $max = null, int $default = 
     return $val;
 }
 
-function intGet(string $name, int $min = null, int $max = null, int $default = 0): int
+function intGet(string $name, ?int $min = null, ?int $max = null, int $default = 0): int
 {
     if (!isset($_GET[$name])) {
         return $default;
@@ -1001,7 +1001,7 @@ function intGet(string $name, int $min = null, int $max = null, int $default = 0
     return $val;
 }
 
-function floatPost(string $name, float $min = null, float $max = null, float $default = 0): float
+function floatPost(string $name, ?float $min = null, ?float $max = null, float $default = 0): float
 {
     if (!isset($_POST[$name])) {
         return $default;
@@ -1011,7 +1011,7 @@ function floatPost(string $name, float $min = null, float $max = null, float $de
     return $val;
 }
 
-function floatGet(string $name, float $min = null, float $max = null, float $default = 0): float
+function floatGet(string $name, ?float $min = null, ?float $max = null, float $default = 0): float
 {
     if (!isset($_GET[$name])) {
         return $default;
@@ -1041,7 +1041,7 @@ function dateGet(string $name, string $default = ''): string
     return Value::get($_GET, $name, ['date'], $default);
 }
 
-function strPost(string $name, int $max = null, int $min = null, string $default = ''): string
+function strPost(string $name, ?int $max = null, ?int $min = null, string $default = ''): string
 {
     if (!isset($_POST[$name])) {
         return $default;
@@ -1051,7 +1051,7 @@ function strPost(string $name, int $max = null, int $min = null, string $default
     return $val;
 }
 
-function strGet(string $name, int $max = null, int $min = null, string $default = ''): string
+function strGet(string $name, ?int $max = null, ?int $min = null, string $default = ''): string
 {
     if (!isset($_GET[$name])) {
         return $default;

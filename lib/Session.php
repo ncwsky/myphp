@@ -46,7 +46,7 @@ class Session
      * @param array|null $opts
      * @return mixed|EnvSessionInterface
      */
-    public static function init(array $opts = null)
+    public static function init(?array $opts = null)
     {
         if (!self::$instance) {
             if (self::$callable) {
@@ -111,7 +111,7 @@ class EnvSession implements EnvSessionInterface
      * @param array|null $opts
      * @return void
      */
-    public function open(array $opts = null): void
+    public function open(?array $opts = null): void
     {
         if ($this->isActive()) {
             return;

@@ -204,7 +204,7 @@ final class myphp
         return $res;
     }
     //初始框架
-    public static function init(array $cfg = null): void
+    public static function init(?array $cfg = null): void
     {
         //引入默认配置文件
         self::$cfg = require(__DIR__ . '/def_config.php');
@@ -310,7 +310,7 @@ final class myphp
      * @param bool $isCli
      * @throws \Exception
      */
-    public static function Run(callable $sendFun = null, bool $isCli = IS_CLI): void
+    public static function Run(?callable $sendFun = null, bool $isCli = IS_CLI): void
     {
         self::Analysis($isCli);	//开始解析URL获得请求的控制器和方法及初始化
         self::$sendFun = $sendFun;

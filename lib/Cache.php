@@ -24,7 +24,7 @@ class Cache
      * @param bool $new
      * @return \myphp\cache\File|\myphp\cache\Redis
      */
-    public static function getInstance(string $type = 'file', array $options = null, bool $new = false)
+    public static function getInstance(string $type = 'file', ?array $options = null, bool $new = false)
     {
         if (!isset(self::$instance[$type]) || $new) {
             if ($options === null) {
@@ -50,7 +50,7 @@ abstract class CacheAbstract
      * CacheAbstract constructor.
      * @param array|null $options
      */
-    public function __construct(array $options = null)
+    public function __construct(?array $options = null)
     {
         if (is_array($options)) {
             $this->options  = array_merge($this->options, $options);

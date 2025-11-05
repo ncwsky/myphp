@@ -1,3 +1,7 @@
 # composer vendor dir
 /vendor
 /.idea
+/runtime
+/log
+/composer.lock
+/.php-cs-fixer.cache

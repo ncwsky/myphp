@@ -115,7 +115,7 @@ class Model implements \ArrayAccess
      * @param string|Db $dbName
      * @throws \Exception
      */
-    final public function __construct(string $tbName = null, $dbName = null)
+    final public function __construct(?string $tbName = null, $dbName = null)
     {
         if ($dbName === null) {
             $this->db = static::getDb();
@@ -149,7 +149,7 @@ class Model implements \ArrayAccess
      * @param array|null $rule ['rule'=>'%d{1,10}','def'=>0]|null
      * @param bool $merge 真替换合并,否时替换覆盖
      */
-    public function setRule($name, array $rule = null, bool $merge = true): void
+    public function setRule($name, ?array $rule = null, bool $merge = true): void
     {
         if (is_array($name)) {
             $this->fieldRule = $merge ? array_replace_recursive($this->fieldRule, $name) : array_merge($this->fieldRule, $name);
@@ -196,7 +196,7 @@ class Model implements \ArrayAccess
         }
     }
     //获取字段数据
-    public function getData(string $name = null)
+    public function getData(?string $name = null)
     {
         if ($name !== null) {
             return $this->_data[$name] ?? null;
@@ -204,7 +204,7 @@ class Model implements \ArrayAccess
         return $this->_data ?: [];
     }
     //获取字段旧数据
-    public function getOldData(string $name = null)
+    public function getOldData(?string $name = null)
     {
         if ($name !== null) {
             return $this->_oldData[$name] ?? null;
@@ -553,7 +553,7 @@ class Model implements \ArrayAccess
      * @param array|null $bind 要解析的参数
      * @return $this
      */
-    protected function _where($case, array $bind = null)
+    protected function _where($case, ?array $bind = null)
     {
         if (self::$resetWhere) {
             unset($this->db->where);
@@ -582,7 +582,7 @@ class Model implements \ArrayAccess
      * @param array|null $bind 要解析的参数
      * @return $this
      */
-    public function andWhere($case, array $bind = null)
+    public function andWhere($case, ?array $bind = null)
     {
         $this->db->where($case, $bind);
         return $this;

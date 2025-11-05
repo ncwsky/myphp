@@ -34,7 +34,7 @@ class ReplyAck
      * @param string $prefix 前缀
      * @param int $timeout
      */
-    public static function init(string $redisName = null, string $prefix = 'RA', int $timeout = 5): void
+    public static function init(?string $redisName = null, string $prefix = 'RA', int $timeout = 5): void
     {
         self::$redisName = $redisName ?: 'redis';
         self::$prefix = $prefix;

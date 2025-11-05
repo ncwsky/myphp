@@ -644,7 +644,7 @@ class Db
         return $where;
     }
     //sql处理 记数
-    private function _run_init(string &$sql, array $bind = null, bool $curd = false): void
+    private function _run_init(string &$sql, ?array $bind = null, bool $curd = false): void
     {
         $this->chkSql($sql, $curd);
         self::$sql = $this->_sql = $sql = $this->get_real_sql($sql, $bind); //解析绑定参数
@@ -682,7 +682,7 @@ class Db
      * @param array|null $bind
      * @return bool|int
      */
-    public function execute(string $sql, array $bind = null)
+    public function execute(string $sql, ?array $bind = null)
     {
         $this->_run_init($sql, $bind, true);
         if (self::$execCustom instanceof Closure) { //自定义exec处理

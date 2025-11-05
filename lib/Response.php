@@ -332,7 +332,7 @@ class Response
      * @return $this
      * @throws \Exception
      */
-    public function sendFile($file, int $offset = 0, int $size = 0, bool $inline = false, string $attachmentName = null, string $mimeType = ''): Response
+    public function sendFile($file, int $offset = 0, int $size = 0, bool $inline = false, ?string $attachmentName = null, string $mimeType = ''): Response
     {
         if (is_resource($file)) {
             $meta = stream_get_meta_data($file); //取文件的实际路径
@@ -404,7 +404,7 @@ class Response
      * @param int|null $contentLength
      * @return $this
      */
-    public function setDownloadHeaders(string $filename, string $mimeType = null, bool $inline = false, int $contentLength = null): Response
+    public function setDownloadHeaders(string $filename, ?string $mimeType = null, bool $inline = false, ?int $contentLength = null): Response
     {
         $this->withHeader('Accept-Ranges', 'bytes')
             ->withHeader('Content-Disposition', ($inline ? 'inline' : 'attachment') . self::disToName($filename))

@@ -68,7 +68,7 @@ class Value
      * @param int $default
      * @return int
      */
-    public static function int(?array &$data, string $name, int $min = null, int $max = null, int $default = 0): int
+    public static function int(?array &$data, string $name, ?int $min = null, ?int $max = null, int $default = 0): int
     {
         return self::get($data, $name, ['d', 'min' => $min, 'max' => $max], $default);
     }
@@ -81,12 +81,12 @@ class Value
      * @param float $default
      * @return float
      */
-    public static function float(?array &$data, string $name, float $min = null, float $max = null, float $default = 0): float
+    public static function float(?array &$data, string $name, ?float $min = null, ?float $max = null, float $default = 0): float
     {
         return self::get($data, $name, ['f', 'min' => $min, 'max' => $max], $default);
     }
 
-    public static function str(?array &$data, string $name, int $max = null, int $min = null, string $default = ''): string
+    public static function str(?array &$data, string $name, ?int $max = null, ?int $min = null, string $default = ''): string
     {
         return self::get($data, $name, ['s', 'min' => $min, 'max' => $max], $default);
     }

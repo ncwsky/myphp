@@ -295,7 +295,7 @@ class Request
      * @param null|mixed $default
      * @return array|mixed|null
      */
-    public function post(string $name = null, $default = null)
+    public function post(?string $name = null, $default = null)
     {
         if ($name === null) {
             return $_POST;
@@ -319,7 +319,7 @@ class Request
      * @param null|mixed $default
      * @return array|mixed|null
      */
-    public function get(string $name = null, $default = null)
+    public function get(?string $name = null, $default = null)
     {
         if ($name === null) {
             return $_GET;

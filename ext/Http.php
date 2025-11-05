@@ -20,7 +20,7 @@ class Http
     /**
      * @param string|null $proxy `proxy://user:pass@hostname:port`
      */
-    public static function setCurlProxy(string $proxy = null): void
+    public static function setCurlProxy(?string $proxy = null): void
     {
         if ($proxy === null) { //清除代理设置
             self::$curlProxy = [];

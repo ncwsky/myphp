@@ -24,7 +24,7 @@ class Redis implements \SessionHandlerInterface
      * Redis constructor.
      * @param array|null $options
      */
-    public function __construct(array $options = null)
+    public function __construct(?array $options = null)
     {
         if (is_array($options)) {
             $this->options = array_merge($this->options, $options);
