@@ -40,6 +40,7 @@ return $config->setRules([
     'trailing_comma_in_multiline'=> false, //不添加尾行逗号
     'no_trailing_whitespace_in_comment' => true, // 移除注释中的尾随空白字符
     'no_extra_blank_lines' => true, // 移除多余的空行
+	'nullable_type_declaration_for_default_null_value' => true, //强制在默认值为 null 的属性或方法参数上使用可空类型声明
 /*    'return_type_declaration' => [
         'space_before' => 'none', // 返回类型声明前不加空格
     ],*/

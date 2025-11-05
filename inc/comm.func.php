@@ -634,7 +634,7 @@ function get_thumb($image, $thumb_wh = '240_180', $nopic = '/pub/images/itemi.pn
     }
 }
 //生成缩略图  return array 缩略图列表 thumb_wh:240_180,...
-function make_thumb($image, $thumb_wh='240_180')
+function make_thumb($image, $thumb_wh = '240_180')
 {
     $thumb = [];
     $image = SITE_WEB.$image;
@@ -661,7 +661,7 @@ function make_thumb($image, $thumb_wh='240_180')
     return $thumb;
 }
 //删除上传文件 文件路径 是否图片 $thumb_wh:240_180,...
-function del_up_file($file, $is_img = 0, $thumb_wh='240_180'): void
+function del_up_file($file, $is_img = 0, $thumb_wh = '240_180'): void
 {
     $realFile = SITE_WEB.$file;//真实路径
     if (is_file($realFile)) {

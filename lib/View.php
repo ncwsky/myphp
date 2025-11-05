@@ -55,7 +55,7 @@ class View
     }
 
     //取得页面内容
-    public function fetch(string $file = '', array &$var = null, bool $htmlEncode = false)
+    public function fetch(string $file = '', ?array &$var = null, bool $htmlEncode = false)
     {
         if ($file == '') {
             $file = myphp::env('a') . $this->template->suffix;
