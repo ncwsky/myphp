@@ -939,18 +939,14 @@ class Db
         return $this->db->insert_id();
     }
     //更新记录 $where[str|arr]
-    public function update_sql(array $post, string $table = '', $where = '')
+    public function update_sql(array $post, string $table = '', $where = ''): string
     {
         $value = '';
-        if (is_array($post)) {
-            foreach ($post as $k => $v) {
-                //val值得预先过滤处理
-                $value .= $this->startSpec . $k . $this->endSpec . ' = ' . $this->parseValue($v) . ',';
-            }
-            $value = substr($value, 0, -1);
-        } else {
-            $value = $post;
+        foreach ($post as $k => $v) {
+            //val值得预先过滤处理
+            $value .= $this->startSpec . $k . $this->endSpec . ' = ' . $this->parseValue($v) . ',';
         }
+        $value = substr($value, 0, -1);
 
         if ($table == '' && isset($this->options['table'])) {
             $table = $this->options['table'];
@@ -958,7 +954,7 @@ class Db
         $this->_table($table, false);
         $sql = 'UPDATE '.$table.' SET '.$value;
 
-        if ($where != '') {
+        if ($where !== '') {
             $this->_where($where);
         }
         if (isset($this->options['where'])) {
@@ -969,25 +965,25 @@ class Db
 
     /**
      * 返回更新成功修改记录的行数
-     * @param $post
+     * @param array $post
      * @param string $table
-     * @param string $where
+     * @param string|array $where
      * @return bool|int|mixed
      * @throws Exception
      */
-    public function update($post, $table = '', $where = '')
+    public function update(array $post, string $table = '', $where = '')
     {
         return $this->execute($this->update_sql($post, $table, $where));
     }
-    public function del_sql($table = '', $where = '')
+    public function del_sql(string $table = '', $where = ''): string
     {
-        if ($table == '' && isset($this->options['table'])) {
+        if ($table === '' && isset($this->options['table'])) {
             $table = $this->options['table'];
         }
         $this->_table($table, false);
         $sql = 'DELETE FROM '.$table;
 
-        if ($where != '') {
+        if ($where !== '') {
             $this->_where($where);
         }
         if (isset($this->options['where'])) {
@@ -998,11 +994,11 @@ class Db
     }
     /**
      * @param string $table
-     * @param string $where
+     * @param string|array $where
      * @return int|false
      * @throws Exception
      */
-    public function del($table = '', $where = '')
+    public function del(string $table = '', $where = '')
     {
         return $this->execute($this->del_sql($table, $where)); //返回删除记录数
     }

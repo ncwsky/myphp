@@ -880,9 +880,9 @@ class File extends \myphp\CacheAbstract
      * @param string $file 文件
      * @param mixed $data
      * @param int $time
-     * @return false|int
+     * @return bool
      */
-    protected function _filePutContent(string $file, $data, int $time = 0)
+    protected function _filePutContent(string $file, $data, int $time = 0): bool
     {
         if (@file_put_contents($file, $this->_content($data), LOCK_EX) !== false) {
             return @touch($file, $time);
