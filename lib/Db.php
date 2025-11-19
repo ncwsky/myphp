@@ -617,7 +617,12 @@ class Db
                             } elseif ($v instanceof Model) {
                                 $field = $k . $operator . '(' . $v->select_sql() . ')';
                             } else {
-                                $field = $v === '' ? '1=0' : $k . $operator . '(' . $v . ')';
+                                if ($v === '') {
+                                    $field = '1=0';
+                                } else {
+                                    $v = is_array($v) ? $v : explode(',', $v);
+                                    $field = $k . $operator . '(' . implode(',', $this->parseValue($v)) . ')';
+                                }
                             }
                             break;
                         case ' exists ':

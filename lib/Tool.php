@@ -59,12 +59,13 @@ class Tool
                     $type = 'float';
                 }
             }
-            $notes .= "\n * @property $type \$$k";
+            $comment = !empty($v['comment']) ? ' ' . $v['comment'] : '';
+            $notes .= "\n * @property {$type} \${$k}{$comment}";
             //解析规则
             $type = 's';
             $min = $max = null;
             Value::parseType($v['rule'], $type, $min, $max);
-            unset($fieldRule[$k]['null']);
+            unset($fieldRule[$k]['null'],$fieldRule[$k]['comment']);
             //$fieldRule[$k]['rule'] = [$type, 'min' => $min, 'max' => $max];
             $fieldRule[$k]['rule'] = [$type];
             if ($min !== null) {

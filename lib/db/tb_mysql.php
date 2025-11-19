@@ -41,7 +41,7 @@ class tb_mysql extends \myphp\TbBase
         $prikey = '';
         $autoKey = '';
         $rule = [];
-        $sql = 'SHOW COLUMNS FROM ' . $tableName;
+        $sql = 'SHOW FULL COLUMNS FROM ' . $tableName;
         $res = $db->query($sql);
         while ($rs = $db->fetch($res)) {
             $rs = array_change_key_case($rs);
@@ -51,7 +51,8 @@ class tb_mysql extends \myphp\TbBase
             $rule[$rs['field']] = [
                 'type' => $this->toType($vType),
                 'rule' => $toRule,
-                'null' => $null
+                'null' => $null,
+                'comment' => $rs['comment']
             ];
             //无def项时表示必需有值
             if ($rs['default'] !== null || $null) { //不是not null 或 非null的有默认值|可为null
