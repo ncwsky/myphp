@@ -535,7 +535,7 @@ class Db
     /**
      * where处理
      * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
-     * @param array|string $bind 要解析的参数
+     * @param array|string|null $bind 要解析的参数
      * @return $this
     */
     public function where($case, $bind = null): Db //and

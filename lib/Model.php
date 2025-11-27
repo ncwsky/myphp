@@ -550,12 +550,12 @@ class Model implements \ArrayAccess
     /**
      * where处理 and
      * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
-     * @param array|null $bind 要解析的参数
+     * @param array|string|null $bind 要解析的参数
      * @return $this
      */
-    protected function _where($case, ?array $bind = null)
+    protected function _where($case, $bind = null)
     {
-        if (self::$resetWhere) {
+        if (static::$resetWhere) {
             unset($this->db->where);
         }
         $this->db->where($case, $bind);
@@ -563,13 +563,13 @@ class Model implements \ArrayAccess
     }
     /**
      * where处理 or
-     * @param $case
-     * @param null $bind
+     * @param string|array $case
+     * @param array|string|null $bind
      * @return $this
      */
     protected function _whereOr($case, $bind = null)
     {
-        if (self::$resetWhere) {
+        if (static::$resetWhere) {
             unset($this->db->where);
         }
         $this->db->whereOr($case, $bind);
@@ -579,10 +579,10 @@ class Model implements \ArrayAccess
     /**
      * where处理
      * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
-     * @param array|null $bind 要解析的参数
+     * @param array|string|null $bind 要解析的参数
      * @return $this
      */
-    public function andWhere($case, ?array $bind = null)
+    public function andWhere($case, $bind = null)
     {
         $this->db->where($case, $bind);
         return $this;
