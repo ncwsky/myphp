@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace __app__\control;
 
 class __c__ extends Base
