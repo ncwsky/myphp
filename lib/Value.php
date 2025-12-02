@@ -142,7 +142,7 @@ class Value
      * @param string|null $filter
      * @param int|null $digit
      *
-     * eg.: %s{1,20}:filter  {1,20}取值范围
+     * eg.: %s{1,20}:filter|{1,20}|[[date|s|...]|%s][{1,20}][:filter]  {1,20}取值范围
      * string,bool,int,float,arr,date
      * %s,%b,%d,%f,%a,%date [2014-01-11 13:23:32 | 2014-01-11]
      * filter:fun1,fun2,/regx/i正则过滤
@@ -191,8 +191,8 @@ class Value
                 $digit = (int)substr($type, -2, 1);
                 $type = substr($type, -1);
             }
-        } else {
-            $type = $rule; //兼容未指定%修饰符 非匹配时默认使用s处理
+        } elseif (!$type) { //未指定默认type时 兼容未指定%修饰符 非匹配时默认使用s处理
+            $type = $rule;
         }
     }
 
