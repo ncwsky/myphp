@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace myphp;
 
 /**
- * 缓存工厂
+ * 缓存
  *
  * @property array $options
  * @method mixed setOption($option, $val=null)
@@ -21,12 +21,12 @@ class Cache
     /** 缓存实例
      * @param string $type
      * @param array|null $options
-     * @param bool $new
+     * @param bool $force
      * @return \myphp\cache\File|\myphp\cache\Redis
      */
-    public static function getInstance(string $type = 'file', ?array $options = null, bool $new = false)
+    public static function getInstance(string $type = 'file', ?array $options = null, bool $force = false)
     {
-        if (!isset(self::$instance[$type]) || $new) {
+        if (!isset(self::$instance[$type]) || $force) {
             if ($options === null) {
                 $options = \myphp::get('cache_option');
             }

@@ -319,9 +319,14 @@ class Http
                     break;
                 }
             }
+        } elseif (is_string($header)) {
+            $header = array_map(function ($v) {
+                return trim($v);
+            }, explode("\n", $header));
+            $header = array_filter($header);
         }
 
-        $options[CURLOPT_HTTPHEADER] = is_string($header) ? explode("\r\n", $header) : $header;
+        $options[CURLOPT_HTTPHEADER] = $header;
         if (isset($opt['cookie'])) {
             $options[CURLOPT_COOKIE] = $opt['cookie'];
         }

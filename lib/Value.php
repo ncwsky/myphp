@@ -209,7 +209,6 @@ class Value
      */
     public static function type2val(&$val, $rule, $default = null, bool $strict = false, string $name = 'value', string $err1 = '', string $err2 = ''): int
     {
-        $type = 's'; // 默认转换为字符串
         $digit = 0; //小数位处理 四舍五入
         $errCode = 0;
         $filter = $max = $min = null;
@@ -227,9 +226,7 @@ class Value
         }
 
         if (is_array($rule)) {
-            if (isset($rule[0])) {
-                $type = $rule[0];
-            }
+            $type = $rule[0] ?? 's'; //默认为字符串
             if (isset($rule['min'])) {
                 $min = $rule['min'];
             }
@@ -249,6 +246,7 @@ class Value
                 $filter = $rule['filter'];
             }
         } else {
+            $type = ''; //由规则识别处理
             //规则处理
             self::parseType($rule, $type, $min, $max, $filter, $digit);
         }

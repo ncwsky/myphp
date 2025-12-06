@@ -30,21 +30,18 @@ use myphp\db\db_pdo;
 class Db
 {
     public static $sql = ''; //完整的Sql
-    public static $times = 0; //执行次数
     public static $useIdentifier = false; //字段fields、条件处理makeWhere时使用标识符
     private static $log_type = 0; //是否记录sql
     private static $instance = [];
 
+    public $times = 0; //执行次数
     private $_sql = ''; //完整的Sql
     /**
      * @var db_pdo
      */
     private $db;
-    /**
-     * @var db_pdo
-     */
-    private $_slave;
-    private $_slaveIdx = -1;
+    private $_slaveOk = false; //是否有从库配置
+    private $_slaveIdx = -1; //用于日志记录标识
     private $_slaveLog = false; //用于日志记录标识
     public $slaveRetryInterval = 300; //重试间隔
     /**
@@ -118,21 +115,17 @@ class Db
     private function _initDb(bool $slave = false, bool $force = false)
     {
         $config = $this->config;
-        if ($slave && !empty($config['slaves'])) { //对有数据库配置的从库处理
-            if ($this->_slave) {
-                $this->_slaveLog = true;
-                return $this->_slave;
-            }
+        if ($slave && $this->_slaveOk) { //对有数据库配置的从库处理
             if (isset($config['slaves'][0])) { //对多个的从库配置随机取
                 $slaves = $config['slaves'];
                 $count = count($slaves);
-                $idx = $count > 1 ? random_int(0, $count - 1) : 0;
+                $this->_slaveIdx = $count > 1 ? random_int(0, $count - 1) : 0;
             } else {
                 $slaves = [$config['slaves']];
-                $idx = 0;
+                $this->_slaveIdx = 0;
             }
             unset($config['slaves'],$config['dsn']);
-            $config = array_merge($config, $slaves[$idx]);
+            $config = array_merge($config, $slaves[$this->_slaveIdx]);
         } else {
             //多主 //todo
             /*
@@ -151,29 +144,31 @@ class Db
 
         if ($slave) {
             $this->initCache();
-            if ($this->cache->get($key)) { //使用主库
+            if ($this->cache->get($key)) { //从库故障时使用主库
                 return $this->_initDb();
             }
         }
 
-        if ($force || !isset(self::$instance[$key])) {
+        if (!isset(self::$instance[$key]) || $force) {
             $db_type = '\myphp\db\db_' . $config['type'];
             if ($slave) {
                 try {
-                    $db = new $db_type($config);//连接数据库
+                    $db = new $db_type($config); //连接从数据库
                 } catch (\Exception $e) {
                     $this->cache->set($key, 1, $this->slaveRetryInterval); //失败连接置重试间隔标识
                     return $this->_initDb(); //使用主库
                 }
-                $this->_slave = $db;
-                $this->_slaveIdx = $idx;
-                $this->_slaveLog = true;
             } else {
-                $db = new $db_type($config);//连接数据库
+                $db = new $db_type($config); //连接主数据库
             }
             self::$instance[$key] = $db;
         } else {
             $db = self::$instance[$key];
+        }
+        if ($slave) {
+            $this->_slaveLog = true;
+        } else {
+            $this->db = $db; //主库
         }
         return $db;
     }
@@ -198,8 +193,9 @@ class Db
         if (!isset($this->config['prod'])) {
             $this->config['prod'] = false;
         }
+        $this->_slaveOk = !empty($this->config['slaves']); //从库可用?
 
-        $this->db = $this->_initDb(false, $force);
+        $this->_initDb(false, $force);
         switch ($this->config['dbms']) {
             case 'mysql':
                 $this->startSpec = '`';
@@ -362,6 +358,7 @@ class Db
     public function resetOptions(): void
     {
         $this->options = [];
+        $this->_sql = '';
     }
     public function conn()
     {
@@ -659,7 +656,7 @@ class Db
         if (self::$log_type == 2 || (self::$log_type == 1 && $curd)) {
             Log::write($sql, 'SQL'. ($this->_slaveLog ? '.SLAVE.'.$this->_slaveIdx : ''));
         }
-        self::$times++;
+        $this->times++;
     }
 
     /**
@@ -717,7 +714,7 @@ class Db
             $sql = str_replace('{prefix}', $this->config['prefix'], $sql);
         }
 
-        if (empty($this->config['slaves']) || $this->db->transCounter > 0) {
+        if (!$this->_slaveOk || $this->db->transCounter > 0) {
             $db = $this->db;
         } else {
             $db = $this->_initDb(true);

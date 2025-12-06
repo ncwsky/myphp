@@ -77,7 +77,7 @@ class Model implements \ArrayAccess
      */
     public static $resetOption = false; //sql组合项执行后是否重置
 
-    public static $resetWhere = false; //使用->where是否重置之前的条件
+    public static $resetWhere = true; //使用->where是否重置之前的条件
 
     /**
      * 数据库实例
@@ -89,6 +89,9 @@ class Model implements \ArrayAccess
     {
         if ($newInstance) {
             return new Db(static::$dbName);
+            //$db = clone \myphp::db(static::$dbName);
+            //$db->resetOptions();
+            //return $db;
         }
         return \myphp::db(static::$dbName);
     }

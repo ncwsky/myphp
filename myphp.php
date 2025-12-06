@@ -960,7 +960,7 @@ final class myphp
     public static function db(string $name = 'db', bool $force = false): Db
     {
         $k = '__db_' . $name;
-        if ($force || !isset(self::$container[$k])) {
+        if (!isset(self::$container[$k]) || $force) {
             self::$container[$k] = new Db($name, $force);
         }
         return self::$container[$k];
@@ -997,7 +997,7 @@ final class myphp
     }
     public static function runTime(): string
     {
-        return '页面耗时'.run_time().'秒, 内存占用'.run_mem().', 执行'. Db::$times.'次SQL';
+        return '页面耗时'.run_time().'秒, 内存占用'.run_mem();
     }
     //url地址转换对应的模块/控制/方法
     public static function parseUrlMap(): bool
