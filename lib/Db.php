@@ -1337,11 +1337,6 @@ abstract class DbBase
         $this->config = $config;
         $this->connect();
     }
-    //释放结果集
-    public function free(): void
-    {
-        $this->rs = null;
-    }
     //是否在事务内
     public function inTrans(): bool
     {
@@ -1406,7 +1401,7 @@ abstract class DbBase
 
     /**
      * 设置事务隔离等级 isolation
-     * @param $level
+     * @param string $level
      * @throws Exception
      */
     public function setTransactionLevel(string $level): void

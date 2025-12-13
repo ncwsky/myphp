@@ -332,14 +332,12 @@ final class myphp
             self::send($e->getMessage() . (self::$cfg['debug'] ? "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : ''), 500);
             Log::Exception($e, false);
         }
-        if (IS_CLI) {
-            self::req()->clear();
-            self::res()->clear();
-            //重置处理
-            self::$cfg = self::$_init_cfg;
-            self::$env = [];
-            self::$lang = [];
-        }
+        //重置处理
+        self::req()->clear();
+        self::res()->clear();
+        self::$env = [];
+        self::$cfg = self::$_init_cfg;
+        //self::$lang = [];
     }
 
     /** 输出数据到页面

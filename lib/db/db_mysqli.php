@@ -46,17 +46,18 @@ class db_mysqli extends \myphp\DbBase
 
     /** 执行sql
      * @param string $sql
+     * @param int $run
      * @return bool|int|mysqli_result
      * @throws Exception
      */
-    public function exec(string $sql)
+    public function exec(string $sql, int $run = 0)
     {
         $result = $this->conn->query($sql);
         if ($result === false) {
-            if (IS_CLI && ($this->conn->errno == '2006' || $this->conn->errno == '2013') && $this->transCounter == 0) { //重连 MySQL server has gone away
+            if ($run === 0 && ($this->conn->errno == '2006' || $this->conn->errno == '2013') && $this->transCounter == 0) { //重连 MySQL server has gone away
                 $this->connect();
                 Log::write('重连 '.$this->conn->error, 'db_connect');
-                return $this->exec($sql);
+                return $this->exec($sql, 1);
             }
             throw new Exception($this->conn->errno . " | " . $this->conn->error . "; SQL exec: " . $sql);
         }
@@ -65,17 +66,18 @@ class db_mysqli extends \myphp\DbBase
 
     /** 执行查询语句
      * @param string $sql
+     * @param int $run
      * @return bool|mysqli_result
      * @throws Exception
      */
-    public function query(string $sql)
+    public function query(string $sql, int $run = 0)
     {
         $this->rs = $this->conn->query($sql);
         if ($this->rs === false) {
-            if (IS_CLI && ($this->conn->errno == '2006' || $this->conn->errno == '2013') && $this->transCounter == 0) {
+            if ($run === 0 && ($this->conn->errno == '2006' || $this->conn->errno == '2013') && $this->transCounter == 0) {
                 $this->connect();
                 Log::write('重连 '.$this->conn->error, 'db_connect');
-                return $this->query($sql);
+                return $this->query($sql, 1);
             }
             throw new Exception($this->conn->errno . " | " . $this->conn->error . "; SQL query: " . $sql);
         }

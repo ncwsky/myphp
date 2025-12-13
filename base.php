@@ -6,10 +6,10 @@ use myphp\Db;
 use myphp\Helper;
 
 //系统变量
-const IS_CLI = PHP_SAPI === 'cli';
+const IS_CLI = PHP_SAPI === 'cli' || PHP_SAPI === 'micro'; //兼容static-php-cli
 const IS_WIN = DIRECTORY_SEPARATOR === '\\'; //strpos(PHP_OS, 'WIN') !== false
 const DS = '/';
-
+/*
 //REQUEST_URI 处理 ORIG_PATH_INFO REDIRECT_PATH_INFO REDIRECT_URL
 if (!IS_CLI && !isset($_SERVER['REQUEST_URI'])) {
     if (isset($_SERVER['HTTP_X_REWRITE_URL'])) {
@@ -17,7 +17,7 @@ if (!IS_CLI && !isset($_SERVER['REQUEST_URI'])) {
     } else {
         $_SERVER['REQUEST_URI'] = ($_SERVER['PHP_SELF'] ?? ($_SERVER['SCRIPT_NAME'] ?? '')) . (isset($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '');
     }
-}
+}*/
 
 //项目根目录处理
 if (defined('APP_PATH')) {

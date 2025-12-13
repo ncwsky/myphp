@@ -124,7 +124,7 @@ class db_pdo extends \myphp\DbBase
             }
             if ($errorInfo[1]) {
                 $errInfo = implode('|', $errorInfo);
-                if ($run == 0 && $this->transCounter == 0 && IS_CLI) { //重连1次处理 非事务时允许重连
+                if ($run === 0 && $this->transCounter == 0) { //重连1次处理 非事务时允许重连
                     #MySQL server has gone away
                     if ($this->config['dbms'] == 'mysql' && ($errorInfo[1] == 2006 || $errorInfo[1] == 2013)) {
                         $this->connect();
@@ -166,7 +166,7 @@ class db_pdo extends \myphp\DbBase
             }
             if ($errorInfo[1]) {
                 $errInfo = implode('|', $errorInfo);
-                if ($run == 0 && $this->transCounter == 0 && IS_CLI) { //重连1次处理 非事务时允许重连
+                if ($run === 0 && $this->transCounter == 0) { //重连1次处理 非事务时允许重连
                     #MySQL server has gone away
                     if ($this->config['dbms'] == 'mysql' && ($errorInfo[1] == 2006 || $errorInfo[1] == 2013)) {
                         $this->connect();
