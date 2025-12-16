@@ -19,14 +19,15 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 if (class_exists(Phar::class, false) && Phar::running(false)) {
     define('MY_PHAR_PATH', Phar::running()); // phar://path/my.phar
     define('APP_RUN_DIR', dirname(Phar::running(false))); // /path/
+    $inPhar = true;
 } else {
     define('APP_RUN_DIR', MY_RUN_DIR);
+    $inPhar = false;
 }
-
 $_arg = getopt('', ['run:', 'init']);
 $init = isset($_arg['init']);
 if ($init) { //初始化
-    if (defined('MY_PHAR_PATH')) {
+    if ($inPhar) {
         die('Phar文档模式下不支持此操作!');
     }
     $_SERVER['argv'] = [];
@@ -73,19 +74,23 @@ if ($init && $_app != 'app') { //初始
 }
 $_SERVER['IS_CLI_RUN'] = true;
 define('APP_PATH', $_appDir);
-define('COMMON', MY_RUN_DIR . '/common');
-require MY_RUN_DIR . "/vendor/autoload.php";
-if (is_file(APP_RUN_DIR . "/conf.php")) {
-    require APP_RUN_DIR . "/conf.php";
+//公共库
+const COMMON = MY_RUN_DIR . '/common';
+//临时目录
+const RUNTIME = APP_RUN_DIR . '/runtime';
+//站点目录
+const SITE_WEB = APP_RUN_DIR . '/web';
+
+require MY_RUN_DIR . '/vendor/autoload.php';
+if ($inPhar && is_file(MY_PHAR_PATH . '/conf.php')) {
+    require MY_PHAR_PATH . '/conf.php';
+} elseif (is_file(APP_RUN_DIR . '/conf.php')) {
+    require APP_RUN_DIR . '/conf.php';
 }
 //phar模式下路径处理
-if (defined('MY_PHAR_PATH')) {
-    //临时目录
-    define('RUNTIME', APP_RUN_DIR . '/runtime');
-    //站点目录
-    define('SITE_WEB', APP_RUN_DIR . '/web');
+if ($inPhar) {
     //日志目录
     empty($cfg['log_dir']) && $cfg['log_dir'] = APP_RUN_DIR . '/log';
 }
-require MY_RUN_DIR . "/vendor/myphps/myphp/base.php";
+require MY_RUN_DIR . '/vendor/myphps/myphp/base.php';
 myphp::Run();

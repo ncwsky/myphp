@@ -173,7 +173,7 @@ class Log
                 }
             }
         }
-        self::write(self::miniREQ() . PHP_EOL . 'line:' . $eLine . ', file:' . $eFile . ', err:' . $err . $stack, $level);
+        self::write(self::miniREQ() . PHP_EOL . 'errno:' . $errno . ', line:' . $eLine . ', file:' . $eFile . ', err:' . $err . $stack, $level);
         return true;
     }
 
