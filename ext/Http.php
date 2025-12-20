@@ -319,7 +319,8 @@ class Http
                     break;
                 }
             }
-        } elseif (is_string($header)) {
+        }
+        if (is_string($header)) {
             $header = array_map(function ($v) {
                 return trim($v);
             }, explode("\n", $header));
@@ -718,7 +719,7 @@ class Http
         return @file_get_contents($url, false, $context);
     }
 
-    private static function header2string($header)
+    public static function header2string($header)
     {
         if (is_array($header)) {
             $headers = '';
@@ -730,7 +731,7 @@ class Http
         return $header;
     }
 
-    private static function defaultHeader()
+    public static function defaultHeader()
     {
         return [
             "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
