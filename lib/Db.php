@@ -369,7 +369,11 @@ class Db
     {
         $isMysql = $this->config['dbms'] == 'mysql';
         $sql = trim($sql);
-        if (!$curd) { #非execute
+        if ($curd) {
+            if (!empty($this->config['read_only'])) { //只读开关处理
+                throw new Exception($this->config['read_only_msg'] ?? '只读模式，不允许此操作');
+            }
+        } else { #非execute
             //([0-9]+(,[0-9]+)?) | ([0-9]+)
             if (stripos($sql, 'select top') !== false && preg_match('/^(select top )([0-9]+(,[0-9]+)?)/i', $sql, $topArr)) {
                 $pos = strpos($topArr[2], ',');

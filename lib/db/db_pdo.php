@@ -76,6 +76,7 @@ class db_pdo extends \myphp\DbBase
                     $dsn = 'sqlite:' . $cfg_db['name'];
                     $cfg_db['user'] = '';
                     $cfg_db['pwd'] = '';
+                    $initSql = 'PRAGMA journal_mode=WAL;';
                     break;
                 default:// PDO_DBLIB DSN
                     $dsn = $cfg_db['dbms'].':host='.$cfg_db['server'].';dbname='.$cfg_db['name'].(empty($cfg_db['char']) ? '' : ';charset='.$cfg_db['char']);

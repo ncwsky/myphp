@@ -16,6 +16,8 @@ return [
     // array('admin'=>'/system')  -> /开头相对网站目录 无/开头相对项目目录 /index.php?m=admin&c=index&a=index 路径ROOT./system
     //数据库连接信息
     'db' => [
+        'read_only' => false, //是否启用只读模式 默认false
+        'read_only_msg' => '当前系统正在维护中，不支持此操作！', //只读模式下的异常提示消息
         'pconnect' => false,
         //'dsn' => '', //使用pdo驱动时可直接设置dsn
         'type' => 'pdo', //连接类型 支持继承DbBase的pdo、taos
