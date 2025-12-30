@@ -76,4 +76,47 @@ class GetOpt
         }
         return false;
     }
+
+    /**
+     * 从 $argv 中清除指定的选项参数
+     * @param array $argv
+     * @param array $optionsToRemove 要清除的选项（不包含 - 或 -- 前缀）
+     */
+    public static function removeOptions(array &$argv, array $optionsToRemove)
+    {
+        $result = [];
+        $skip = false;
+
+        for ($i = 0; $i < count($argv); $i++) {
+            if ($skip) {
+                $skip = false;
+                continue;
+            }
+
+            $arg = $argv[$i];
+            $matched = false;
+
+            foreach ($optionsToRemove as $option) {
+                // 处理长选项 --option=value 格式
+                if (strpos($arg, "--$option=") === 0) {
+                    $matched = true;
+                    break;
+                }
+                // 处理短选项 -o value 或长选项 --option value 格式
+                if ($arg === "-$option" || $arg === "--$option") {
+                    $matched = true;
+                    // 如果下一个参数不是选项，则跳过它（作为当前选项的值）
+                    if (isset($argv[$i + 1]) && !preg_match('/^-/', $argv[$i + 1])) {
+                        $skip = true;
+                    }
+                    break;
+                }
+            }
+
+            if (!$matched) {
+                $result[] = $arg;
+            }
+        }
+        $argv = $result;
+    }
 }
