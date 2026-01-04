@@ -145,16 +145,6 @@ function GetC(string $name, $defVal = null)
 }
 
 /**
- * 动态设置配置值
- * @param string|array $name
- * @param mixed $val
- */
-function SetC($name, $val): void
-{
-    myphp::set($name, $val);
-}
-
-/**
  * 获取语言信息 支持二维 需要先载入语言数组文件
  * @param string $name
  * @return mixed|null

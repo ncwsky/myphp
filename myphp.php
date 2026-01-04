@@ -22,7 +22,7 @@ final class myphp
     /**
      * @var ?callable
      */
-    public static $authFun = null; //自定义验证回调方法 \Closure @return void|false|throw|Response
+    public static $authFun = null; //$beforeFun之后CA之前 自定义验证回调方法 \Closure @return void|false|throw|Response
     /**
      * @var ?callable
      */
@@ -34,7 +34,7 @@ final class myphp
      */
     public static $pipe = null;
     private static $req_cache = null; //请求缓存配置 [key,expire]
-    private static $container = []; //容器
+    private static $container = []; //类对象容器
 
     //自动载入配置项
     public static $rootPath = ''; //默认 ROOT
@@ -232,8 +232,6 @@ final class myphp
         }
         //相对根目录
         define('ROOT_DIR', self::$cfg['root_dir']);
-        //相对资源公共目录
-        define('PUB', ROOT_DIR . '/pub');
 
         if (self::$cfg['debug']) { //开启错误提示
             error_reporting(E_ALL);// 报错级别设定,一般在开发环境中用E_ALL,这样能够看到所有错误提示
@@ -616,10 +614,6 @@ final class myphp
         //加载指定php文件
         if (!empty(self::$cfg['files'])) {
             foreach (self::$cfg['files'] as $file) {
-                /*if (!isset(self::$_cli_cache[$file])) {
-                    self::$_cli_cache[$file] = true;
-                    include $file;
-                }*/
                 include_once $file;
             }
         }
