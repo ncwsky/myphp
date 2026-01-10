@@ -82,7 +82,12 @@ class View
         //return $this->template->display($file, $this->vars);//返回内容
     }
 
-    //设置模板变量
+    /**
+     * 设置模板变量
+     * @param array|string $var
+     * @param mixed $value
+     * @return void
+     */
     public function assign($var, $value = null): void
     {
         if (is_array($var)) {    //如果是数组，那么将它合并到属性$vars中
@@ -93,7 +98,9 @@ class View
     }
 
     /**
-     * 直接返回解析后的php文件  ob_start(); require self::doTemp(); return ob_get_clean();
+     * 直接返回解析后的php文件
+     * 示例
+     *  ob_start(); require self::doTemp(); return ob_get_clean();
      * @param string $file
      * @return string
      * @throws Exception
@@ -110,6 +117,10 @@ class View
         return self::$instance->template->cacheFile($file);
     }
 
+    /**
+     * 获取活动缓冲区的内容 对应 ob_start();
+     * @return false|string
+     */
     public static function end()
     {
         return ob_get_clean();

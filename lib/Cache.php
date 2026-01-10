@@ -9,9 +9,9 @@ namespace myphp;
  *
  * @property array $options
  * @method mixed setOption($option, $val=null)
- * @method mixed set($name, $data, $expire=null)
- * @method mixed get($name)
- * @method mixed del($name)
+ * @method mixed set(string $name, $data, $expire=null)
+ * @method mixed get(string $name)
+ * @method mixed del(string $name)
  * @method mixed clear()
  * @method mixed gc($force = false, $expiredOnly = true) only for file cache
  */
@@ -56,7 +56,13 @@ abstract class CacheAbstract
             $this->options  = array_merge($this->options, $options);
         }
     }
-    //设置配置参数
+
+    /**
+     * 设置配置参数
+     * @param array|string $option
+     * @param mixed $val
+     * @return void
+     */
     public function setOption($option, $val = null): void
     {
         if (is_array($option)) {
@@ -65,8 +71,6 @@ abstract class CacheAbstract
             $this->options[$option] = $val;
         }
     }
-    //设置参数 可数组方式 或 键值方式  $option:array/string
-    //abstract public function setOption($option, $val = null);
     //设置缓存
     abstract public function set(string $name, $data, int $expire = 0);
     //获取缓存

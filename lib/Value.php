@@ -15,6 +15,7 @@ class Value
      */
     public static $after = null; //验证的后置操作 流程处理完请重置为null
     public static $defaultFilter = 'html_encode'; #默认过滤
+
     /**
      * $val值过滤
      * @param mixed $val
@@ -107,6 +108,7 @@ class Value
     }
 
     /**
+     * 从指定数据按规则获取值
      * @param array|null $data
      * @param string $name
      * @param string|array $rule array['rule','def'] | string %s{}:fun   %s,%b,%d,%f,%a,%date[2014-01-11 13:23:32],%his[13:23:32]  {1,20}取值范围 filter:fun1,fun2,/regx/i正则过滤
@@ -198,14 +200,14 @@ class Value
 
     /**
      * 指定类型取值处理
-     * @param mixed $val
+     * @param mixed $val 待处理值
      * @param string|array $rule string:%s{10,20},%s{20}|array:['s','min'=>10,'max'=>20, filter, digit, err, err2],['s','max'=>20]  取值规则
      * @param mixed $default 默认值
      * @param bool $strict 强验证 失败抛出异常
      * @param string $name 提示名称
      * @param string $err1 未输入提示内容
      * @param string $err2 输入无效提示内容
-     * @return int $errCode
+     * @return int $errCode 错误code 0:成功 1:未输入 2:输入无效
      */
     public static function type2val(&$val, $rule, $default = null, bool $strict = false, string $name = 'value', string $err1 = '', string $err2 = ''): int
     {
