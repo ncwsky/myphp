@@ -520,6 +520,7 @@ class Model implements \ArrayAccess
     }
 
     /**
+     * 批量获取记录
      * @param int $num
      * @return \Generator|\SplFixedArray[][]|static|array[][]
      */

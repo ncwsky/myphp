@@ -13,10 +13,10 @@ use myphp\db\db_pdo;
  * Class Db 数据db类
  * @method Db group(string $val)
  * @method Db having(string $val)
- * @method Db idx(string $val)
+ * @method Db idx(string $val) 返回数据用指定字段作为键
  * @method Db limit(string|int $val)
  * @method Db order(string $val)
- * @method Db table(string $val)
+ * @method Db table(string $val) 指定表
  * @property string fields
  * @property string group
  * @property string having
@@ -108,9 +108,10 @@ class Db
     private $endSpec = '`';
 
     /**
+     * 初始化数据库连接
      * @param bool $slave
      * @param bool $force
-     * @return mixed
+     * @return db_pdo|\myphp\db\db_mysqli|\myphp\db\db_taos
      */
     private function _initDb(bool $slave = false, bool $force = false)
     {
@@ -217,7 +218,12 @@ class Db
         unset(self::$instance[$name]);
         myphp::free('__db_'.$name);
     }
-    //启用或关闭SQL记录 依赖Log类 0不记录 1仅execute的sql 2全部sql
+
+    /**
+     * 启用或关闭SQL记录
+     * @param int $bool 0不记录 1仅execute的sql 2全部sql
+     * @return void
+     */
     public static function log_on(int $bool = 2): void
     {
         self::$log_type = $bool;
@@ -242,7 +248,12 @@ class Db
             throw new Exception(__CLASS__.':'.$method.'方法无效');
         }
     }
-    //获取最后执行的Sql
+
+    /**
+     * 获取最后执行的Sql
+     * @param bool $last 真时为全局最后一个Sql 否则为当前db对象执行的Sql
+     * @return string
+     */
     public function getSql(bool $last = true): string
     {
         return $last ? self::$sql : $this->_sql;
@@ -301,6 +312,12 @@ class Db
     {
         return $this->db->quote($val);
     }
+
+    /**
+     * 对值安全转义
+     * @param mixed $val
+     * @return array|false|mixed|Expr|string
+     */
     final public function parseValue($val)
     {
         if ($val instanceof Expr) { //表达式
@@ -315,7 +332,13 @@ class Db
         }
         return $val;
     }
-    //根据绑定参数组装SQL语句 不允许子类覆盖  sql绑定编译
+
+    /**
+     * 根据绑定参数组装SQL语句 sql绑定编译
+     * @param string $sql
+     * @param array|null $bind
+     * @return string
+     */
     final public function get_real_sql(string $sql, ?array $bind): string
     {
         if (!is_array($bind)) {
@@ -347,24 +370,34 @@ class Db
         }
     }
     /**
+     * 是否是读取数据的sql
      * @param string $sql
-     * @return bool 是否读取数据的sql
+     * @return bool
      */
     public function isReadSql(string $sql): bool
     {
         $pattern = '/^\s*(SELECT|SHOW|DESCRIBE)\b/i';
         return preg_match($pattern, $sql) > 0;
     }
+    //重置对象参数
     public function resetOptions(): void
     {
         $this->options = [];
         $this->_sql = '';
     }
+    //获取数据库连接对象
     public function conn()
     {
         return $this->db;
     }
-    //对sql部分语句进行转换
+
+    /**
+     * 对sql部分语句进行转换
+     * @param string $sql
+     * @param bool $curd
+     * @return void
+     * @throws Exception
+     */
     final public function chkSql(string &$sql, bool $curd = false): void
     {
         $isMysql = $this->config['dbms'] == 'mysql';
@@ -464,7 +497,7 @@ class Db
      * 联合查询
      * @param string $tb
      * @param string|array $on
-     * @param string $joinWay
+     * @param string $joinWay 默认内连接
      * @return $this
      */
     public function join(string $tb, $on, string $joinWay = 'inner'): Db
@@ -487,6 +520,7 @@ class Db
         return $this;
     }
     /**
+     * 左连接
      * @param string $tb
      * @param string|array $on
      * @return $this
@@ -496,6 +530,7 @@ class Db
         return $this->join($tb, $on, 'left');
     }
     /**
+     * 右连接
      * @param string $tb
      * @param string|array $on
      * @return $this
@@ -505,7 +540,7 @@ class Db
         return $this->join($tb, $on, 'right');
     }
     /**
-     * 指定显示列
+     * 指定显示字段列
      * @param $val
      * @return $this
      */
@@ -534,7 +569,7 @@ class Db
         return $this;
     }
     /**
-     * where处理
+     * and where处理
      * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
      * @param array|string|null $bind 要解析的参数
      * @return $this
@@ -544,11 +579,25 @@ class Db
         $this->_where($case, $bind, $bind === 'or' && is_array($case) ? false : true);
         return $this;
     }
+    /**
+     * or where处理
+     * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
+     * @param array|string|null $bind 要解析的参数
+     * @return $this
+    */
     public function whereOr($case, $bind = null): Db //or
     {
         $this->_where($case, $bind, false);
         return $this;
     }
+
+    /**
+     * where处理
+     * @param string|array $case string:条件语句可绑定参数[$bind设参数数组]; array:条件数组
+     * @param array|string|null $bind 要解析的参数
+     * @param bool $and
+     * @return void
+     */
     private function _where($case, $bind = null, $and = true): void
     {
         if (is_array($case)) {
@@ -562,19 +611,18 @@ class Db
                 //简单排除重复条件
                 if (strpos($_where, $where) === false) {
                     $this->options['where'] = $_where . ($and ? ' and ' : ' or ') . $where;
-                    //'('.$this->options['where'].') and ('.$where.')' : '('.$this->options['where'].') or ('.$where.')';
                 }
             } else {
                 $this->options['where'] = $where;
             }
-            //$this->options['where'] = empty($this->options['where']) ? $where : ($and ? '('.$this->options['where'].') and ('.$where.')' : '('.$this->options['where'].') or ('.$where.')');
         }
     }
 
     /**
+     * 生成where条件
      * @param array|string $case ['xx'=>1, ...]|['and'|'or', 'xx'=>1, ...]|'sql条件|绑定方式条件'
      * @param null|array|string $args  array参数绑定|'and|or'条件组合
-     * @return string|string[]
+     * @return string
      */
     public function makeWhere($case, $args = null)
     {
@@ -664,13 +712,12 @@ class Db
     }
 
     /**
-     * todo:有主从时 默认都走主库
-     * 返回预处理对象 $stmt -> 调用 $stmt->execute($params=null) 处理sql数据
-     * @param $sql
+     * 返回预处理对象 $stmt -> 调用 $stmt->execute($params=null) 处理sql数据 有主从时 默认都走主库
+     * @param string $sql
      * @param array $options
-     * @return false|\mysqli_stmt|\PDOStatement
+     * @return \PDOStatement|false|\mysqli_stmt
      */
-    public function prepare($sql, array $options = [])
+    public function prepare(string $sql, array $options = [])
     {
         //$this->specTransfer($sql);
         $this->_run_init($sql, null, true);
@@ -683,7 +730,7 @@ class Db
     public static $execCustom = null;
 
     /**
-     * 执行sql  todo:有主从时 默认都走主库
+     * 执行sql 有主从时 默认都走主库
      * @param string $sql
      * @param array|null $bind
      * @return bool|int
@@ -699,12 +746,12 @@ class Db
     }
 
     /**
-     * 执行查询 返回数据 $bind[array:绑定数据, true:直接返回查询数据],$isArr $bind为array时才有效
+     * 执行查询 返回数据
      * @param string $sql
-     * @param null|bool|array $bind
-     * @param bool $isArr
+     * @param null|bool|array $bind array:绑定数据, true:直接返回查询数据
+     * @param bool $isArr $bind为array时才有效
      * @param string $type
-     * @return array|false|\PDOStatement
+     * @return array|\PDOStatement|false
      * @throws Exception
      */
     public function query(string $sql, $bind = null, bool $isArr = false, string $type = 'assoc')
@@ -744,6 +791,7 @@ class Db
     }
 
     /**
+     * 批量获取记录
      * @param int $num
      * @return \Generator|\SplFixedArray[][]|array[][]
      * @throws Exception
@@ -774,8 +822,17 @@ class Db
             yield $data;
         }
     }
-    //获取记录 简单单表查询
-    public function select_sql(string $table = '', string $where = '', string $order = '', string $fields = '*', string $limit = ''): string
+
+    /**
+     * 获取查询sql
+     * @param string $table
+     * @param string|array $where
+     * @param string $order
+     * @param string $fields
+     * @param string $limit
+     * @return string
+     */
+    public function select_sql(string $table = '', $where = '', string $order = '', string $fields = '*', string $limit = ''): string
     {
         if ($where) {
             $this->_where($where);
@@ -801,7 +858,7 @@ class Db
         $this->_table($table);
         $sql = 'SELECT '.$limit.$fields.' FROM '.$table.($this->options['join'] ?? '');
 
-        if ($where != '') {
+        if ($where !== '') {
             $sql .= ' WHERE '.$where;
         }
         if (isset($this->options['group'])) {
@@ -816,13 +873,31 @@ class Db
 
         return $sql;
     }
-    public function select($table = '', string $where = '', string $order = '', string $fields = '*', string $limit = '')
+
+    /**
+     * 查询 返回所有数据
+     * @param string $table false时返回结果集对象
+     * @param string|array $where
+     * @param string $order
+     * @param string $fields
+     * @param string $limit
+     * @return array
+     * @throws Exception
+     */
+    public function select(string $table = '', $where = '', string $order = '', string $fields = '*', string $limit = '')
     {
-        return $this->query($this->select_sql($table, $where, $order, $fields, $limit), $table === false ? false : true);
+        return $this->query($this->select_sql($table, $where, $order, $fields, $limit), true);
     }
-    public function all($table = '', string $where = '', string $order = '', string $fields = '*', string $limit = '')
+
+    /**
+     * 查询 返回所有数据
+     * @param bool $array false返回结果集对象
+     * @return array|false|\PDOStatement
+     * @throws Exception
+     */
+    public function all(bool $array = true)
     {
-        return $this->query($this->select_sql($table, $where, $order, $fields, $limit), $table === false ? false : true);
+        return $this->query($this->select_sql(), $array);
     }
 
     /**
@@ -834,7 +909,16 @@ class Db
     {
         return $this->query($this->select_sql(), true, true, 'column');
     }
-    public function find_sql($table = '', $where = '', $order = '', $fields = '*'): string
+
+    /**
+     * 返回获取单条数据Sql
+     * @param string $table
+     * @param string|array $where
+     * @param string $order
+     * @param string $fields
+     * @return string
+     */
+    public function find_sql(string $table = '', $where = '', string $order = '', string $fields = '*'): string
     {
         if ($where != '') {
             $this->_where($where);
@@ -871,15 +955,37 @@ class Db
         }
         return $sql;
     }
-    public function find($table = '', $where = '', $order = '', $fields = '*')
+
+    /**
+     * 获取单条数据
+     * @param string $table
+     * @param string|array $where
+     * @param string $order
+     * @param string $fields
+     * @return array|false
+     * @throws Exception
+     */
+    public function find(string $table = '', $where = '', string $order = '', string $fields = '*')
     {
         return $this->getOne($this->find_sql($table, $where, $order, $fields));
     }
-    public function one($table = '', $where = '', $order = '', $fields = '*')
+
+    /**
+     * 获取单条数据
+     * @return array|false
+     * @throws Exception
+     */
+    public function one()
     {
-        return $this->getOne($this->find_sql($table, $where, $order, $fields));
+        return $this->getOne($this->find_sql());
     }
-    public function lock($mode = 'FOR UPDATE')
+
+    /**
+     * 乐观锁
+     * @param string $mode
+     * @return $this
+     */
+    public function lock(string $mode = 'FOR UPDATE')
     {
         $this->options['lock'] = $mode;
         return $this;
@@ -895,8 +1001,14 @@ class Db
         $row = $this->find('', '', '', $name);
         return $row[$name] ?? null;
     }
-    //[批量]添加记录
-    public function add_sql($post, $table = '')
+
+    /**
+     * 添加记录sql
+     * @param array|array[] $post 可批量
+     * @param string $table
+     * @return string
+     */
+    public function add_sql(array $post, string $table = '')
     {
         $field = '';
         $value = '';
@@ -930,10 +1042,11 @@ class Db
         }
         $this->_table($table, false);
         $sql = 'INSERT INTO '.$table.'('.$field.') VALUES '.$values;
-        return $sql;//返回执行sql
+        return $sql;
     }
 
     /**
+     * 添加记录
      * @param array|array[] $post 可批量
      * @param string $table
      * @return mixed|string 自动自增获取最后插入记录的id
@@ -944,7 +1057,14 @@ class Db
         $this->execute($this->add_sql($post, $table));
         return $this->db->insert_id();
     }
-    //更新记录 $where[str|arr]
+
+    /**
+     * 更新记录sql
+     * @param array $post
+     * @param string $table
+     * @param string|array $where
+     * @return string
+     */
     public function update_sql(array $post, string $table = '', $where = ''): string
     {
         $value = '';
@@ -981,6 +1101,13 @@ class Db
     {
         return $this->execute($this->update_sql($post, $table, $where));
     }
+
+    /**
+     * 删除记录sql
+     * @param string $table
+     * @param string|array $where
+     * @return string
+     */
     public function del_sql(string $table = '', $where = ''): string
     {
         if ($table === '' && isset($this->options['table'])) {
@@ -998,7 +1125,9 @@ class Db
 
         return $sql;
     }
+
     /**
+     * 删除
      * @param string $table
      * @param string|array $where
      * @return int|false
@@ -1008,7 +1137,11 @@ class Db
     {
         return $this->execute($this->del_sql($table, $where)); //返回删除记录数
     }
-    public function count($table = '', $where = '', $field = '*')
+
+    /**
+     * @see getCount
+     */
+    public function count(string $table = '', $where = '', string $field = '*'): int
     {
         return $this->getCount($table, $where, $field);
     }
@@ -1016,12 +1149,12 @@ class Db
     /**
      * 获取指定查询表的行数
      * @param string $table
-     * @param string $where
+     * @param string|array $where
      * @param string $field
      * @return int
      * @throws Exception
      */
-    public function getCount($table = '', $where = '', $field = '*')
+    public function getCount(string $table = '', $where = '', string $field = '*'): int
     {
         $join = '';
         if (isset($this->options['join'])) { //联合统计时处理
@@ -1056,26 +1189,35 @@ class Db
         $row = $this->getOne($sql, null, 'num');
         return $row ? (int)$row[0] : 0;
     }
-    //获取指定字段最新值
-    public function getLastId($table, $idName, $where = '', $orderByName = '')
+
+    /**
+     * 获取指定字段最新一条记录值
+     * @param string $table
+     * @param string $idName
+     * @param string|array $where
+     * @param string $orderByName
+     * @return bool|mixed
+     * @throws Exception
+     */
+    public function getLastId(string $table, string $idName, $where = '', string $orderByName = '')
     {
         if ($orderByName == '') {
             $orderByName = $idName;
         }
 
-        return $this->getCustomId($table, $idName, $where, $orderByName.' DESC');
+        return $this->getCustomId($table, $idName, $where, $orderByName . ' DESC');
     }
 
     /**
-     * 获取自定字段值
-     * @param $table
-     * @param $idName
-     * @param string $where
+     * 获取自定字段一条记录值
+     * @param string $table
+     * @param string $idName
+     * @param string|array $where
      * @param string $orderBy
      * @return bool|mixed
      * @throws Exception
      */
-    public function getCustomId($table, $idName, $where = '', $orderBy = '')
+    public function getCustomId(string $table, string $idName, $where = '', string $orderBy = '')
     {
         $this->_table($table);
         $sql = 'SELECT TOP 1 ' . $this->startSpec . $idName . $this->endSpec . ' FROM ' . $table;
@@ -1096,12 +1238,11 @@ class Db
     }
 
     /**
-     * 执行一个SQL语句,仅返回一条记录 $bind[array:绑定数据],$type $bind为array时才有效
+     * 执行一个SQL语句,仅返回一条记录
      * @param string $sql
-     * @param null|array $bind
-     * @param string $type
+     * @param null|array|bool $bind array时为绑定数据
+     * @param string $type $bind为array时才有效
      * @return array|false
-     * @throws Exception
      */
     public function getOne(string $sql, $bind = null, string $type = 'assoc')
     {
@@ -1124,6 +1265,7 @@ class Db
     }
 
     /**
+     * @see fetch
      * @param null $rs
      * @param string $type
      * @return mixed
@@ -1150,7 +1292,7 @@ class Db
         $this->db->setTransactionLevel($level);
         return $this;
     }
-    //开始一个事务，关闭自动提交 todo:有主从时 默认都走主库
+    //开始一个事务，关闭自动提交 有主从时 默认都走主库
     public function beginTrans(): Db
     {
         $sql = 'beginTrans';
@@ -1194,7 +1336,7 @@ class Db
         }
         return $this->cache;
     }
-    //格式名称-关键字冲突处理
+    //格式字段或表名称-关键字冲突处理
     public function formatName(string $val): string
     {
         $val = trim(str_replace('`', '', $val));
@@ -1210,11 +1352,15 @@ class Db
         return $this->startSpec . $val . $this->endSpec;
     }
 
-    //是否给表名增加关键字冲突处理符号
-    private function _table(&$tb, bool $more = true)
+    /**
+     * 是否给表名增加关键字冲突处理符号
+     * @param string|Expr $tb
+     * @param bool $more
+     */
+    private function _table(&$tb, bool $more = true): void
     {
         if ($tb instanceof Expr) { //表达式
-            return $tb;
+            return;
         }
 
         if (strpos($tb, '{prefix}') !== false) { //表名前缀处理
@@ -1224,11 +1370,11 @@ class Db
         if ($more) {
             $tb = trim($tb);
             if ($tb[0] == '(' || strpos($tb, '.') || strpos($tb, ',')) { //子查询|联合查询[.,]
-                return $tb;
+                return;
             }
             if ($pos = strpos($tb, ' ')) { //有别名
                 if (strpos($tb, ' ', $pos + 1)) { //多个空格 可能非别名
-                    return $tb;
+                    return;
                 }
                 $tb = str_replace(' ', $this->endSpec . ' ' . $this->startSpec, $tb); //, str_replace('`', '', $tb)
             }
@@ -1237,7 +1383,6 @@ class Db
         }
 
         $tb = $this->startSpec . $tb . $this->endSpec;
-        return $tb;
     }
 }
 //数据库表
@@ -1279,6 +1424,11 @@ abstract class TbBase
         'bit' => '%b'
     ];
 
+    /**
+     * 获取字段类型
+     * @param string $type
+     * @return string
+     */
     protected function toType(string $type): string
     {
         if (strpos($type, 'int')) {
@@ -1332,7 +1482,7 @@ abstract class DbBase
     public const SERIALIZABLE = 'SERIALIZABLE'; //串行化
 
     public $conn; //连接实例
-    public $rs; //数据集
+    public $rs; //结果集
     public $config;
     public $transCounter = 0;
 
@@ -1441,7 +1591,7 @@ abstract class DbBase
     abstract public function query(string $sql);
     /**
      * 从结果集中取得一行作为关联数组/数字索引数组
-     * @param \PDOStatement|\mysqli_result $query 数据集
+     * @param \PDOStatement|\mysqli_result $query 结果集
      * @param string $type 默认MYSQL_ASSOC 关联，MYSQL_NUM 数字，MYSQL_BOTH 两者
      * @return mixed
      */
