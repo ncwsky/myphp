@@ -900,18 +900,15 @@ function array_call_func($func, &$data)
  * Q('post.name:htmlspecialchars'); 获取$_POST['name']
  * Q('get.:null'); 获取$_GET 且不执行过滤操作 filter=null
  * </code>
+ * string,bool,int,float,arr,date
+ * %s,%b,%d,%f,%a,%date [2014-01-11 13:23:32 | 2014-01-11]
+ * filter:fun1,fun2,/regx/i正则过滤
  * @param string $name 变量的名称 支持指定类型  post.name%s{1,20}:filter  {1,20}取值范围
  * @param mixed $defVal 变量的默认值
- * @param mixed $datas 要获取的额外数据源
+ * @param array|null $input 要获取的额外数据源
  * @return mixed
  */
-/*
-string,bool,int,float,arr,date
-%s,%b,%d,%f,%a,%date [2014-01-11 13:23:32 | 2014-01-11]
-filter:fun1,fun2,/regx/i正则过滤
-*/
-
-function Q($name, $defVal = '', $datas = null)
+function Q(string $name, $defVal = '', ?array $input = null)
 {
     static $_PUT = null;
     $filter = $min = $max = null;
@@ -923,18 +920,22 @@ function Q($name, $defVal = '', $datas = null)
     if (strpos($name, '.') !== false) { // 指定参数来源
         [$method, $name] = explode('.', $name, 2);
         if (!$method) {
-            $method = 'request';
+            if (IS_CLI) {
+                $method = \myphp\Request::isPost() ? 'post' : 'get';
+            } else {
+                $method = 'request';
+            }
         }
     }
     #echo $method.'--'.$name.'--'.$type.'--'.$min.'--'.$max.'--'.$filter,PHP_EOL;
-    switch ($method) { #strtolower($method)
+    switch ($method) {
         case 'request': $input = &$_REQUEST;
             break;
         case 'get' : $input = &$_GET;
             break;
         case 'post': $input = &$_POST;
             break;
-        case 'data': $input = &$datas;
+        case 'data':
             break;
         case 'put' :
             if (IS_CLI || is_null($_PUT)) { // cli模式下每次都需要解析
