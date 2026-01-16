@@ -18,6 +18,7 @@ cLog('ab')->write(['test'],microtime(),true);
 class RotateLog
 {
     public static $isLog = true;
+    public static $logTime = true; //默认生成记录时间
 
     public const MODE_DEF = 0; //达到大小自动生成新文件
     public const MODE_YMD = 1; //按年月日生成
@@ -73,7 +74,7 @@ class RotateLog
         $time = time();
         $this->truncate($time);
 
-        $msg = '[' . date($this->mode == self::MODE_YMD ? 'H:i:s' : 'Y-m-d H:i:s', $time) . '.' . substr(microtime(), 2, 3) . ']';
+        $msg = self::$logTime ? '[' . date($this->mode == self::MODE_YMD ? 'H:i:s' : 'Y-m-d H:i:s', $time) . '.' . substr(microtime(), 2, 3) . ']' : '';
         if (func_num_args() > 1) {
             $args = func_get_args();
             foreach ($args as $v) {
