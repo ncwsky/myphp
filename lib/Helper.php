@@ -451,9 +451,6 @@ class Helper
                 fseek($handle, 0, SEEK_END);
                 fwrite($handle, $logLine);
                 flock($handle, LOCK_UN); // 释放锁
-            } else {
-                //这里仅当使用 flock($handle, LOCK_EX | LOCK_NB)  获取独占锁（非阻塞模式）时才会生效
-                self::toFileLog($file . '.bak', $content, $max_size); //把并发日志记录到备用日志以便追溯
             }
             fclose($handle);
             clearstatcache(true, $file);
