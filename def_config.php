@@ -75,7 +75,7 @@ return [
     'gzip_comp_level' => 3, //压缩等级
     //'gzip_types'=>'text/plain application/javascript application/x-javascript text/javascript text/css application/xml',
     'encode_key'  => 'oz7oQdlUdlP#y3gKuBbi67mVxhh',//加密串 用于cookie:sys_auth(),getMd5(),aes(),Helper::authcode或其他加密
-    'timezone' => 'PRC', //PRC中国 Etc/GMT-8东八区  Asia/Chongqing重庆 Asia/Shanghai上海
+    'timezone' => 'Asia/Shanghai', //PRC中国 Etc/GMT-8东八区  Asia/Chongqing重庆 Asia/Shanghai上海
     'tmp_theme' => false,//模板主题开启-用于前端
     'tmp_suffix' => '.html',//模板后缀名
     'tmp_left_tag' => '{', //模板左侧符号

@@ -59,7 +59,9 @@ class Request
      */
     public static function isAjax(): bool
     {
-        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        return (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+            || (isset($_SERVER['CONTENT_TYPE']) && $_SERVER['CONTENT_TYPE'] === 'application/json')
+            || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
     }
 
     /**
@@ -103,7 +105,7 @@ class Request
     {
         if (isset($_SERVER['REQUEST_URI'])) {
             $pos = strpos($_SERVER['REQUEST_URI'], '?');
-            return $pos ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI'];
+            return $pos !== false ? substr($_SERVER['REQUEST_URI'], 0, $pos) : $_SERVER['REQUEST_URI'];
         }
         return $_SERVER['PHP_SELF'] ?? ($_SERVER['SCRIPT_NAME'] ?? '');
     }
@@ -301,6 +303,11 @@ class Request
             return $_POST;
         }
         return $_POST[$name] ?? $default;
+    }
+
+    public function isReqType($type): bool
+    {
+        return $this->header('Content-Type') === $type;
     }
 
     /**

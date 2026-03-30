@@ -323,11 +323,11 @@ final class myphp
             if ($errCode >= 200 && $errCode < 500 && isset(Response::$phrases[$errCode])) {
                 self::send($e->getMessage(), $errCode);
             } else {
-                self::send($e->getMessage() . (self::$cfg['debug'] ? "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : ''), 500);
+                self::send(self::$cfg['debug'] ? $e->getMessage() . "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : 'Internal Server Error', 500);
                 Log::Exception($e, false);
             }
         } catch (\Error $e) {
-            self::send($e->getMessage() . (self::$cfg['debug'] ? "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : ''), 500);
+            self::send(self::$cfg['debug'] ? $e->getMessage() . "\n" . 'line:' . $e->getLine() . ', file:' . $e->getFile() . "\n" . $e->getTraceAsString() : 'Internal Server Error', 500);
             Log::Exception($e, false);
         }
         //重置处理
