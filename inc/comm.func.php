@@ -429,7 +429,12 @@ function random($len = 6, $chars = '0')
     } elseif ($chars == '11') {
         $chars = '~!@#$%^&*_-abcdefghijkmnpqrstuvwxyzABCDEFGHIJKLMNPRSTUVWXYZ0123456789';
     }
-    return substr(str_shuffle($chars.$chars.$chars), 0, $len);
+    $max = strlen($chars) - 1;
+    $result = '';
+    for ($i = 0; $i < $len; $i++) {
+        $result .= $chars[random_int(0, $max)];
+    }
+    return $result;
 }
 //生成流水号
 function create_sn() //20位
@@ -742,7 +747,7 @@ function cookie($name, $value = '', $option = null)
         'domain' => '', // cookie作用域 如设为www.test.com,就只在www子域内有效. 跨域共享cookie的域名(例如: .test.com)
         'secure' => false, //  cookie 启用安全传输
         'httponly' => true, // httponly设置
-        'same_site' => false
+        'same_site' => 'Lax'
     ];
     // 参数处理
     if (is_numeric($option)) {

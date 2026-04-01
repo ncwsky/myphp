@@ -215,6 +215,9 @@ class Control
     final public static function jsonp($data, bool $encode = true): Response
     {
         $jsonp_call = $_GET[myphp::$cfg['jsonp_call']] ?? myphp::$cfg['jsonp_call'];
+        if (!preg_match('/^[\w$.]+$/', $jsonp_call)) {
+            throw new \Exception('Invalid JSONP callback');
+        }
         $data = $encode ? Helper::toJson($data) : $data;
         if ($data === false) {
             throw new \Exception('Invalid JSONP');

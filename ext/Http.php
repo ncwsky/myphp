@@ -215,8 +215,13 @@ class Http
         }
 
         if (substr($url, 0, 5) == 'https') { //ssl
-            $options[CURLOPT_SSL_VERIFYHOST] = 0; //检查服务器SSL证书 正式环境中使用 2
-            $options[CURLOPT_SSL_VERIFYPEER] = false; //取消验证证书
+            if (isset($opt['verify']) && $opt['verify'] === false) { //不验证证书合法性
+                $options[CURLOPT_SSL_VERIFYHOST] = 0;
+                $options[CURLOPT_SSL_VERIFYPEER] = false;
+            } else {
+                $options[CURLOPT_SSL_VERIFYHOST] = 2; //检查服务器SSL证书
+                $options[CURLOPT_SSL_VERIFYPEER] = true; //验证证书
+            }
 
             if (isset($opt['cert']) && isset($opt['key'])) {
                 if (!isset($opt['type'])) {
