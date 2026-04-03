@@ -157,10 +157,10 @@ UserModel::where(['status'=>1])->all();              // 条件查询 all|select�
 UserModel::where('age > ?', [18])->order('id DESC')->limit(10)->select();
 UserModel::insert($data);                            // 插入
 UserModel::insert([$data,$data,...]);                // 批量插入
-UserModel::where('id = ?', [1])->update($data);      // 更新
-UserModel::updateAll($data, ['id'=>1]);      // 更新
-UserModel::where('id = ?', [1])->del();           // 删除
-UserModel::delAll(['id'=>1]);            // 删除
+UserModel::where('id = ?', [1])->update($data);     // 更新
+UserModel::updateAll($data, ['id'=>1]);              // 更新
+UserModel::where('id = ?', [1])->del();              // 删除
+UserModel::delAll(['id'=>1]);                        // 删除
 
 // 事务
 Model::beginTrans();
@@ -219,13 +219,22 @@ Model::rollBack();
 
 | 标签 | 作用 | 示例 | 输出 |
 |------|------|------|------|
-| `~` | 执行代码 | `{~echo $name}` | `<?php echo $name;?>` |
-| `*` | 输出变量 | `{*$name}` | `<?php echo $name;?>` |
+| `~` | 执行 PHP 语句 | `{~echo $name}` | `<?php echo $name ?>` |
+| `*` | 原样输出表达式 | `{*$obj->name()}` | `<?php echo $obj->name(); ?>` |
 | `@` | 语言变量 | `{@name}` | `<?php echo GetL('name');?>` |
 | `#` | 配置值 | `{#name}` | `<?php echo GetC('name');?>` |
 | `?` | isset 检查 | `{?$name}` | 存在则输出，否则为空 |
 
-**`?` 标签高级用法：**
+`$` 标签会对变量做解析（如点号转数组访问），而 `*` 标签将内容作为原始 PHP 表达式直接输出，适用于方法调用、多维数组、带判断的复杂表达式等：
+
+```
+{$data.name}                → <?php echo $data['name'];?>
+{*$user->getName()}         → <?php echo $user->getName(); ?>
+{*$list[$i]['child'][$j]}   → <?php echo $list[$i]['child'][$j]; ?>
+{*isset($a) ? $a : $b}     → <?php echo isset($a) ? $a : $b; ?>
+```
+
+**`?` 标签用法：**
 
 ```
 {?$name}              → isset($name) ? $name : ''
@@ -317,10 +326,10 @@ php my --run=admin dashboard/stats "id=5"  # 指定模块执行
 配置加载顺序（后者覆盖前者）：
 
 1. 框架默认配置（`def_config.php`）
-2. 全局配置（`conf.php`）
-3. 共用配置（`common/config.php`）
-4. 应用配置（`app/config.php`）
-5. 模块配置（模块 `config.php`）
+2. 全局配置（`conf.php`）— 项目部署环境配置，如数据库连接、调试开关等
+3. 共用配置（`common/config.php`）— 跨模块共用的业务配置
+4. 应用配置（`app/config.php`）— 当前应用的专属配置
+5. 模块配置（模块 `config.php`）— 模块级别的独立配置
 
 **常用配置项：**
 
@@ -402,17 +411,22 @@ class AuthMiddleware
 ```php
 use myphp\Log;
 
+// 按级别记录
 Log::DEBUG('调试信息');
 Log::INFO('一般信息');
 Log::WARN('警告');
 Log::ERROR('错误');
 Log::SQL($sql);
-Log::trace('自定义日志', 'trace');
-Log::write('自定义日志', 'info');
-Log::echo('日志1','日志2',...); //多个内容输入
-Log::miniREQ($raw_full = false); //返回简要请求信息
-Log::REQ($raw_full = false); //返回请求信息
-Log::Exception($e); //记录异常
+
+// 自定义写入
+Log::trace('自定义日志', 'trace');   // 追踪日志
+Log::write('自定义日志', 'info');    // 写入指定级别
+Log::echo('日志1', '日志2');         // 多内容输出
+
+// 请求与异常
+Log::miniREQ();                      // 简要请求信息
+Log::REQ();                          // 完整请求信息
+Log::Exception($e);                  // 记录异常
 ```
 
 日志自动按大小轮转（默认 4MB），存放在 `log/` 目录。
