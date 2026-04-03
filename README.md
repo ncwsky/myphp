@@ -40,27 +40,27 @@ require './vendor/myphps/myphp/base.php';
 myphp::Run();
 ```
 
-访问 `http://localhost/index.php/index/index` 即可运行。
+访问 `http://localhost/index.php/index/index` 即可运行，会自动创建app目录。
 
 ## 目录结构
 
 ```
 project/
-├── web/                        # Web 入口目录
+├── web/                       # Web 入口目录
 │   ├── index.php              # 主入口文件
 │   └── admin.php              # 模块入口文件（可选）
-├── app/                        # 应用目录
+├── app/                       # 应用目录
 │   ├── config.php             # 应用配置
 │   ├── control/               # 控制器
 │   ├── model/                 # 模型
 │   ├── view/                  # 视图模板
 │   └── lang/                  # 语言包
-├── common/                     # 公共代码
+├── common/                    # 公共代码
 │   ├── config.php             # 全局配置
 │   └── common.php             # 公共函数
-├── runtime/                    # 运行时文件（缓存等）
-├── conf.php                    # 全局配置文件
-├── vendor/                     # Composer 依赖
+├── runtime/                   # 运行时文件（缓存等）
+├── conf.php                   # 全局配置文件
+├── vendor/                    # Composer 依赖
 └── composer.json
 ```
 
@@ -316,7 +316,7 @@ php index.php "m/c/a?b=1&d=1"
 ```bash
 php my --init                    # 初始化项目 默认app
 php my --init --run=admin        # 初始化模块（应用目录）
-php my user/list           # 执行 controller/action
+php my user/list                 # 执行 controller/action
 php my admin/user/list           # 执行 module/controller/action
 php my --run=admin dashboard/stats "id=5"  # 指定模块执行
 ```
