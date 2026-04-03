@@ -8,91 +8,109 @@ https://github.com/php-casbin/php-casbin
 编辑器|cfg配置只读|运行env变量可设置|lang读取设置     
 
 **使用参考实例**  
-```
+```php
 <?php
 //定义项目路径
 define('APP_PATH', __DIR__ . '/app');
 
-// require 'conf.php'; // 这里可以载入全局配置参数数组 $cfg = array();
+// require 'conf.php'; // 这里可以载入全局配置参数数组 $cfg = [];
 // 加载框架入口文件
-//require("./myphp/base.php");
-
-myphp::Run();	//运行类的Run的方法
+require('./myphp/base.php');
+myphp::Run(); //运行
 ```
 
-**cli示例**   
+**cli模式执行示例**   
 >脚本参数输入基本同url地址  
 ```
-php index.php m/c/a "b=1&d=1"|b=1 d=1  
+php index.php m/c/a "b=1&d=1" 或 php index.php m/c/a b=1 d=1  
 php index.php m/c/a?b=1  
 php index.php "m/c/a?b=1&d=1"  
 ```
 
 **模板标签**    
 ```
-#引入文件 
+# 引入文件 
 {include:文件名.后缀名}  
 
-#循环数据    
+# 循环数据   
+{list $retData}
+{/list} 
 list $retData -> $retData as $key=>$val;
 list $retData $custom -> $retData as $k_custom=>$custom
-{list $retData}
-{/list}
 
-#条件
+# 条件
 {if x}{else}{elseif x}{/if}
 
-#标签
-~ => php    ~echo $name -> echo $name;
-$ => var    $name -> echo $name;
-* => echo   *$name -> echo $name;
-@ => lang   @name -> echo GetL('name');
-# => config #name -> echo Getc('name');
-? => isset  ?$v[=$fun][:$defval]
-    ?$name -> echo isset($name)?$name:'';
-    ?$name:0 -> echo isset($name)?$name:0;
-    ?$name=trim:$defval -> echo isset($name)?trim($name):$defval;
- 
+# 标签
+~ => 代码 {~echo $name}   -> <?php echo $name;?>
+$ => 变量 {$name}         -> <?php echo $name;?>
+         {$data.name}    -> <?php echo $data['name'];?>
+* => 输出 {*$name}        -> <?php echo $name;?>
+@ => 语言 {@name}         -> <?php echo GetL('name');?>
+# => 配置 {#name}         -> <?php echo Getc('name');?>
+? => isset  {?$v[=$fun][:$defval]}
+     {?$name}               -> <?php echo isset($name)?$name:'';?>
+     {?$name:0}             -> <?php echo isset($name)?$name:0;?>
+     {?$name=trim:$defval}  -> <?php echo isset($name)?trim($name):$defval;?>
 ```
 
-**模块**  
-> 模块目录放置到项目/app目录下或/根目录下，放置其他位置必需配置模块映射，示例如下：
-
-_项目入口文件 index.php_  
-> 模块通过app目录下的配置文件或全局配置的模块映射自动识别
-> module_maps=>['admin'=>'/admin','api'=>'module/api','user'=>'/app/module/user']
+**项目入口文件**  
+/web/index.php
 ```php
 <?php
 define('APP_PATH',__DIR__.'/../app');
 define('COMMON', __DIR__.'/../common');
-require __DIR__ . "/../vendor/autoload.php";
-require __DIR__ . "/../conf.php";
-require __DIR__ . "/../vendor/myphps/myphp/base.php";
+require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../conf.php';
+require __DIR__ . '/../vendor/myphps/myphp/base.php';
 myphp::Run();
 ```
-_admin模块入口文件 admin.php_ 
-> 模块需放置在项目根目录/或/app下    
-> 在app目录下的时必需要在文件或全局配置里设置模块路径映射  
-> app_namespace有配置时同时需要配置$namespaceMap命名空间前缀路径
+**模块**
+- 模块通过app目录下的配置文件(_/app/config.php_)或全局配置(_/conf.php_)的 _module_maps_ 配置识别
+- 未配置 module_maps 时，需要模块放到项目/根目录下
+- 配置模块映射的示例如下：
+```php
+'module_maps'=> [ //模块映射 模块路由名=>模块目录
+    'admin' => '/admin', # /开头相对项目根目录
+    'api' => 'module/api', # 无/开头相对项目目录 /app/module/api
+    'user' => '/app/module/user'
+]
+```
+admin模块入口文件 _/web/admin.php_  
+- 在非项目根目录下时，必需在app下配置文件或全局配置里设置模块路径映射  
+- 针对模块独立入口文件时，需要配置myphp::$cfg['app_namespace']（模块命名空间）、myphp::$namespaceMap（命名空间前缀路径）
+
+```php
+<?php 
+define('APP_PATH',__DIR__.'/../admin'); #不需要配置模块映射或DEF_MODULE 此入口文件等同项目入口文件
+define('COMMON', __DIR__.'/../common');
+require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../conf.php';
+require __DIR__ . '/../vendor/myphps/myphp/base.php';
+myphp::Run();
+```
+或
 ```php
 <?php
 define('APP_PATH',__DIR__.'/../app');
 define('COMMON', __DIR__.'/../common');
-define('DEF_MODULE', 'admin'); #未配置此项，则在app目录下的配置文件或全局配置的模块映射自动识别 等同项目入口文件
-require __DIR__ . "/../vendor/autoload.php";
-require __DIR__ . "/../conf.php";
-require __DIR__ . "/../vendor/myphps/myphp/base.php";
+define('DEF_MODULE', 'admin'); # 指定默认模块名 同时模块在根目录
+require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../conf.php';
+require __DIR__ . '/../vendor/myphps/myphp/base.php';
 myphp::Run();
-
-#或
-
+```
+或
+```php
+<?php
 define('APP_PATH', __DIR__ . '/../app/module/admin');
 define('COMMON', __DIR__ . '/../common');
 define('DEF_MODULE', 'admin');
-require __DIR__ . "/../vendor/autoload.php";
-require __DIR__ . "/../conf.php";
-require __DIR__ . "/../vendor/myphps/myphp/base.php";
-myphp::$cfg['app_namespace'] = 'app\\module\\admin'; //模块命名空间前缀
+require __DIR__ . '/../vendor/autoload.php';
+require __DIR__ . '/../conf.php';
+require __DIR__ . '/../vendor/myphps/myphp/base.php';
+#未配置模块映射且模块目录未在项目根目录下时需要指定命令空间和识别命名空间的前缀路径
+myphp::$cfg['app_namespace'] = 'app\\module\\admin'; //模块命名空间
 myphp::$namespaceMap['app\\'] = __DIR__ . '/../app'; //命名空间前缀路径
 myphp::Run();
 ```

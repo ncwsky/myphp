@@ -746,7 +746,7 @@ final class myphp
     // app项目初始化
     private static function _initApp($path, $isCLI = IS_CLI): void
     {
-        if (!$isCLI && self::$env['m'] != '') { //仅cli下自动生成项目模块
+        if (!$isCLI && self::$env['m']) { //仅cli下自动生成项目模块
             return;
         }
         if (isset(self::$_cli_cache[$path . '/index.htm'])) {
@@ -842,25 +842,6 @@ final class myphp
         self::loadConfig($app_path . '/config.php', true);
     }
 
-    //php代码格式化
-    public static function compile($filename)
-    {
-        $content = php_strip_whitespace($filename);
-        $content = substr(trim($content), 5);
-        if ('?>' == substr($content, -2)) {
-            $content = substr($content, 0, -2);
-        }
-        return $content;
-    }
-    /**
-     * 载入php文件
-     * @param string $path  路径
-     * @return bool
-     */
-    public static function loadPHP(string $path): bool
-    {
-        return self::load($path);
-    }
     //语言
     public static function loadLang($file): void
     {
@@ -1266,7 +1247,7 @@ final class myphp
             $mca = substr($mca, strlen(DEF_MODULE) + 1);
         }
         if (is_array($vars)) {
-            $query = http_build_query($vars, "", "&", PHP_QUERY_RFC3986);
+            $query = http_build_query($vars, '', '&', PHP_QUERY_RFC3986);
         }
 
         //直接解析 普通模式

@@ -7,7 +7,7 @@
     "homepage": "https://github.com/ncwsky/myphp",
     "minimum-stability": "dev",
     "require": {
-      "php": ">=7.1"
+      "php": ">=7.2"
     },
     "bin": [
         "my"
