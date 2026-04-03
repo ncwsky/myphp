@@ -143,7 +143,7 @@ class Control
     final public function cache(int $expire = 0)
     {
         $this->request->expire = $expire; //0使用默认配置req_cache_expire
-        return $this;
+        //return $this; //如果地址这样请求/index/cache 会把数据库配置给显露
     }
     //在子类控制器及方法中调用 显示模板 非cli模式下使用
     final public function display(string $file = '', ?array $var = null, ?bool $htmlEncode = null)

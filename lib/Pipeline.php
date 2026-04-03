@@ -86,7 +86,11 @@ class Pipeline
                             if (!is_object($pipe)) {
                                 $pipe = new $pipe();
                             }
-                            return $pipe->{$this->method}($passable, $carry);
+                            if (method_exists($pipe, $this->method)) {
+                                return $pipe->{$this->method}($passable, $carry);
+                            } else {
+                                return $pipe($passable, $carry); //以__invoke方法的方式调用
+                            }
                         }
                     } catch (\Throwable $e) {
                         return $this->handleException($passable, $e);

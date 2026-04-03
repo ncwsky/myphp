@@ -78,8 +78,7 @@ class View
         //载入模板缓存文件
         ob_start();
         require $cacheFile;
-        return ob_get_clean();
-        //return $this->template->display($file, $this->vars);//返回内容
+        return ob_get_clean(); //返回内容
     }
 
     /**
