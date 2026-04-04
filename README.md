@@ -238,9 +238,9 @@ Model::rollBack();
 
 ```
 {?$name}              → isset($name) ? $name : ''
-{?$name:默认值}       → isset($name) ? $name : '默认值'
+{?$name:'默认值'}      → isset($name) ? $name : '默认值'
 {?$name=trim}         → isset($name) ? trim($name) : ''
-{?$name=trim:默认值}  → isset($name) ? trim($name) : '默认值'
+{?$name=trim:'默认值'} → isset($name) ? trim($name) : '默认值'
 ```
 
 ## 模块
