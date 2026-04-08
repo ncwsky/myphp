@@ -921,21 +921,17 @@ function Q(string $name, $defVal = '', ?array $input = null)
     $digit = 0; //小数位处理 四舍五入
     Value::parseType($name, $type, $min, $max, $filter, $digit);
 
-    $method = 'request'; // 默认为_REQUEST
-    if (strpos($name, '.') !== false) { // 指定参数来源
+    if (strpos($name, '.')) { // 指定参数来源
         [$method, $name] = explode('.', $name, 2);
-        if (!$method) {
-            if (IS_CLI) {
-                $method = \myphp\Request::isPost() ? 'post' : 'get';
-            } else {
-                $method = 'request';
-            }
+        if ($method === 'req') {
+            $method = 'request';
         }
+    } else {
+        //$method = 'request'; // 默认为_REQUEST
+        $method = strtolower(\myphp\Request::method());
     }
     #echo $method.'--'.$name.'--'.$type.'--'.$min.'--'.$max.'--'.$filter,PHP_EOL;
     switch ($method) {
-        case 'request': $input = &$_REQUEST;
-            break;
         case 'get' : $input = &$_GET;
             break;
         case 'post': $input = &$_POST;
@@ -956,8 +952,10 @@ function Q(string $name, $defVal = '', ?array $input = null)
             break;
         case 'files': $input = &$_FILES;
             break;
-        case 'globals': $input = $GLOBALS;
-            break; // >=8.1为只读不可&引用
+        case 'request': $input = &$_REQUEST;
+            break;
+        //case 'globals': $input = $GLOBALS;
+        //    break; // >=8.1为只读不可&引用
         default:
             if ($type == 'd' || $type == 'f') {
                 $defVal = $type == 'd' ? (int)$defVal : (float)$defVal;
