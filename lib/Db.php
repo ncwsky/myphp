@@ -655,7 +655,7 @@ class Db
                     switch ($operator) {
                         case ' between ':
                         case ' not between ':
-                            $v = is_array($v) ? $v : explode(',', $v);
+                            $v = is_array($v) ? $v : explode(',', (string)$v);
                             $v = $this->parseValue($v);
                             $field = $k . $operator . $v[0] . ' and ' . $v[1];
                             break;
@@ -669,8 +669,7 @@ class Db
                                 if ($v === '') {
                                     $field = '1=0';
                                 } else {
-                                    $v = is_array($v) ? $v : explode(',', $v);
-                                    $field = $k . $operator . '(' . implode(',', $this->parseValue($v)) . ')';
+                                    $field = $k . $operator . '(' . ($v instanceof Expr ? $v : implode(',', $this->parseValue($v))) . ')';
                                 }
                             }
                             break;
