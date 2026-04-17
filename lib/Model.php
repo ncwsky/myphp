@@ -77,7 +77,7 @@ class Model implements \ArrayAccess
      */
     public static $resetOption = false; //sql组合项执行后是否重置
 
-    public static $resetWhere = true; //使用->where是否重置之前的条件
+    public static $resetWhere = false; //使用->where是否重置之前的条件
 
     /**
      * 数据库实例
@@ -589,6 +589,16 @@ class Model implements \ArrayAccess
     public function andWhere($case, $bind = null)
     {
         $this->db->where($case, $bind);
+        return $this;
+    }
+
+    /**
+     * 重置where条件
+     * @return $this
+     */
+    public function resetWhere()
+    {
+        unset($this->db->where);
         return $this;
     }
 
