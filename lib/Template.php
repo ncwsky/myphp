@@ -183,6 +183,12 @@ class Template
     private function doTmp(string $tmpfile)
     {
         $content = file_get_contents($tmpfile);
+        if ($content === false) {
+            throw new \Exception('模板文件读取失败: ' . str_replace(ROOT, '', $tmpfile)
+                . (($this->level > 1 && $this->templateFile !== $tmpfile)
+                    ? '（被 ' . str_replace(ROOT, '', $this->templateFile) . ' 包含）'
+                    : ''));
+        }
         //替换系统常量
         $patt = ['__URL__', '__APP__'];
         $replace = ['<?php echo \myphp::env("URL"); ?>','<?php echo \myphp::env("APP"); ?>'];
