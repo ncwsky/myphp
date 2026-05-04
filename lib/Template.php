@@ -46,7 +46,12 @@ class Template
         $this->templateFile = $templateFile;
         $this->cacheFile = $this->cachePath . DS . str_replace(['/','.'], '_', $file) . '.php';
 
-        //$this->level = 0; $this->maxLevel = 0;
+        // 必须重置 level / maxLevel：常驻内存模式（swoole/workerman/roadrunner）下
+        // View 是单例，Template 实例跨请求复用；任一次解析中途异常或 build 中途中断，
+        // 都会让 maxLevel 残留非零值。下一次请求若进入未命中缓存的 build()，
+        // 会用旧的 maxLevel 访问当前 dir['level'][N]，触发 "Undefined array key N"。
+        $this->level = 0;
+        $this->maxLevel = 0;
         $this->dir['level'] = [];
         $this->dir['file'] = [];
     }
