@@ -7,7 +7,6 @@ namespace myphp;
 //辅助类
 class Helper
 {
-    public static $isProxy = false;
     //日期检测函数(格式:2007-5-6[ 15:30:33])
     public static function is_date(string $date)
     {

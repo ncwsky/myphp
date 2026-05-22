@@ -10,13 +10,13 @@ class HttpAuth
     public static $authUsers = [];
     public static $authBasic = true; //Basic Digest
 
-    public static function auth($logout = false)
+    public static function auth(bool $logout = false)
     {
         if (empty(self::$authUsers)) {
             return true;
         }
         if ($logout) {
-            unset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'], $_SERVER['PHP_AUTH_DIGEST']);
+            unset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'], $_SERVER['PHP_AUTH_DIGEST'], $_SERVER['HTTP_AUTHORIZATION']);
             return false;
         }
 
@@ -80,9 +80,9 @@ class HttpAuth
      * @param string $redirect 退出后需要跳转的url
      * @return bool|string
      */
-    public static function run($redirect = '')
+    public static function run(string $redirect = '')
     {
-        $auth = self::auth($redirect ? true : false);
+        $auth = self::auth((bool)$redirect);
         if ($auth !== true) {
             $protocol = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.0';
             header($protocol . ' 401 Unauthorized');
