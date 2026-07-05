@@ -135,12 +135,12 @@ class Control
     }
 
     //设置模板变量
-    final public function assign(string $var, $value): void
+    final protected function assign(string $var, $value): void
     {
         $this->view->assign($var, $value);
     }
     //启用输出缓存
-    final public function cache(int $expire = 0)
+    final protected function cache(int $expire = 0)
     {
         $this->request->expire = $expire; //0使用默认配置req_cache_expire
         //return $this; //如果地址这样请求/index/cache 会把数据库配置给显露

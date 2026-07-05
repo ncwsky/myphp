@@ -82,6 +82,18 @@ class File extends \myphp\CacheAbstract
         $file = $this->_file($name, true);
         return $this->_filePutContent($file, $data, $time);
     }
+
+    /**
+     * 兼容reids处理
+     * @param string $name
+     * @param int $expire
+     * @param $data
+     * @return bool
+     */
+    public function setex(string $name, int $expire, $data): bool
+    {
+        return $this->set($name, $data, $expire);
+    }
     /**
      * 得到缓存信息
      * @param string $name
