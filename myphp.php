@@ -195,7 +195,23 @@ final class myphp
              * @var Control $instance
              */
             $instance = new $control();
+            
+            // 方案一：统一通过 Control::_run() 调度，执行 ReflectionMethod 校验和 action 缓存。
             $res = $instance->_run(self::$env['ACTION']);
+            /*
+            //方案二：入口层直接判断并调用 action（保留作对比，不能与上面的方案同时启用）。
+            $action = myphp::$env['ACTION'];
+            //判断实例中是否存在action方法，不存在则提示错误
+            if (!is_callable([$instance, $action]) || substr($action, 0, 1) === '_') {
+                return self::res()->e404('method not exists ' . $action);
+            }
+            #if (!method_exists($instance, $action) || substr($action, 0, 1) === '_') {
+            #    return self::res()->e404('method not exists ' . $action);
+            #}
+            if ($instance->_runBefore()) { //before
+                $result = $instance->$action();
+                $res = $instance->_runAfter($result); //after
+            }*/
         }
         if ($res !== null && !$res instanceof Response) {
             self::res()->body = $res;
@@ -316,6 +332,8 @@ final class myphp
             $res = self::handle();
             if ($res !== null) {
                 self::send($res, self::res()->getStatusCode(), self::req()->expire);
+            } else {
+                self::send('', self::res()->getStatusCode());
             }
         } catch (\Exception $e) {
             $errCode = $e->getCode();

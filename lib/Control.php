@@ -10,6 +10,12 @@ use myphp;
 class Control
 {
     /**
+     * 只缓存通过校验的控制器 action，避免重复创建 ReflectionMethod。
+     * @var array<string, array<string, bool>>
+     */
+    private static $actionCache = [];
+
+    /**
      * @var View|null
      */
     public $view = null; //模板实例
@@ -116,7 +122,16 @@ class Control
         }
         return $result;
     }
+    /*
+    final public function _runBefore()
+    {
+        return $this->_before();
+    }
 
+    final public function _runAfter(&$result)
+    {
+        return $this->_after($result);
+    }*/
     /**
      * 执行动作
      * @param string $action
@@ -125,11 +140,27 @@ class Control
      */
     final public function _run(string $action)
     {
-        //判断实例中是否存在action方法，不存在则提示错误
-        if (!method_exists($this, $action)) {
-            return $this->response->e404('method not exists ' . $action);
+        $class = get_class($this);
+        if (!isset(self::$actionCache[$class][$action])) {
+            //判断实例中是否存在action方法，不存在则提示错误
+            if (!method_exists($this, $action)) {
+                return $this->response->e404('method not exists ' . $action);
+            }
+
+            $method = new \ReflectionMethod($this, $action);
+            //只允许请求分发到应用控制器公开的业务 action，禁止调用框架基类和内部方法
+            if (
+                !$method->isPublic()
+                || $method->isStatic()
+                || $method->getDeclaringClass()->getName() === self::class //是Control
+                || substr($action, 0, 1) === '_'
+            ) {
+                return $this->response->e404('method not exists ' . $action);
+            }
+
+            self::$actionCache[$class][$action] = true;
         }
-        //throw new \Exception('method not exists ' . $action, 404);
+
         //前后置操作处理
         return $this->_before() ? $this->_after($this->$action()) : null;
     }
