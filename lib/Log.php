@@ -313,20 +313,20 @@ class Log
     {
         if (filesize($file) < self::$size) {
             if (!file_put_contents($file, $msg . PHP_EOL, FILE_APPEND)) {
-                error_log($msg . ' write ' . $file . " fail" . PHP_EOL);
+                error_log($msg . ', write ' . $file . ' fail' . PHP_EOL, 3, self::$logDir . 'log.log');
             }
             return;
         }
         //日志超出大小 截断日志
         $fp = fopen($file, 'a');
         if (!$fp) {
-            error_log('Failed to open: ' . $file);
+            error_log($msg . ', Failed to open: ' . $file . PHP_EOL, 3, self::$logDir . 'log.log');
             return;
         }
         if (flock($fp, LOCK_EX)) { //并发阻塞
             clearstatcache(true, $file);
             if (!fwrite($fp, $msg . PHP_EOL)) {
-                error_log($msg . ' write ' . $file . " fail" . PHP_EOL);
+                error_log($msg . ', write ' . $file . ' fail' . PHP_EOL, 3, self::$logDir . 'log.log');
             }
             if (filesize($file) >= self::$size) { //并发后这里的大小可能已改变
                 fflush($fp);  // 确保写入物理存储
@@ -337,7 +337,7 @@ class Log
             }
             flock($fp, LOCK_UN);
         } else {
-            error_log(date('Y-m-d H:i:s') . $msg . ' truncate, ' . $file . ' lock fail' . PHP_EOL);
+            error_log(date('Y-m-d H:i:s') . $msg . ', truncate, ' . $file . ' lock fail' . PHP_EOL, 3, self::$logDir . 'log.log');
         }
         fclose($fp);
     }

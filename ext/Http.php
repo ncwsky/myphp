@@ -14,6 +14,7 @@ class Http
     public static $curlRetryCond = null; //curl重试条件，未指定使用的默认 function($url, $err):bool
     public static $curlErr = '';
     public static $curlPostEncode = true; //编码post数据
+    public static $curlUploadSpeed = 0; //上传限速 字节/秒 0不限速
     public static $multiUrl = [];
     public static $multiErr = [];
     private static $isMulti = false;
@@ -164,6 +165,115 @@ class Http
         }
 
         return self::curlSend($url, 'POST', $data, $timeout, $header, $opt);
+    }
+    /**
+     * 通过curl CURLOPT_UPLOAD 流式上传(非multipart, 请求体即文件裸流)
+     * 适用于大文件PUT/POST上传, 内存占用恒定
+     *
+     * 示例:
+     *  Http::curlUpload($url, '/path/a.bin');                       //本地文件 PUT
+     *  Http::curlUpload($url, $fp, 'POST', 60, [], ['size'=>$len]); //已打开的流资源
+     *  Http::curlUpload($url, 'string content');                    //字符串内容
+     *  Http::curlUpload($url, function($ch,$fd,$len){...}, 'PUT', 30, [], ['size'=>$total]); //自定义读回调
+     *
+     * @param string $url
+     * @param string|resource|callable $src 文件路径|流资源|字符串内容|读回调function($ch,$fd,$length):string
+     * @param string $type PUT|POST 等
+     * @param int $timeout
+     * @param string|array $header
+     * @param array $opt 额外支持 size 上传字节数, progress 进度回调, speed 限速
+     * @return array|bool|string
+     */
+    public static function curlUpload($url, $src, $type = 'PUT', $timeout = 30, $header = [], $opt = [])
+    {
+        $upload = $opt['upload'] ?? [];
+        $upload['src'] = $src;
+        if (isset($opt['size'])) {
+            $upload['size'] = $opt['size'];
+        }
+        if (isset($opt['progress'])) {
+            $upload['progress'] = $opt['progress'];
+        }
+        if (isset($opt['speed'])) {
+            $upload['speed'] = $opt['speed'];
+        }
+        $opt['upload'] = $upload;
+        return self::curlSend($url, $type, null, $timeout, $header, $opt);
+    }
+    /**
+     * 解析上传配置为curl选项, 返回内部打开需自行关闭的句柄
+     * @param array $upload ['src'=>路径|资源|字符串|callable, 'size'=>int, 'progress'=>callable, 'speed'=>int]
+     * @param array $options curl选项 引用
+     * @return resource|null 内部打开的句柄(需调用方关闭), 外部传入的资源返回null
+     * @throws \Exception
+     */
+    private static function _curlUploadOpt(array $upload, array &$options)
+    {
+        $src = $upload['src'] ?? null;
+        if ($src === null) {
+            throw new \Exception('upload src 不能为空');
+        }
+        $size = isset($upload['size']) ? (int)$upload['size'] : null;
+        $ownFp = null; //内部打开的句柄
+
+        $options[CURLOPT_UPLOAD] = true;
+        //上传时不能再设置 POSTFIELDS, 否则curl会改用请求体发送
+        unset($options[CURLOPT_POSTFIELDS]);
+
+        if (is_callable($src) && !is_string($src)) { //自定义读回调 function($ch,$fd,$length):string
+            $options[CURLOPT_READFUNCTION] = $src;
+        } elseif (is_resource($src)) { //已打开的流资源, 由调用方负责关闭
+            @rewind($src); //重试场景需回到起点
+            $options[CURLOPT_INFILE] = $src;
+            if ($size === null) {
+                $stat = @fstat($src);
+                if (isset($stat['size']) && $stat['size'] > 0) {
+                    $size = $stat['size'];
+                }
+            }
+        } elseif (is_string($src) && $src !== '' && strlen($src) < PHP_MAXPATHLEN && @is_file($src)) { //本地文件路径
+            $fp = @fopen($src, 'rb');
+            if (!$fp) {
+                throw new \Exception('upload 文件打开失败: ' . $src);
+            }
+            $ownFp = $fp;
+            $options[CURLOPT_INFILE] = $fp;
+            if ($size === null) {
+                $size = filesize($src);
+            }
+        } elseif (is_string($src)) { //字符串内容, 走临时流避免整体驻留在curl内部
+            $fp = fopen('php://temp', 'r+b');
+            if (!$fp) {
+                throw new \Exception('upload 临时流创建失败');
+            }
+            fwrite($fp, $src);
+            rewind($fp);
+            $ownFp = $fp;
+            $options[CURLOPT_INFILE] = $fp;
+            if ($size === null) {
+                $size = strlen($src);
+            }
+        } else {
+            throw new \Exception('upload src 类型不支持');
+        }
+
+        if ($size !== null && $size >= 0) {
+            //大于2G用 CURLOPT_INFILESIZE_LARGE 语义(php中同为整型, 64位下直接可用)
+            $options[CURLOPT_INFILESIZE] = $size;
+        }
+
+        //上传进度 function($ch,$dlTotal,$dlNow,$ulTotal,$ulNow):int 返回非0中断
+        if (isset($upload['progress']) && is_callable($upload['progress'])) {
+            $options[CURLOPT_NOPROGRESS] = false;
+            $options[CURLOPT_PROGRESSFUNCTION] = $upload['progress'];
+        }
+        //限速
+        $speed = $upload['speed'] ?? self::$curlUploadSpeed;
+        if ($speed > 0) {
+            $options[CURLOPT_MAX_SEND_SPEED_LARGE] = (int)$speed;
+        }
+
+        return $ownFp;
     }
     /**
      * 通过curl 自定义发送请求
@@ -332,6 +442,26 @@ class Http
             $header = array_filter($header);
         }
 
+        //流式上传 CURLOPT_UPLOAD
+        $uploadFp = null;
+        if (!empty($opt['upload'])) {
+            $upload = $opt['upload'];
+            if (!is_array($upload)) { //简写 'upload'=>路径|资源|字符串|callable
+                $upload = ['src' => $upload];
+            }
+            $uploadFp = self::_curlUploadOpt($upload, $options);
+            //CURLOPT_UPLOAD 默认会置为 PUT, 用 CUSTOMREQUEST 保持调用方指定的方法
+            $options[CURLOPT_CUSTOMREQUEST] = $type;
+            //未指定长度时curl会使用分块传输, 明确声明避免部分服务端拒绝
+            if (!isset($options[CURLOPT_INFILESIZE]) && !self::_headerHas($header, 'Transfer-Encoding')) {
+                $header[] = 'Transfer-Encoding: chunked';
+            }
+            //大文件避免等待 100-continue 超时
+            if (!self::_headerHas($header, 'Expect')) {
+                $header[] = 'Expect:';
+            }
+        }
+
         $options[CURLOPT_HTTPHEADER] = $header;
         if (isset($opt['cookie'])) {
             $options[CURLOPT_COOKIE] = $opt['cookie'];
@@ -348,7 +478,7 @@ class Http
         if (isset($opt['res'])) {
             curl_setopt($ch, CURLOPT_HEADER, true);    // 是否需要响应 header
             if (self::$isMulti) {
-                return $ch;
+                return $ch; //批量模式由 multi() 统一收尾, 上传句柄交由GC回收
             }
             $output          = curl_exec($ch);
             if ($output !== false) {
@@ -376,7 +506,8 @@ class Http
         self::$curlErr = '';
         if (curl_errno($ch)) {
             self::$curlErr = curl_error($ch);
-            \myphp\Log::write('err:(' . curl_errno($ch) . ')' . self::$curlErr . "\nurl:" . $url . ($data !== null ? "\ndata:" . (is_string($data) ? urldecode($data) : toJson($data)) : ''), 'curl');
+            $logRequest = ($opt['omit_request_log'] ?? false) !== true; //省略请求日志
+            \myphp\Log::write('err:(' . curl_errno($ch) . ')' . self::$curlErr . "\nurl:" . $url . ($logRequest && $data !== null ? "\ndata:" . (is_scalar($data) ? urldecode($data) : toJson($data)) : ''), 'curl');
             //\myphp\Log::write($options, 'options');
             //\myphp\Log::write($opt, 'opt');
 
@@ -406,6 +537,9 @@ class Http
                 }
                 if ($runRetry) {
                     curl_close($ch);
+                    if ($uploadFp) { //重试会重新打开数据源
+                        fclose($uploadFp);
+                    }
                     return self::curlSend($url, $type, $data, $timeout, $header, $opt);
                 }
             }
@@ -417,7 +551,34 @@ class Http
         }
 
         curl_close($ch);
+        if ($uploadFp) { //仅关闭内部打开的句柄, 外部传入的资源由调用方负责
+            fclose($uploadFp);
+        }
         return $result;
+    }
+
+    /**
+     * header中是否已存在指定字段
+     * @param string|array $header
+     * @param string $name
+     * @return bool
+     */
+    private static function _headerHas($header, $name)
+    {
+        $name = strtolower($name) . ':';
+        $len = strlen($name);
+        foreach ((array)$header as $k => $v) {
+            if (!is_int($k)) {
+                if (strtolower($k) === rtrim($name, ':')) {
+                    return true;
+                }
+                continue;
+            }
+            if (strncasecmp($v, $name, $len) === 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

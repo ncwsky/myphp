@@ -688,7 +688,7 @@ class File extends \myphp\CacheAbstract
         /*
         $files = glob($path.DIRECTORY_SEPARATOR.'*'.$this->suffix);
         if($files) $len = count($files);*/
-        if (($handle = opendir($path)) !== false) {
+        if (is_dir($path) && ($handle = opendir($path)) !== false) {
             while (($file = readdir($handle)) !== false) {
                 if ($file === '.' || $file === '..') {
                     continue;
